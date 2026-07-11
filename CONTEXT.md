@@ -1,12 +1,14 @@
-# Freebies JSON Tools — LLM Project Context
+# VinMi — Building Intelligent Enterprise Solutions — LLM Project Context
 
 > **Purpose of this file**: Provide any LLM (ChatGPT, Claude, Gemini, Copilot, etc.) with enough context to understand, modify, debug, and deploy this project without needing to explore files first. Paste or attach this file at the start of a conversation.
+>
+> **Brand**: The product is branded **VinMi — Building Intelligent Enterprise Solutions**. The frontend ships the reusable **VinMi Design System** (see §12), a multi-theme token architecture meant to be lifted into future VinMi projects.
 
 ---
 
 ## 1. What Is This Project?
 
-**Freebies JSON Tools** is a full-stack web application that bundles eight JSON/text utilities under a single UI:
+**VinMi Enterprise JSON Toolkit** is a full-stack web application that bundles eight JSON/text utilities under a single, professionally themed UI:
 
 | # | Page | Route | Backend? | Description |
 |---|------|-------|----------|-------------|
@@ -19,7 +21,7 @@
 | 7 | **Lint** | `/lint` | No | JSON schema validation and linting |
 | 8 | **Graph** | `/graph` | No | Visual graph/tree rendering of JSON structure |
 
-The root route (`/`) redirects to `/format` via a server-side 307 redirect in `+page.server.ts`.
+The root route (`/`) is the **VinMi landing page** (`+page.svelte`) — brand overview (Software Engineering, AI Solutions, Intelligent Automation), a toolkit index, and contact (`tamizhezhutthu@gmail.com`).
 
 ---
 
@@ -34,7 +36,7 @@ The root route (`/`) redirects to `/format` via a server-side 307 redirect in `+
 | Build | Vite | 5.x |
 | Node adapter | `@sveltejs/adapter-node` | 5.x |
 | Testing | Vitest + @testing-library/svelte | — |
-| Styling | Scoped CSS + CSS custom properties (dark/light theme) | — |
+| Styling | Scoped CSS + VinMi Design System (multi-theme CSS custom properties) | — |
 
 ### Backend
 | Concern | Technology | Version |
@@ -91,7 +93,7 @@ json-diff-app/
 │   │   │   ├── api.test.ts
 │   │   │   ├── types.ts             # TS interfaces matching Pydantic models
 │   │   │   ├── stores/
-│   │   │   │   └── theme.ts         # Dark/light theme store
+│   │   │   │   └── theme.ts         # VinMi multi-theme store (5 named themes)
 │   │   │   ├── utils/
 │   │   │   │   └── jsonDiff.ts      # Client-side diff utilities
 │   │   │   └── components/
@@ -107,8 +109,8 @@ json-diff-app/
 │   │   │       ├── StatsPanel.test.ts
 │   │   │       └── JsonTreeNode.svelte     # Recursive tree viewer node
 │   │   └── routes/
-│   │       ├── +layout.svelte       # App shell — header, nav, footer, theme toggle
-│   │       ├── +page.server.ts      # Root redirect → /format
+│   │       ├── +layout.svelte       # App shell — header, nav, footer, theme picker
+│   │       ├── +page.svelte         # VinMi landing / home page (brand + toolkit index + contact)
 │   │       ├── format/+page.svelte  # Format/beautify/minify
 │   │       ├── viewer/+page.svelte  # Interactive JSON tree viewer
 │   │       ├── grid/+page.svelte    # Grid/table view with column filters
@@ -204,16 +206,17 @@ When deploying to Cloud Run, add your production domain to `allow_origins`.
 
 - SvelteKit file-based routing under `src/routes/`
 - `+layout.svelte` provides the app shell (header with nav links, theme toggle, footer)
-- `+page.server.ts` at root does a 307 redirect to `/format`
+- `+page.svelte` at root is the VinMi landing page (brand overview + toolkit index + contact)
 - Most pages are **client-only** (no backend call) except `/compare` which posts to the FastAPI backend
 - `vite.config.ts` proxies `/api` requests to `http://localhost:8000` during development
 
 ### Styling
 
-- CSS custom properties defined in `app.css` (e.g., `--color-surface`, `--color-primary`, `--color-border`)
-- Dark theme is default; light theme toggle via `$lib/stores/theme.ts`
-- Component styles are scoped via Svelte `<style>` blocks
-- Common classes: `.container`, `.card`, `.btn`, `.btn-primary`, `.btn-secondary`, `.btn-sm`
+- Powered by the **VinMi Design System** — see §12 for the full token reference.
+- Semantic CSS custom properties defined in `app.css` (e.g., `--color-surface`, `--color-primary`, `--color-border`). Components **only** reference `var(--token)`, never raw colors, so they are theme-agnostic.
+- Five named themes (`midnight` default, `daylight`, `slate`, `ocean`, `sandstone`) selected via `[data-theme="…"]` on `<html>` and managed by `$lib/stores/theme.ts`.
+- Component styles are scoped via Svelte `<style>` blocks.
+- Common classes: `.container`, `.card`, `.btn`, `.btn-primary`, `.btn-secondary`, `.icon-btn`.
 
 ### Key Frontend Files to Edit
 
@@ -302,8 +305,8 @@ Two services with volume mounts for hot-reload:
 4. Add TypeScript types to `frontend/src/lib/types.ts`
 5. Add fetch function to `frontend/src/lib/api.ts`
 
-### Changing the theme
-Edit CSS custom properties in `frontend/src/app.css` under `:root` and `[data-theme="light"]`.
+### Changing / adding a theme
+See §12. In short: copy a `[data-theme="…"]` block in `frontend/src/app.css`, re-tune the palette, then add a matching descriptor to the `themes` array in `frontend/src/lib/stores/theme.ts`. Nothing else needs to change — components read the tokens automatically.
 
 ---
 
@@ -335,3 +338,69 @@ See **`DEPLOYMENT.md`** for a complete Google Cloud Run deployment guide coverin
 - CI/CD with Cloud Build
 - Custom domain mapping
 - Environment variable configuration
+
+---
+
+## 12. VinMi Design System (reusable across projects)
+
+A brand-consistent, **multi-theme** token system. It is intentionally portable: the two files below have **zero dependency on this app's domain logic**, so they can be copied into any SvelteKit (or, for the CSS, any web) project to give it the VinMi look and theme switching.
+
+**Portable files**
+- `frontend/src/app.css` — token definitions + base/reset + `.btn`/`.card`/`.icon-btn` primitives.
+- `frontend/src/lib/stores/theme.ts` — the theme store + `themes` descriptor list.
+- `frontend/src/app.html` — the pre-paint inline script that applies the saved theme before first render (prevents a flash of the default theme).
+- `frontend/src/routes/+layout.svelte` — reference implementation of the branded header (logo + tagline), nav, footer, and the theme-picker dropdown.
+
+### Design principles
+1. **Components never hardcode color.** They reference `var(--token)` only. This is what makes every theme "just work" without touching components.
+2. **Two token layers.** Brand-invariant primitives live in `:root` (type, radius scale, motion, z-index). Everything color/elevation is redefined per theme in a `[data-theme="…"]` block.
+3. **A theme is a complete palette.** Each theme redefines the *same* token set — never a partial override — so contrast and hierarchy stay intentional per theme.
+
+### The five shipped themes
+| id | Mode | Character | Accent |
+|----|------|-----------|--------|
+| `midnight` *(default)* | dark | Deep indigo enterprise | `#6366f1` |
+| `daylight` | light | Clean corporate | `#4f46e5` |
+| `slate` | dark | Neutral charcoal, cool sky | `#38bdf8` |
+| `ocean` | dark | Deep marine teal | `#06b6d4` |
+| `sandstone` | light | Warm, low-glare bronze | `#b45309` |
+
+### Semantic token contract
+Every theme **must** define all of these (grouped by role):
+
+```
+Surfaces   --color-bg  --color-surface  --color-surface-elevated  --color-surface-hover
+Text        --color-text  --color-text-muted  --color-text-subtle
+Borders     --color-border  --color-border-strong
+Brand       --color-primary  --color-primary-hover  --color-primary-contrast
+            --color-primary-soft (translucent)  --color-secondary  --color-accent
+State       --color-success  --color-error  --color-warning  --color-info
+Diff        --color-added / -border  --color-removed / -border  --color-modified / -border  --color-unchanged
+Gradients   --gradient-primary  --gradient-header  --gradient-subtle
+Elevation   --shadow-sm  --shadow  --shadow-lg  --shadow-glow  --focus-ring
+```
+Brand-invariant primitives (defined once in `:root`): `--font-sans`, `--font-mono`, radius scale (`--radius-sm/-/-lg/-full`), `--transition`, `--transition-slow`, z-index tokens, `--header-blur`, `--container-max`.
+
+> Backward-compat: the original `--color-*` / `--gradient-*` / `--shadow*` / `--radius` / `--font-mono` names are all preserved, so pre-existing components render unchanged.
+
+### How to add a new theme
+1. In `app.css`, copy an existing `[data-theme="…"]` block, rename the selector, and re-tune the palette. Set `color-scheme: dark|light;` so native form controls/scrollbars match.
+2. In `theme.ts`, add a `ThemeOption` to the `themes` array: `{ id, label, mode, swatch, description }`. The `id` must equal the `data-theme` value; `swatch` drives the picker chip.
+3. Add the new id to the `valid` array in the `app.html` pre-paint script.
+That's it — the picker, persistence, and all components pick it up automatically.
+
+### Store API (`$lib/stores/theme.ts`)
+```ts
+import { theme, themes } from '$lib/stores/theme';
+$theme            // current theme id (reactive)
+theme.set(id)     // switch to a specific theme (persists to localStorage 'vinmi-theme')
+theme.toggle()    // cycle to the next theme in `themes`
+theme.init()      // hydrate from storage on mount (call in +layout onMount)
+```
+Legacy `'dark'`/`'light'` values in storage are auto-migrated to `midnight`/`daylight`.
+
+### Reusing in a future VinMi project
+1. Copy `app.css`, `lib/stores/theme.ts`, and the `app.html` pre-paint script.
+2. Import `app.css` once in the root layout and call `theme.init()` in `onMount`.
+3. Build UI against the semantic tokens and the `.btn` / `.card` / `.icon-btn` primitives.
+4. Reuse the header/footer/theme-picker markup from `+layout.svelte` as the branded shell.

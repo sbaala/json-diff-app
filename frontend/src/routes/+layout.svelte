@@ -1,18 +1,34 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/stores';
-	import { theme } from '$lib/stores/theme';
+	import { theme, themes } from '$lib/stores/theme';
+	import type { Theme } from '$lib/stores/theme';
 	import { onMount } from 'svelte';
 
 	let { children } = $props();
 	let mobileMenuOpen = $state(false);
+	let themeMenuOpen = $state(false);
+
+	const navItems = [
+		{ href: '/', label: 'Home' },
+		{ href: '/format', label: 'Format' },
+		{ href: '/viewer', label: 'Viewer' },
+		{ href: '/grid', label: 'Grid', flash: true },
+		{ href: '/compare', label: 'JSON Diff' },
+		{ href: '/text', label: 'Text Diff' },
+		{ href: '/convert', label: 'Convert' },
+		{ href: '/lint', label: 'Lint' },
+		{ href: '/graph', label: 'Graph' }
+	];
+
+	const currentTheme = $derived(themes.find((t) => t.id === $theme) ?? themes[0]);
 
 	onMount(() => {
 		theme.init();
 	});
 
-	function toggleTheme() {
-		theme.toggle();
+	function isActive(href: string) {
+		return $page.url.pathname === href;
 	}
 
 	function toggleMobileMenu() {
@@ -22,56 +38,122 @@
 	function closeMobileMenu() {
 		mobileMenuOpen = false;
 	}
+
+	function selectTheme(id: Theme) {
+		theme.set(id);
+		themeMenuOpen = false;
+	}
+
+	function onWindowClick(event: MouseEvent) {
+		const target = event.target as HTMLElement;
+		if (themeMenuOpen && !target.closest('.theme-switcher')) {
+			themeMenuOpen = false;
+		}
+	}
 </script>
+
+<svelte:window onclick={onWindowClick} />
 
 <div class="app">
 	<header class="header">
+		<div class="header-accent"></div>
 		<div class="container header-content">
-			<a href="/format" class="logo">
-				<span class="logo-icon">{'{ }'}</span>
-				<span class="logo-text">Free-bies</span>
-				<span class="logo-accent">JSON</span>
+			<a href="/" class="logo" aria-label="VinMi home">
+				<span class="logo-mark" aria-hidden="true">
+					<svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+						<path
+							d="M4 6l8 20 4-11 4 11 8-20"
+							stroke="url(#vinmi-grad)"
+							stroke-width="3"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
+						<defs>
+							<linearGradient id="vinmi-grad" x1="4" y1="6" x2="28" y2="26" gradientUnits="userSpaceOnUse">
+								<stop stop-color="var(--color-primary)" />
+								<stop offset="1" stop-color="var(--color-secondary)" />
+							</linearGradient>
+						</defs>
+					</svg>
+				</span>
+				<span class="logo-copy">
+					<span class="logo-name">VinMi</span>
+					<span class="logo-tagline">Building Intelligent Enterprise Solutions</span>
+				</span>
 			</a>
 
-			<button class="mobile-menu-btn" onclick={toggleMobileMenu} aria-label="Toggle menu">
+			<button class="icon-btn mobile-menu-btn" onclick={toggleMobileMenu} aria-label="Toggle menu" aria-expanded={mobileMenuOpen}>
 				{#if mobileMenuOpen}
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<line x1="18" y1="6" x2="6" y2="18"/>
-						<line x1="6" y1="6" x2="18" y2="18"/>
+					<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+						<line x1="18" y1="6" x2="6" y2="18" />
+						<line x1="6" y1="6" x2="18" y2="18" />
 					</svg>
 				{:else}
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<line x1="3" y1="12" x2="21" y2="12"/>
-						<line x1="3" y1="6" x2="21" y2="6"/>
-						<line x1="3" y1="18" x2="21" y2="18"/>
+					<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+						<line x1="3" y1="12" x2="21" y2="12" />
+						<line x1="3" y1="6" x2="21" y2="6" />
+						<line x1="3" y1="18" x2="21" y2="18" />
 					</svg>
 				{/if}
 			</button>
 
 			<nav class="nav" class:open={mobileMenuOpen}>
-				<a href="/format" class="nav-link" class:active={$page.url.pathname === '/format' || $page.url.pathname === '/'} onclick={closeMobileMenu}>Format</a>
-				<a href="/viewer" class="nav-link" class:active={$page.url.pathname === '/viewer'} onclick={closeMobileMenu}>Viewer</a>
-				<a href="/grid" class="nav-link nav-flash" class:active={$page.url.pathname === '/grid'} onclick={closeMobileMenu}>Grid</a>
-				<a href="/compare" class="nav-link" class:active={$page.url.pathname === '/compare'} onclick={closeMobileMenu}>JSON Diff</a>
-				<a href="/text" class="nav-link" class:active={$page.url.pathname === '/text'} onclick={closeMobileMenu}>Text Diff</a>
-				<a href="/convert" class="nav-link" class:active={$page.url.pathname === '/convert'} onclick={closeMobileMenu}>Convert</a>
-				<a href="/lint" class="nav-link" class:active={$page.url.pathname === '/lint'} onclick={closeMobileMenu}>Lint</a>
-				<a href="/graph" class="nav-link" class:active={$page.url.pathname === '/graph'} onclick={closeMobileMenu}>Graph</a>
+				{#each navItems as item}
+					<a
+						href={item.href}
+						class="nav-link"
+						class:nav-flash={item.flash}
+						class:active={isActive(item.href)}
+						onclick={closeMobileMenu}
+					>
+						{item.label}
+					</a>
+				{/each}
 			</nav>
 
 			<div class="header-actions">
-				<button class="theme-toggle" onclick={toggleTheme} title="Toggle theme">
-					{#if $theme === 'dark'}
-						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<circle cx="12" cy="12" r="5"/>
-							<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+				<div class="theme-switcher">
+					<button
+						class="icon-btn theme-trigger"
+						onclick={() => (themeMenuOpen = !themeMenuOpen)}
+						aria-haspopup="menu"
+						aria-expanded={themeMenuOpen}
+						title="Change theme"
+					>
+						<span class="swatch" style="background:{currentTheme.swatch}"></span>
+						<span class="theme-trigger-label">{currentTheme.label}</span>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+							<polyline points="6 9 12 15 18 9" />
 						</svg>
-					{:else}
-						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-						</svg>
+					</button>
+
+					{#if themeMenuOpen}
+						<div class="theme-menu" role="menu">
+							<p class="theme-menu-title">Theme</p>
+							{#each themes as option}
+								<button
+									class="theme-option"
+									class:selected={option.id === $theme}
+									role="menuitemradio"
+									aria-checked={option.id === $theme}
+									onclick={() => selectTheme(option.id)}
+								>
+									<span class="swatch" style="background:{option.swatch}"></span>
+									<span class="theme-option-copy">
+										<span class="theme-option-label">{option.label}</span>
+										<span class="theme-option-desc">{option.description}</span>
+									</span>
+									<span class="theme-mode">{option.mode}</span>
+									{#if option.id === $theme}
+										<svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+											<polyline points="20 6 9 17 4 12" />
+										</svg>
+									{/if}
+								</button>
+							{/each}
+						</div>
 					{/if}
-				</button>
+				</div>
 			</div>
 		</div>
 	</header>
@@ -81,8 +163,18 @@
 	</main>
 
 	<footer class="footer">
-		<div class="container">
-			<p>Contact @tamizhezhutthu@gmail.com Free-bies JSON Tools - Format, View & Compare JSON</p>
+		<div class="container footer-content">
+			<div class="footer-brand">
+				<span class="footer-name">VinMi</span>
+				<span class="footer-tagline">Building Intelligent Enterprise Solutions</span>
+			</div>
+			<p class="footer-meta">
+				<a class="footer-link" href="mailto:tamizhezhutthu@gmail.com">tamizhezhutthu@gmail.com</a>
+				<span class="footer-sep">·</span>
+				Enterprise JSON Toolkit
+				<span class="footer-sep">·</span>
+				&copy; {new Date().getFullYear()} VinMi
+			</p>
 		</div>
 	</footer>
 </div>
@@ -94,92 +186,105 @@
 		min-height: 100vh;
 	}
 
+	/* ---- Header ---------------------------------------------------------- */
 	.header {
-		background: var(--color-surface);
-		border-bottom: 1px solid var(--color-border);
 		position: sticky;
 		top: 0;
-		z-index: 100;
-		box-shadow: var(--shadow-glow);
+		z-index: var(--z-header);
+		background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+		backdrop-filter: var(--header-blur);
+		-webkit-backdrop-filter: var(--header-blur);
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.header-accent {
+		height: 3px;
+		background: var(--gradient-header);
+		background-size: 200% 100%;
+		animation: gradient-shift 8s ease infinite;
 	}
 
 	.header-content {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		height: 60px;
-		gap: 1rem;
+		height: 68px;
+		gap: 1.25rem;
 	}
 
 	.logo {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		font-size: 1.25rem;
-		font-weight: 700;
+		gap: 0.65rem;
 		text-decoration: none;
 		flex-shrink: 0;
 	}
 
-	.logo-icon {
-		background: var(--gradient-primary);
-		-webkit-background-clip: text;
-		background-clip: text;
-		color: transparent;
-		font-family: var(--font-mono);
-	}
-
-	.logo-text {
-		color: var(--color-text);
-	}
-
-	.logo-accent {
-		background: var(--gradient-primary);
-		-webkit-background-clip: text;
-		background-clip: text;
-		color: transparent;
-	}
-
-	.mobile-menu-btn {
-		display: none;
-		align-items: center;
-		justify-content: center;
-		width: 40px;
-		height: 40px;
-		background: transparent;
+	.logo-mark {
+		display: grid;
+		place-items: center;
+		width: 42px;
+		height: 42px;
+		border-radius: var(--radius-sm);
+		background: var(--color-primary-soft);
 		border: 1px solid var(--color-border);
-		border-radius: var(--radius);
-		color: var(--color-text);
-		cursor: pointer;
 	}
 
+	.logo-copy {
+		display: flex;
+		flex-direction: column;
+		line-height: 1.15;
+	}
+
+	.logo-name {
+		font-size: 1.3rem;
+		font-weight: 800;
+		letter-spacing: -0.02em;
+		background: var(--gradient-primary);
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+	}
+
+	.logo-tagline {
+		font-size: 0.68rem;
+		font-weight: 500;
+		letter-spacing: 0.02em;
+		color: var(--color-text-muted);
+	}
+
+	/* ---- Nav ------------------------------------------------------------- */
 	.nav {
 		display: flex;
-		gap: 0.5rem;
+		gap: 0.15rem;
 		flex-wrap: wrap;
 		justify-content: center;
 		flex: 1;
 	}
 
 	.nav-link {
-		color: var(--color-text);
+		color: var(--color-text-muted);
 		text-decoration: none;
-		padding: 0.5rem 0.75rem;
-		border-radius: var(--radius);
-		transition: all 0.15s ease;
+		padding: 0.5rem 0.8rem;
+		border-radius: var(--radius-sm);
+		transition: color var(--transition), background var(--transition);
 		font-size: 0.875rem;
+		font-weight: 500;
 		white-space: nowrap;
 	}
 
 	.nav-link:hover {
-		background: var(--color-bg);
+		background: var(--color-surface-hover);
+		color: var(--color-text);
 	}
 
 	.nav-link.active {
-		background: var(--gradient-primary);
-		color: white;
+		background: var(--color-primary-soft);
+		color: var(--color-primary);
+		font-weight: 600;
 	}
 
+	/* ---- Actions / icon buttons ----------------------------------------- */
 	.header-actions {
 		display: flex;
 		align-items: center;
@@ -187,70 +292,230 @@
 		flex-shrink: 0;
 	}
 
-	.theme-toggle {
-		display: flex;
+	.icon-btn {
+		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 40px;
-		height: 40px;
-		background: var(--color-bg);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius);
+		gap: 0.5rem;
+		height: 42px;
+		padding: 0 0.75rem;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border-strong);
+		border-radius: var(--radius-sm);
 		color: var(--color-text);
-		cursor: pointer;
-		transition: all 0.15s ease;
+		transition: background var(--transition), border-color var(--transition), color var(--transition);
 	}
 
-	.theme-toggle:hover {
+	.icon-btn:hover {
 		background: var(--color-surface-hover);
 		border-color: var(--color-primary);
+	}
+
+	.mobile-menu-btn {
+		display: none;
+		width: 42px;
+		padding: 0;
+	}
+
+	/* ---- Theme switcher -------------------------------------------------- */
+	.theme-switcher {
+		position: relative;
+	}
+
+	.swatch {
+		width: 16px;
+		height: 16px;
+		border-radius: var(--radius-full);
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+		flex-shrink: 0;
+	}
+
+	.theme-trigger-label {
+		font-size: 0.85rem;
+		font-weight: 600;
+	}
+
+	.theme-menu {
+		position: absolute;
+		top: calc(100% + 0.5rem);
+		right: 0;
+		z-index: var(--z-dropdown);
+		width: 260px;
+		padding: 0.4rem;
+		background: var(--color-surface-elevated);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-lg);
+		animation: menu-in var(--transition);
+	}
+
+	@keyframes menu-in {
+		from {
+			opacity: 0;
+			transform: translateY(-6px);
+		}
+	}
+
+	.theme-menu-title {
+		padding: 0.4rem 0.6rem 0.5rem;
+		font-size: 0.68rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--color-text-subtle);
+	}
+
+	.theme-option {
+		display: flex;
+		align-items: center;
+		gap: 0.65rem;
+		width: 100%;
+		padding: 0.55rem 0.6rem;
+		background: transparent;
+		border: none;
+		border-radius: var(--radius-sm);
+		color: var(--color-text);
+		text-align: left;
+		transition: background var(--transition);
+	}
+
+	.theme-option:hover {
+		background: var(--color-surface-hover);
+	}
+
+	.theme-option.selected {
+		background: var(--color-primary-soft);
+	}
+
+	.theme-option-copy {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		line-height: 1.25;
+	}
+
+	.theme-option-label {
+		font-size: 0.88rem;
+		font-weight: 600;
+	}
+
+	.theme-option-desc {
+		font-size: 0.72rem;
+		color: var(--color-text-muted);
+	}
+
+	.theme-mode {
+		font-size: 0.62rem;
+		font-weight: 700;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: var(--color-text-subtle);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-full);
+		padding: 1px 7px;
+	}
+
+	.check {
 		color: var(--color-primary);
 	}
 
+	/* ---- Main / footer --------------------------------------------------- */
 	.main {
 		flex: 1;
-		padding: 1rem 0;
+		padding: 1.5rem 0;
 	}
 
 	.footer {
 		background: var(--color-surface);
 		border-top: 1px solid var(--color-border);
-		padding: 1rem 0;
-		text-align: center;
+		padding: 1.75rem 0;
+	}
+
+	.footer-content {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+	}
+
+	.footer-brand {
+		display: flex;
+		flex-direction: column;
+		line-height: 1.2;
+	}
+
+	.footer-name {
+		font-size: 1.05rem;
+		font-weight: 800;
+		letter-spacing: -0.01em;
+		background: var(--gradient-primary);
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+	}
+
+	.footer-tagline {
+		font-size: 0.72rem;
 		color: var(--color-text-muted);
-		font-size: 0.875rem;
 	}
 
-	/* Tablet responsive */
-	@media (max-width: 900px) {
+	.footer-meta {
+		font-size: 0.8rem;
+		color: var(--color-text-subtle);
+	}
+
+	.footer-sep {
+		margin: 0 0.4rem;
+	}
+
+	.footer-link {
+		color: var(--color-primary);
+		text-decoration: none;
+		font-weight: 600;
+	}
+
+	.footer-link:hover {
+		text-decoration: underline;
+	}
+
+	/* ---- Responsive ------------------------------------------------------ */
+	@media (max-width: 1024px) {
 		.nav {
-			gap: 0.25rem;
+			gap: 0.1rem;
 		}
-
 		.nav-link {
-			padding: 0.4rem 0.5rem;
-			font-size: 0.8rem;
+			padding: 0.4rem 0.6rem;
+			font-size: 0.82rem;
+		}
+		.theme-trigger-label {
+			display: none;
 		}
 	}
 
-	/* Mobile responsive */
-	@media (max-width: 700px) {
+	@media (max-width: 760px) {
 		.mobile-menu-btn {
-			display: flex;
+			display: inline-flex;
+			order: 3;
+		}
+
+		.header-actions {
+			order: 2;
 		}
 
 		.nav {
 			display: none;
 			position: absolute;
-			top: 60px;
+			top: 71px;
 			left: 0;
 			right: 0;
-			background: var(--color-surface);
+			order: 4;
+			background: var(--color-surface-elevated);
 			border-bottom: 1px solid var(--color-border);
+			box-shadow: var(--shadow-lg);
 			flex-direction: column;
-			padding: 0.5rem;
-			gap: 0.25rem;
-			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+			padding: 0.6rem;
+			gap: 0.15rem;
 		}
 
 		.nav.open {
@@ -259,20 +524,17 @@
 
 		.nav-link {
 			padding: 0.75rem 1rem;
-			font-size: 0.9rem;
-			border-radius: var(--radius);
+			font-size: 0.92rem;
 		}
 
-		.nav-link:hover {
-			background: var(--color-bg);
-		}
-
-		.logo-text {
+		.logo-tagline {
 			display: none;
 		}
 
-		.logo {
-			font-size: 1.1rem;
+		.footer-content {
+			flex-direction: column;
+			align-items: flex-start;
+			text-align: left;
 		}
 	}
 </style>

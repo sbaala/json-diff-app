@@ -1,11 +1,29 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="midnight">
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>Freebies JSON Comparer</title>
-		<meta name="description" content="Compare JSON documents with ease - Free-bies JSON Comparer" />
+		<meta name="theme-color" content="#0b1020" />
+		<title>VinMi — Building Intelligent Enterprise Solutions</title>
+		<meta
+			name="description"
+			content="VinMi Enterprise JSON Toolkit — format, view, compare, and transform JSON with a professional multi-theme workspace."
+		/>
+		<script>
+			// Apply the saved theme before first paint to avoid a flash of the
+			// default theme. Mirrors the normalization in $lib/stores/theme.
+			(function () {
+				try {
+					var valid = ['midnight', 'daylight', 'slate', 'ocean', 'sandstone'];
+					var legacy = { dark: 'midnight', light: 'daylight' };
+					var saved = localStorage.getItem('vinmi-theme') || localStorage.getItem('theme');
+					saved = legacy[saved] || saved;
+					var theme = valid.indexOf(saved) !== -1 ? saved : 'midnight';
+					document.documentElement.setAttribute('data-theme', theme);
+				} catch (e) {}
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
