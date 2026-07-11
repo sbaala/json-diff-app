@@ -1,11 +1,12 @@
-# Freebies JSON Tools
+# VinMi — Building Intelligent Enterprise Solutions
 
-A full-stack web application bundling eight JSON & text utilities under a modern, dark-themed UI.
+A professional full-stack application bundling eight JSON & text utilities with a multi-theme design system. Part of the VinMi platform for intelligent enterprise solutions.
 
 ## Features
 
 | Page | Route | Description |
 |------|-------|-------------|
+| **Home** | `/` | VinMi landing page — brand overview, service offerings, toolkit index, and contact |
 | **Format** | `/format` | Beautify, minify, sort keys, escape/unescape JSON |
 | **Viewer** | `/viewer` | Interactive tree view with search, stats, expand/collapse |
 | **Grid** | `/grid` | Spreadsheet-style table for JSON arrays — per-column filters, column show/hide, CSV export |
@@ -28,6 +29,7 @@ A full-stack web application bundling eight JSON & text utilities under a modern
 - **SvelteKit 2** with Svelte 5 (runes API)
 - **TypeScript** for type safety
 - **Vite** for fast development and builds
+- **VinMi Design System** — 5 professional multi-themes (Midnight, Daylight, Slate, Ocean, Sandstone)
 
 ### Infrastructure
 - **Docker** with multi-stage builds
@@ -75,16 +77,17 @@ json-diff-app/
 │   ├── tests/              # pytest tests
 │   ├── Dockerfile
 │   └── pyproject.toml
-├── frontend/               # SvelteKit frontend
+├── frontend/               # SvelteKit frontend (VinMi Design System)
 │   ├── src/
-│   │   ├── app.css         # Global theme (CSS custom properties)
+│   │   ├── app.html        # HTML shell with theme pre-paint script
+│   │   ├── app.css         # VinMi Design System tokens (5 themes)
 │   │   ├── lib/
 │   │   │   ├── api.ts      # API client
 │   │   │   ├── types.ts    # TypeScript interfaces
-│   │   │   ├── stores/     # Svelte stores (theme)
+│   │   │   ├── stores/     # theme.ts (multi-theme store)
 │   │   │   ├── utils/      # Utility functions
 │   │   │   └── components/ # Reusable Svelte components
-│   │   └── routes/         # Page routes (format, viewer, grid, compare, text, convert, lint, graph)
+│   │   └── routes/         # Page routes: home (/), format, viewer, grid, compare, text, convert, lint, graph
 │   ├── Dockerfile
 │   └── package.json
 ├── docker-compose.yml      # Production deployment
@@ -125,13 +128,64 @@ npm install
 npm run test:run
 ```
 
-## Deployment
+## Google Cloud Run Quick Deploy
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for a complete guide to deploying on Google Cloud Run, including:
-- Two-service architecture (recommended)
-- Single combined service option
+The fastest way to deploy both services:
+
+### Prerequisites
+```bash
+# Install gcloud CLI: https://cloud.google.com/sdk/docs/install
+# Set your GCP project
+gcloud config set project YOUR_PROJECT_ID
+```
+
+### Step 1: Authenticate
+```bash
+gcloud auth application-default login
+```
+
+### Step 2: Deploy Backend
+```bash
+cd backend
+gcloud run deploy json-diff \
+  --source . \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated
+```
+Save the **backend URL** — you'll need it for the frontend.
+
+### Step 3: Deploy Frontend
+```bash
+cd frontend
+export BACKEND_URL=https://json-diff-xxxxx.run.app  # Replace with your backend URL
+gcloud run deploy frontend \
+  --source . \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars ORIGIN=https://frontend-xxxxx.run.app
+```
+
+### Alternative: One-liner Deploy
+```bash
+# Backend
+cd backend && gcloud run deploy json-diff --source .
+
+# Frontend
+cd frontend && gcloud run deploy frontend --source .
+```
+
+> **Note:** See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed options, CI/CD setup, custom domains, and cost optimization.
+
+## Full Deployment Guide
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for a comprehensive deployment guide covering:
+- Step-by-step GCP project setup
+- Two-service vs. single-service architecture
 - CI/CD with Cloud Build
 - Custom domain mapping
+- Environment variables & secrets
 - Cost optimization tips
 
 ## Documentation
@@ -149,14 +203,15 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for a complete guide to deploying on Google C
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PYTHONUNBUFFERED` | `1` | Disable output buffering (Docker) |
-| `FRONTEND_URL` | — | Production frontend URL (for CORS) |
+| `FRONTEND_URL` | — | Production frontend URL (for CORS). Set in Cloud Run: `https://frontend-xxxxx.run.app` |
 
 ### Frontend
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NODE_ENV` | `development` | `production` for builds |
 | `PORT` | `3000` | Production server port |
-| `ORIGIN` | `http://localhost:3000` | SvelteKit origin URL |
+| `ORIGIN` | `http://localhost:3000` | **Required for production.** Set in Cloud Run: `https://frontend-xxxxx.run.app` |
+| `VITE_API_BASE` | `/api` | Backend API base URL (for dev proxy). In Cloud Run, requests route through Nginx/frontend to backend |
 
 ## License
 
