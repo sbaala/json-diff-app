@@ -1,0 +1,29 @@
+{
+  "mcp": {
+    "servers": {
+      "context7": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@context7/mcp-server"
+        ],
+        "env": {}
+      },
+      "codegraph": {
+        "command": "codegraph",
+        "args": [
+          "mcp"
+        ],
+        "type": "stdio"
+      },
+      "token-cache": {
+        "command": "node",
+        "args": [
+          "/Users/balachandar.saminathan/.vscode/extensions/ai-token-optimizer.ai-token-optimizer-0.1.0/dist/cache-server.js",
+          "/Users/balachandar.saminathan/Bala/Project/json-diff-app"
+        ],
+        "type": "stdio"
+      }
+    }
+  }
+}

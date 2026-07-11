@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build output
+build/
+dist/
+
+# SvelteKit
+.svelte-kit/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+
+# Misc
+.DS_Store
+Thumbs.db
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*

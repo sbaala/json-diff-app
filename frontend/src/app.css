@@ -1,0 +1,162 @@
+:root,
+[data-theme="dark"] {
+	/* Freebies Theme - Modern Purple/Teal gradient (Dark) */
+	--color-bg: #0f172a;
+	--color-surface: #1e293b;
+	--color-surface-hover: #334155;
+	--color-text: #f1f5f9;
+	--color-text-muted: #94a3b8;
+	--color-border: #334155;
+	--color-primary: #8b5cf6;
+	--color-primary-hover: #a78bfa;
+	--color-secondary: #06b6d4;
+	--color-success: #10b981;
+	--color-error: #f43f5e;
+	--color-warning: #f59e0b;
+	--color-added: #064e3b;
+	--color-added-border: #10b981;
+	--color-removed: #4c0519;
+	--color-removed-border: #f43f5e;
+	--color-modified: #422006;
+	--color-modified-border: #f59e0b;
+	--color-unchanged: transparent;
+	--gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+	--gradient-header: linear-gradient(90deg, #8b5cf6 0%, #6366f1 50%, #06b6d4 100%);
+	--shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+	--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+	--shadow-glow: 0 0 20px rgba(139, 92, 246, 0.3);
+	--radius: 12px;
+	--font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+[data-theme="light"] {
+	/* Freebies Theme - Light Mode */
+	--color-bg: #f8fafc;
+	--color-surface: #ffffff;
+	--color-surface-hover: #f1f5f9;
+	--color-text: #1e293b;
+	--color-text-muted: #64748b;
+	--color-border: #e2e8f0;
+	--color-primary: #7c3aed;
+	--color-primary-hover: #6d28d9;
+	--color-secondary: #0891b2;
+	--color-success: #059669;
+	--color-error: #dc2626;
+	--color-warning: #d97706;
+	--color-added: #dcfce7;
+	--color-added-border: #22c55e;
+	--color-removed: #fee2e2;
+	--color-removed-border: #ef4444;
+	--color-modified: #fef3c7;
+	--color-modified-border: #f59e0b;
+	--color-unchanged: transparent;
+	--gradient-primary: linear-gradient(135deg, #7c3aed 0%, #0891b2 100%);
+	--gradient-header: linear-gradient(90deg, #7c3aed 0%, #4f46e5 50%, #0891b2 100%);
+	--shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+	--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+	--shadow-glow: 0 0 20px rgba(124, 58, 237, 0.15);
+}
+
+/* Flash animation for new features */
+@keyframes pulse-glow {
+	0%, 100% {
+		box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+	}
+	50% {
+		box-shadow: 0 0 12px 4px rgba(139, 92, 246, 0.6);
+	}
+}
+
+@keyframes gradient-shift {
+	0%, 100% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+}
+
+.nav-flash {
+	animation: pulse-glow 2s ease-in-out infinite;
+	position: relative;
+}
+
+.nav-flash::after {
+	content: 'NEW';
+	position: absolute;
+	top: -8px;
+	right: -8px;
+	font-size: 0.5rem;
+	background: var(--color-error);
+	color: white;
+	padding: 2px 4px;
+	border-radius: 4px;
+	font-weight: 700;
+}
+
+* {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+	background-color: var(--color-bg);
+	color: var(--color-text);
+	line-height: 1.6;
+}
+
+button {
+	cursor: pointer;
+	font-family: inherit;
+}
+
+.container {
+	max-width: 1400px;
+	margin: 0 auto;
+	padding: 1rem;
+}
+
+.card {
+	background: var(--color-surface);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow);
+	border: 1px solid var(--color-border);
+}
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1.5rem;
+	border-radius: var(--radius);
+	font-weight: 500;
+	transition: all 0.15s ease;
+	border: none;
+}
+
+.btn-primary {
+	background: var(--color-primary);
+	color: white;
+}
+
+.btn-primary:hover {
+	background: var(--color-primary-hover);
+}
+
+.btn-primary:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.btn-secondary {
+	background: var(--color-surface);
+	color: var(--color-text);
+	border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+	background: var(--color-bg);
+}

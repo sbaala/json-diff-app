@@ -1,0 +1,45 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: json-diff-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: json-diff-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - ORIGIN=http://localhost:3000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Nginx reverse proxy for production
+  nginx:
+    image: nginx:alpine
+    container_name: json-diff-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
