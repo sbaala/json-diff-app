@@ -1,110 +1,343 @@
-:root,
-[data-theme="dark"] {
-	/* Freebies Theme - Modern Purple/Teal gradient (Dark) */
-	--color-bg: #0f172a;
-	--color-surface: #1e293b;
-	--color-surface-hover: #334155;
-	--color-text: #f1f5f9;
-	--color-text-muted: #94a3b8;
-	--color-border: #334155;
-	--color-primary: #8b5cf6;
-	--color-primary-hover: #a78bfa;
-	--color-secondary: #06b6d4;
-	--color-success: #10b981;
-	--color-error: #f43f5e;
-	--color-warning: #f59e0b;
-	--color-added: #064e3b;
-	--color-added-border: #10b981;
-	--color-removed: #4c0519;
-	--color-removed-border: #f43f5e;
-	--color-modified: #422006;
-	--color-modified-border: #f59e0b;
-	--color-unchanged: transparent;
-	--gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
-	--gradient-header: linear-gradient(90deg, #8b5cf6 0%, #6366f1 50%, #06b6d4 100%);
-	--shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
-	--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
-	--shadow-glow: 0 0 20px rgba(139, 92, 246, 0.3);
+/* ============================================================================
+   VinMi Design System — Building Intelligent Enterprise Solutions
+   ----------------------------------------------------------------------------
+   A brand-consistent, multi-theme token system. Every theme redefines the same
+   set of semantic tokens, so components stay theme-agnostic — they only ever
+   reference var(--token), never a raw color. Add a new theme by copying a
+   [data-theme] block and re-tuning the palette; nothing else needs to change.
+
+   Token layers:
+     1. Brand-invariant primitives (type, radius, motion, z-index) — :root
+     2. Per-theme semantic tokens ([data-theme="..."])            — themed
+        surfaces · text hierarchy · brand · state · diff · elevation
+   ========================================================================= */
+
+:root {
+	/* ---- Brand-invariant primitives (shared by every theme) ------------- */
+	--font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+		Oxygen, Ubuntu, sans-serif;
+	--font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Monaco', 'Consolas',
+		monospace;
+
+	/* Radius scale */
+	--radius-sm: 8px;
 	--radius: 12px;
-	--font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Monaco', 'Consolas', monospace;
+	--radius-lg: 18px;
+	--radius-full: 999px;
+
+	/* Motion */
+	--transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+	--transition-slow: 320ms cubic-bezier(0.4, 0, 0.2, 1);
+
+	/* Elevation / layering */
+	--z-header: 100;
+	--z-dropdown: 200;
+	--z-modal: 300;
+
+	/* Chrome */
+	--header-blur: saturate(180%) blur(12px);
+	--container-max: 1440px;
 }
 
-[data-theme="light"] {
-	/* Freebies Theme - Light Mode */
-	--color-bg: #f8fafc;
+/* ============================================================================
+   THEME · Midnight  (dark · default) — deep indigo enterprise
+   ========================================================================= */
+:root,
+[data-theme='midnight'] {
+	color-scheme: dark;
+
+	/* Surfaces */
+	--color-bg: #0b1020;
+	--color-surface: #141a2e;
+	--color-surface-elevated: #1b2440;
+	--color-surface-hover: #232f4f;
+
+	/* Text hierarchy */
+	--color-text: #eef2ff;
+	--color-text-muted: #9aa6c7;
+	--color-text-subtle: #64708f;
+
+	/* Borders */
+	--color-border: #26304d;
+	--color-border-strong: #34406b;
+
+	/* Brand */
+	--color-primary: #6366f1;
+	--color-primary-hover: #818cf8;
+	--color-primary-contrast: #ffffff;
+	--color-primary-soft: rgba(99, 102, 241, 0.14);
+	--color-secondary: #22d3ee;
+	--color-accent: #a78bfa;
+
+	/* State */
+	--color-success: #34d399;
+	--color-error: #fb7185;
+	--color-warning: #fbbf24;
+	--color-info: #38bdf8;
+
+	/* Diff semantics */
+	--color-added: rgba(52, 211, 153, 0.14);
+	--color-added-border: #34d399;
+	--color-removed: rgba(251, 113, 133, 0.14);
+	--color-removed-border: #fb7185;
+	--color-modified: rgba(251, 191, 36, 0.14);
+	--color-modified-border: #fbbf24;
+	--color-unchanged: transparent;
+
+	/* Gradients */
+	--gradient-primary: linear-gradient(135deg, #6366f1 0%, #22d3ee 100%);
+	--gradient-header: linear-gradient(90deg, #818cf8 0%, #6366f1 50%, #22d3ee 100%);
+	--gradient-subtle: linear-gradient(180deg, rgba(99, 102, 241, 0.06) 0%, transparent 100%);
+
+	/* Elevation */
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+	--shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.45), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+	--shadow-lg: 0 20px 40px -12px rgba(0, 0, 0, 0.6), 0 8px 16px -8px rgba(0, 0, 0, 0.4);
+	--shadow-glow: 0 0 0 1px rgba(99, 102, 241, 0.2), 0 8px 30px -8px rgba(99, 102, 241, 0.35);
+	--focus-ring: 0 0 0 3px rgba(99, 102, 241, 0.35);
+}
+
+/* ============================================================================
+   THEME · Daylight  (light) — clean corporate
+   ========================================================================= */
+[data-theme='daylight'] {
+	color-scheme: light;
+
+	--color-bg: #f5f7fb;
 	--color-surface: #ffffff;
-	--color-surface-hover: #f1f5f9;
-	--color-text: #1e293b;
-	--color-text-muted: #64748b;
-	--color-border: #e2e8f0;
-	--color-primary: #7c3aed;
-	--color-primary-hover: #6d28d9;
+	--color-surface-elevated: #ffffff;
+	--color-surface-hover: #eef1f8;
+
+	--color-text: #101728;
+	--color-text-muted: #55617d;
+	--color-text-subtle: #8a93a8;
+
+	--color-border: #e3e8f2;
+	--color-border-strong: #cbd3e3;
+
+	--color-primary: #4f46e5;
+	--color-primary-hover: #4338ca;
+	--color-primary-contrast: #ffffff;
+	--color-primary-soft: rgba(79, 70, 229, 0.09);
 	--color-secondary: #0891b2;
+	--color-accent: #7c3aed;
+
 	--color-success: #059669;
-	--color-error: #dc2626;
+	--color-error: #e11d48;
 	--color-warning: #d97706;
-	--color-added: #dcfce7;
-	--color-added-border: #22c55e;
-	--color-removed: #fee2e2;
+	--color-info: #0284c7;
+
+	--color-added: #e7f6ee;
+	--color-added-border: #10b981;
+	--color-removed: #fdeaee;
 	--color-removed-border: #ef4444;
-	--color-modified: #fef3c7;
+	--color-modified: #fdf3e0;
 	--color-modified-border: #f59e0b;
 	--color-unchanged: transparent;
-	--gradient-primary: linear-gradient(135deg, #7c3aed 0%, #0891b2 100%);
-	--gradient-header: linear-gradient(90deg, #7c3aed 0%, #4f46e5 50%, #0891b2 100%);
-	--shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-	--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-	--shadow-glow: 0 0 20px rgba(124, 58, 237, 0.15);
+
+	--gradient-primary: linear-gradient(135deg, #4f46e5 0%, #0891b2 100%);
+	--gradient-header: linear-gradient(90deg, #4f46e5 0%, #6366f1 50%, #0891b2 100%);
+	--gradient-subtle: linear-gradient(180deg, rgba(79, 70, 229, 0.05) 0%, transparent 100%);
+
+	--shadow-sm: 0 1px 2px rgba(16, 23, 40, 0.06);
+	--shadow: 0 4px 12px -2px rgba(16, 23, 40, 0.1), 0 2px 4px -2px rgba(16, 23, 40, 0.06);
+	--shadow-lg: 0 20px 40px -12px rgba(16, 23, 40, 0.18), 0 8px 16px -8px rgba(16, 23, 40, 0.1);
+	--shadow-glow: 0 0 0 1px rgba(79, 70, 229, 0.12), 0 8px 30px -8px rgba(79, 70, 229, 0.22);
+	--focus-ring: 0 0 0 3px rgba(79, 70, 229, 0.25);
 }
 
-/* Flash animation for new features */
-@keyframes pulse-glow {
-	0%, 100% {
-		box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
-	}
-	50% {
-		box-shadow: 0 0 12px 4px rgba(139, 92, 246, 0.6);
-	}
+/* ============================================================================
+   THEME · Slate  (dark · neutral charcoal) — cool sky accent
+   ========================================================================= */
+[data-theme='slate'] {
+	color-scheme: dark;
+
+	--color-bg: #0f1215;
+	--color-surface: #191d22;
+	--color-surface-elevated: #21262d;
+	--color-surface-hover: #2a3038;
+
+	--color-text: #e6e9ee;
+	--color-text-muted: #9aa3af;
+	--color-text-subtle: #6b7480;
+
+	--color-border: #2a3038;
+	--color-border-strong: #3a424c;
+
+	--color-primary: #38bdf8;
+	--color-primary-hover: #7dd3fc;
+	--color-primary-contrast: #06121b;
+	--color-primary-soft: rgba(56, 189, 248, 0.13);
+	--color-secondary: #2dd4bf;
+	--color-accent: #818cf8;
+
+	--color-success: #4ade80;
+	--color-error: #f87171;
+	--color-warning: #fbbf24;
+	--color-info: #60a5fa;
+
+	--color-added: rgba(74, 222, 128, 0.13);
+	--color-added-border: #4ade80;
+	--color-removed: rgba(248, 113, 113, 0.13);
+	--color-removed-border: #f87171;
+	--color-modified: rgba(251, 191, 36, 0.13);
+	--color-modified-border: #fbbf24;
+	--color-unchanged: transparent;
+
+	--gradient-primary: linear-gradient(135deg, #38bdf8 0%, #2dd4bf 100%);
+	--gradient-header: linear-gradient(90deg, #7dd3fc 0%, #38bdf8 50%, #2dd4bf 100%);
+	--gradient-subtle: linear-gradient(180deg, rgba(56, 189, 248, 0.06) 0%, transparent 100%);
+
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+	--shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.35);
+	--shadow-lg: 0 20px 40px -12px rgba(0, 0, 0, 0.65), 0 8px 16px -8px rgba(0, 0, 0, 0.45);
+	--shadow-glow: 0 0 0 1px rgba(56, 189, 248, 0.2), 0 8px 30px -8px rgba(56, 189, 248, 0.3);
+	--focus-ring: 0 0 0 3px rgba(56, 189, 248, 0.32);
 }
 
-@keyframes gradient-shift {
-	0%, 100% {
-		background-position: 0% 50%;
-	}
-	50% {
-		background-position: 100% 50%;
-	}
+/* ============================================================================
+   THEME · Ocean  (dark · deep marine) — teal/cyan corporate
+   ========================================================================= */
+[data-theme='ocean'] {
+	color-scheme: dark;
+
+	--color-bg: #061a20;
+	--color-surface: #0b2830;
+	--color-surface-elevated: #103743;
+	--color-surface-hover: #14454f;
+
+	--color-text: #e2f6f8;
+	--color-text-muted: #8fb4bd;
+	--color-text-subtle: #5a828b;
+
+	--color-border: #14454f;
+	--color-border-strong: #1d5a66;
+
+	--color-primary: #06b6d4;
+	--color-primary-hover: #22d3ee;
+	--color-primary-contrast: #04141a;
+	--color-primary-soft: rgba(6, 182, 212, 0.15);
+	--color-secondary: #2dd4bf;
+	--color-accent: #38bdf8;
+
+	--color-success: #2dd4bf;
+	--color-error: #fb7185;
+	--color-warning: #fbbf24;
+	--color-info: #38bdf8;
+
+	--color-added: rgba(45, 212, 191, 0.15);
+	--color-added-border: #2dd4bf;
+	--color-removed: rgba(251, 113, 133, 0.14);
+	--color-removed-border: #fb7185;
+	--color-modified: rgba(251, 191, 36, 0.14);
+	--color-modified-border: #fbbf24;
+	--color-unchanged: transparent;
+
+	--gradient-primary: linear-gradient(135deg, #06b6d4 0%, #2dd4bf 100%);
+	--gradient-header: linear-gradient(90deg, #22d3ee 0%, #06b6d4 50%, #2dd4bf 100%);
+	--gradient-subtle: linear-gradient(180deg, rgba(6, 182, 212, 0.07) 0%, transparent 100%);
+
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+	--shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.35);
+	--shadow-lg: 0 20px 40px -12px rgba(0, 0, 0, 0.65), 0 8px 16px -8px rgba(0, 0, 0, 0.45);
+	--shadow-glow: 0 0 0 1px rgba(6, 182, 212, 0.22), 0 8px 30px -8px rgba(6, 182, 212, 0.32);
+	--focus-ring: 0 0 0 3px rgba(6, 182, 212, 0.32);
 }
 
-.nav-flash {
-	animation: pulse-glow 2s ease-in-out infinite;
-	position: relative;
+/* ============================================================================
+   THEME · Sandstone  (light · warm) — bronze accent, low-glare
+   ========================================================================= */
+[data-theme='sandstone'] {
+	color-scheme: light;
+
+	--color-bg: #f7f4ef;
+	--color-surface: #fffdf9;
+	--color-surface-elevated: #ffffff;
+	--color-surface-hover: #f0ebe1;
+
+	--color-text: #2a2420;
+	--color-text-muted: #6b6055;
+	--color-text-subtle: #9a8d7e;
+
+	--color-border: #e6ded1;
+	--color-border-strong: #d3c7b4;
+
+	--color-primary: #b45309;
+	--color-primary-hover: #92400e;
+	--color-primary-contrast: #ffffff;
+	--color-primary-soft: rgba(180, 83, 9, 0.1);
+	--color-secondary: #0f766e;
+	--color-accent: #7c3aed;
+
+	--color-success: #15803d;
+	--color-error: #b91c1c;
+	--color-warning: #b45309;
+	--color-info: #0369a1;
+
+	--color-added: #e9f4ea;
+	--color-added-border: #16a34a;
+	--color-removed: #fae9e7;
+	--color-removed-border: #dc2626;
+	--color-modified: #f9efdb;
+	--color-modified-border: #d97706;
+	--color-unchanged: transparent;
+
+	--gradient-primary: linear-gradient(135deg, #b45309 0%, #0f766e 100%);
+	--gradient-header: linear-gradient(90deg, #b45309 0%, #c2410c 50%, #0f766e 100%);
+	--gradient-subtle: linear-gradient(180deg, rgba(180, 83, 9, 0.05) 0%, transparent 100%);
+
+	--shadow-sm: 0 1px 2px rgba(66, 48, 24, 0.07);
+	--shadow: 0 4px 12px -2px rgba(66, 48, 24, 0.1), 0 2px 4px -2px rgba(66, 48, 24, 0.06);
+	--shadow-lg: 0 20px 40px -12px rgba(66, 48, 24, 0.18), 0 8px 16px -8px rgba(66, 48, 24, 0.1);
+	--shadow-glow: 0 0 0 1px rgba(180, 83, 9, 0.14), 0 8px 30px -8px rgba(180, 83, 9, 0.22);
+	--focus-ring: 0 0 0 3px rgba(180, 83, 9, 0.25);
 }
 
-.nav-flash::after {
-	content: 'NEW';
-	position: absolute;
-	top: -8px;
-	right: -8px;
-	font-size: 0.5rem;
-	background: var(--color-error);
-	color: white;
-	padding: 2px 4px;
-	border-radius: 4px;
-	font-weight: 700;
-}
-
+/* ============================================================================
+   Base + reset
+   ========================================================================= */
 * {
 	box-sizing: border-box;
 	margin: 0;
 	padding: 0;
 }
 
+html {
+	-webkit-text-size-adjust: 100%;
+}
+
 body {
-	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+	font-family: var(--font-sans);
 	background-color: var(--color-bg);
 	color: var(--color-text);
 	line-height: 1.6;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	transition: background-color var(--transition), color var(--transition);
+}
+
+::selection {
+	background: var(--color-primary-soft);
+	color: var(--color-text);
+}
+
+/* Themed scrollbars keep chrome consistent across themes */
+* {
+	scrollbar-color: var(--color-border-strong) transparent;
+}
+*::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+	background: var(--color-border-strong);
+	border-radius: var(--radius-full);
+	border: 2px solid transparent;
+	background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+	background: var(--color-text-subtle);
+	background-clip: padding-box;
 }
 
 button {
@@ -112,10 +345,23 @@ button {
 	font-family: inherit;
 }
 
+:focus-visible {
+	outline: none;
+	box-shadow: var(--focus-ring);
+	border-radius: var(--radius-sm);
+}
+
+a {
+	color: var(--color-primary);
+}
+
+/* ============================================================================
+   Layout primitives
+   ========================================================================= */
 .container {
-	max-width: 1400px;
+	max-width: var(--container-max);
 	margin: 0 auto;
-	padding: 1rem;
+	padding: 1rem 1.5rem;
 }
 
 .card {
@@ -125,38 +371,105 @@ button {
 	border: 1px solid var(--color-border);
 }
 
+/* ============================================================================
+   Buttons
+   ========================================================================= */
 .btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	gap: 0.5rem;
-	padding: 0.75rem 1.5rem;
-	border-radius: var(--radius);
-	font-weight: 500;
-	transition: all 0.15s ease;
-	border: none;
+	padding: 0.7rem 1.4rem;
+	border-radius: var(--radius-sm);
+	font-weight: 600;
+	font-size: 0.9rem;
+	letter-spacing: 0.01em;
+	transition: transform var(--transition), background var(--transition),
+		box-shadow var(--transition), border-color var(--transition);
+	border: 1px solid transparent;
+}
+
+.btn:active {
+	transform: translateY(1px);
 }
 
 .btn-primary {
 	background: var(--color-primary);
-	color: white;
+	color: var(--color-primary-contrast);
+	box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover {
 	background: var(--color-primary-hover);
+	box-shadow: var(--shadow-glow);
 }
 
 .btn-primary:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
+	box-shadow: none;
 }
 
 .btn-secondary {
 	background: var(--color-surface);
 	color: var(--color-text);
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--color-border-strong);
 }
 
 .btn-secondary:hover {
-	background: var(--color-bg);
+	background: var(--color-surface-hover);
+	border-color: var(--color-primary);
+	color: var(--color-primary);
+}
+
+/* ============================================================================
+   Brand accents / animation utilities
+   ========================================================================= */
+@keyframes pulse-glow {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+	}
+	50% {
+		box-shadow: 0 0 14px 3px var(--color-primary-soft);
+	}
+}
+
+@keyframes gradient-shift {
+	0%,
+	100% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+}
+
+.nav-flash {
+	position: relative;
+}
+
+.nav-flash::after {
+	content: 'NEW';
+	position: absolute;
+	top: -6px;
+	right: -6px;
+	font-size: 0.5rem;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	background: var(--gradient-primary);
+	color: #fff;
+	padding: 2px 5px;
+	border-radius: var(--radius-full);
+	box-shadow: var(--shadow-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+	}
 }
