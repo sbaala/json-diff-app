@@ -18,7 +18,8 @@
 		{ href: '/text', label: 'Text Diff' },
 		{ href: '/convert', label: 'Convert' },
 		{ href: '/lint', label: 'Lint' },
-		{ href: '/graph', label: 'Graph' }
+		{ href: '/graph', label: 'Graph' },
+		{ href: 'https://vinmi-frontend-d3h34miv7q-ue.a.run.app/', label: 'Blog', external: true, flash: true }
 	];
 
 	const currentTheme = $derived(themes.find((t) => t.id === $theme) ?? themes[0]);
@@ -103,7 +104,9 @@
 						href={item.href}
 						class="nav-link"
 						class:nav-flash={item.flash}
-						class:active={isActive(item.href)}
+						class:active={!item.external && isActive(item.href)}
+						target={item.external ? '_blank' : undefined}
+						rel={item.external ? 'noopener noreferrer' : undefined}
 						onclick={closeMobileMenu}
 					>
 						{item.label}
@@ -170,6 +173,15 @@
 			</div>
 			<p class="footer-meta">
 				<a class="footer-link" href="mailto:tamizhezhutthu@gmail.com">tamizhezhutthu@gmail.com</a>
+				<span class="footer-sep">·</span>
+				<a
+					class="footer-link"
+					href="https://vinmi-frontend-d3h34miv7q-ue.a.run.app/"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					Blog
+				</a>
 				<span class="footer-sep">·</span>
 				Enterprise JSON Toolkit
 				<span class="footer-sep">·</span>
