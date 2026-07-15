@@ -7,11 +7,15 @@
 		type: 'start' | 'end' | 'process' | 'decision' | 'data';
 		x: number;
 		y: number;
+		w: number;
+		h: number;
+		flows: string[];
 	}
 
 	interface FlowEdge {
 		from: string;
 		to: string;
+		flow: string;
 		label?: string;
 	}
 
@@ -36,8 +40,13 @@
 	let sidebarOpen = $state(true);
 	let svgElement: SVGSVGElement | null = null;
 
-	const NODE_WIDTH = 140;
-	const NODE_HEIGHT = 60;
+	const NODE_HEIGHT = 44;
+	const COL_WIDTH = 220;
+	const ROW_HEIGHT = 100;
+
+	function nodeWidth(label: string): number {
+		return Math.max(90, Math.min(200, label.length * 8 + 40));
+	}
 
 	function getDefaultDiagram(): FlowDiagram {
 		return parseEnglish(englishInput);
@@ -46,8 +55,7 @@
 	function parseEnglish(text: string): FlowDiagram {
 		const lines = text.split('\n').map(l => l.trim()).filter(l => l);
 		const nodeMap = new Map<string, FlowNode>();
-		const edgesSet = new Set<string>();
-		let yOffset = 80;
+		const edges: FlowEdge[] = [];
 		let nodeId = 0;
 
 		const getNodeId = (label: string) => {
@@ -58,22 +66,23 @@
 			return null;
 		};
 
-		const createOrGetNode = (label: string, type: 'start' | 'end' | 'process' | 'decision' | 'data' = 'process') => {
+		const createOrGetNode = (label: string, type: 'start' | 'end' | 'process' | 'decision' | 'data', flow: string) => {
 			const normalized = label.toLowerCase().trim();
 			for (const [id, node] of nodeMap) {
-				if (node.label.toLowerCase() === normalized) return id;
+				if (node.label.toLowerCase() === normalized) {
+					if (!node.flows.includes(flow)) node.flows.push(flow);
+					return id;
+				}
 			}
 			const id = `node-${nodeId++}`;
-			const xPositions = [-100, 100, 300];
-			const x = xPositions[nodeMap.size % 3];
-			nodeMap.set(id, { id, label, type, x, y: yOffset });
-			yOffset += 120;
+			nodeMap.set(id, { id, label, type, x: 0, y: 0, w: nodeWidth(label), h: NODE_HEIGHT, flows: [flow] });
 			return id;
 		};
 
-		for (const line of lines) {
+		lines.forEach((line, lineIndex) => {
 			const parts = line.split('→').map(p => p.trim()).filter(p => p);
-			if (parts.length < 2) continue;
+			if (parts.length < 2) return;
+			const flowId = `f${lineIndex + 1}`;
 
 			for (let i = 0; i < parts.length; i++) {
 				const label = parts[i];
@@ -83,27 +92,58 @@
 				else if (i === parts.length - 1) type = 'end';
 				else if (label.toLowerCase().includes('?')) type = 'decision';
 
-				createOrGetNode(label, type);
+				createOrGetNode(label, type, flowId);
 
 				if (i < parts.length - 1) {
 					const fromId = getNodeId(label);
 					const toId = getNodeId(parts[i + 1]);
 					if (fromId && toId) {
-						edgesSet.add(`${fromId}→${toId}`);
+						edges.push({ from: fromId, to: toId, flow: flowId });
 					}
 				}
 			}
-		}
-
-		const edges = Array.from(edgesSet).map(edge => {
-			const [from, to] = edge.split('→');
-			return { from, to };
 		});
 
-		return {
-			nodes: Array.from(nodeMap.values()),
-			edges
+		const nodes = Array.from(nodeMap.values());
+		layoutNodes(nodes, edges);
+
+		return { nodes, edges };
+	}
+
+	function layoutNodes(nodes: FlowNode[], edges: FlowEdge[]) {
+		if (nodes.length === 0) return;
+
+		const depth = new Map<string, number>();
+		const incoming = new Map<string, string[]>();
+		nodes.forEach(n => incoming.set(n.id, []));
+		edges.forEach(e => incoming.get(e.to)?.push(e.from));
+
+		const resolveDepth = (id: string, visiting = new Set<string>()): number => {
+			if (depth.has(id)) return depth.get(id)!;
+			if (visiting.has(id)) return 0;
+			visiting.add(id);
+			const preds = incoming.get(id) ?? [];
+			const d = preds.length === 0 ? 0 : Math.max(...preds.map(p => resolveDepth(p, visiting))) + 1;
+			depth.set(id, d);
+			return d;
 		};
+
+		nodes.forEach(n => resolveDepth(n.id));
+
+		const columns = new Map<number, FlowNode[]>();
+		nodes.forEach(n => {
+			const d = depth.get(n.id) ?? 0;
+			if (!columns.has(d)) columns.set(d, []);
+			columns.get(d)!.push(n);
+		});
+
+		columns.forEach((colNodes, d) => {
+			const totalHeight = (colNodes.length - 1) * ROW_HEIGHT;
+			colNodes.forEach((n, i) => {
+				n.x = d * COL_WIDTH;
+				n.y = i * ROW_HEIGHT - totalHeight / 2;
+			});
+		});
 	}
 
 	function parseInput() {
@@ -112,14 +152,32 @@
 			if (inputMode === 'english') {
 				diagram = parseEnglish(englishInput);
 			} else {
-				const parsed = JSON.parse(jsonInput) as FlowDiagram;
+				const parsed = JSON.parse(jsonInput) as Partial<FlowDiagram>;
 				if (!parsed.nodes || !Array.isArray(parsed.nodes)) {
 					throw new Error('Missing nodes array');
 				}
 				if (!parsed.edges || !Array.isArray(parsed.edges)) {
 					throw new Error('Missing edges array');
 				}
-				diagram = parsed;
+				const edges: FlowEdge[] = parsed.edges.map((e, i) => ({
+					from: e.from,
+					to: e.to,
+					flow: e.flow ?? `f${i + 1}`,
+					label: e.label
+				}));
+				const nodes: FlowNode[] = parsed.nodes.map(n => ({
+					id: n.id,
+					label: n.label,
+					type: n.type ?? 'process',
+					x: n.x ?? 0,
+					y: n.y ?? 0,
+					w: n.w ?? nodeWidth(n.label),
+					h: n.h ?? NODE_HEIGHT,
+					flows: n.flows ?? edges.filter(e => e.from === n.id || e.to === n.id).map(e => e.flow)
+				}));
+				const needsLayout = nodes.every(n => n.x === 0 && n.y === 0);
+				if (needsLayout) layoutNodes(nodes, edges);
+				diagram = { nodes, edges };
 			}
 			selectedNodeId = null;
 			centerGraph();
@@ -144,47 +202,34 @@
 		panY = bbox.height / 2 - centerY;
 	}
 
-	function getNodeColor(type: string): { fill: string; stroke: string; icon: string } {
+	function getNodeColor(type: string): { fill: string; stroke: string } {
 		const colors = {
-			start: { fill: '#10b981', stroke: '#059669', icon: '●' },
-			end: { fill: '#ef4444', stroke: '#dc2626', icon: '⊚' },
-			process: { fill: '#3b82f6', stroke: '#1d4ed8', icon: '▭' },
-			decision: { fill: '#f59e0b', stroke: '#d97706', icon: '◇' },
-			data: { fill: '#8b5cf6', stroke: '#7c3aed', icon: '▬' }
+			start: { fill: '#D6F5E6', stroke: '#0E9F6E' },
+			end: { fill: '#FDE0E0', stroke: '#C0392B' },
+			process: { fill: '#E6F1FB', stroke: '#185FA5' },
+			decision: { fill: '#FEF0D8', stroke: '#B7791F' },
+			data: { fill: '#EDE4FB', stroke: '#6D3FC0' }
 		};
 		return colors[type as keyof typeof colors] || colors.process;
 	}
 
-	function getConnectedNodeIds(nodeId: string): Set<string> {
-		const connected = new Set<string>([nodeId]);
-		const toVisit = [nodeId];
-
-		while (toVisit.length > 0) {
-			const current = toVisit.pop()!;
-			for (const edge of diagram.edges) {
-				if (edge.from === current && !connected.has(edge.to)) {
-					connected.add(edge.to);
-					toVisit.push(edge.to);
-				}
-				if (edge.to === current && !connected.has(edge.from)) {
-					connected.add(edge.from);
-					toVisit.push(edge.from);
-				}
-			}
-		}
-		return connected;
+	function activeFlows(): Set<string> | null {
+		if (!selectedNodeId) return null;
+		const node = diagram.nodes.find(n => n.id === selectedNodeId);
+		return node ? new Set(node.flows) : null;
 	}
 
 	function isNodeHighlighted(nodeId: string): boolean {
-		if (!selectedNodeId) return true;
-		const connected = getConnectedNodeIds(selectedNodeId);
-		return connected.has(nodeId);
+		const flows = activeFlows();
+		if (!flows) return true;
+		const node = diagram.nodes.find(n => n.id === nodeId);
+		return !!node && node.flows.some(f => flows.has(f));
 	}
 
 	function isEdgeHighlighted(edge: FlowEdge): boolean {
-		if (!selectedNodeId) return true;
-		const connected = getConnectedNodeIds(selectedNodeId);
-		return connected.has(edge.from) && connected.has(edge.to);
+		const flows = activeFlows();
+		if (!flows) return true;
+		return flows.has(edge.flow);
 	}
 
 	function handleNodeMouseDown(e: MouseEvent, nodeId: string) {
@@ -250,18 +295,20 @@
 		const to = diagram.nodes.find(n => n.id === toId);
 		if (!from || !to) return null;
 
-		const x1 = from.x + NODE_WIDTH / 2;
-		const y1 = from.y + NODE_HEIGHT;
-		const x2 = to.x + NODE_WIDTH / 2;
+		const x1 = from.x + from.w / 2;
+		const y1 = from.y;
+		const x2 = to.x - to.w / 2;
 		const y2 = to.y;
 
-		const midY = (y1 + y2) / 2;
+		const midX = (x1 + x2) / 2;
 		return {
 			x1,
 			y1,
 			x2,
 			y2,
-			path: `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`
+			path: y1 === y2
+				? `M ${x1} ${y1} L ${x2} ${y2}`
+				: `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`
 		};
 	}
 
@@ -421,8 +468,11 @@
 						style="cursor: {isDragging ? 'grabbing' : 'grab'}"
 					>
 						<defs>
-							<marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-								<polygon points="0 0, 10 3, 0 6" fill="var(--arrow-color, #3b82f6)" />
+							<marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse">
+								<path d="M1 1L7 4L1 7" fill="none" stroke="var(--color-border)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+							</marker>
+							<marker id="arrowhead-active" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse">
+								<path d="M1 1L7 4L1 7" fill="none" stroke="var(--color-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
 							</marker>
 							<filter id="glow">
 								<feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -444,15 +494,12 @@
 								{@const edgePoints = getEdgePoints(edge.from, edge.to)}
 								{@const isHighlighted = isEdgeHighlighted(edge)}
 								{#if edgePoints}
-									<g class="edge-group" class:faded={selectedNodeId && !isHighlighted}>
+									<g class="edge-group" class:highlighted={isHighlighted} class:faded={selectedNodeId && !isHighlighted}>
 										<path
 											class="edge"
 											d={edgePoints.path}
-											stroke={isHighlighted ? 'var(--color-primary)' : 'var(--color-border)'}
-											stroke-width={isHighlighted ? 4 : 2}
 											fill="none"
-											marker-end="url(#arrowhead)"
-											style="--arrow-color: {isHighlighted ? 'var(--color-primary)' : 'var(--color-border)'}"
+											marker-end={isHighlighted ? 'url(#arrowhead-active)' : 'url(#arrowhead)'}
 										/>
 										{#if edge.label}
 											<text
@@ -460,7 +507,6 @@
 												y={(edgePoints.y1 + edgePoints.y2) / 2 - 8}
 												text-anchor="middle"
 												class="edge-label"
-												fill={isHighlighted ? 'var(--color-primary)' : 'var(--color-text-muted)'}
 												font-size="12"
 												font-weight="600"
 											>
@@ -485,40 +531,26 @@
 									role="button"
 									tabindex="0"
 								>
-									<!-- Node shadow -->
-									<rect
-										class="node-shadow"
-										x={-NODE_WIDTH / 2}
-										y={-NODE_HEIGHT / 2}
-										width={NODE_WIDTH}
-										height={NODE_HEIGHT}
-										rx="8"
-										fill={isHighlighted ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.05)'}
-										opacity={isHighlighted ? 1 : 0.2}
-									/>
-
 									<!-- Node body -->
 									{#if node.type === 'decision'}
 										<polygon
 											class="node-body"
-											points="0,-30 70,0 0,30 -70,0"
+											points="0,{-node.h * 0.7} {node.w / 2},0 0,{node.h * 0.7} {-node.w / 2},0"
 											fill={color.fill}
 											stroke={color.stroke}
-											stroke-width={selectedNodeId === node.id ? 4 : 2}
-											opacity={isHighlighted ? 1 : 0.25}
+											stroke-width={selectedNodeId === node.id ? 3 : 1.5}
 										/>
 									{:else}
 										<rect
 											class="node-body"
-											x={-NODE_WIDTH / 2}
-											y={-NODE_HEIGHT / 2}
-											width={NODE_WIDTH}
-											height={NODE_HEIGHT}
+											x={-node.w / 2}
+											y={-node.h / 2}
+											width={node.w}
+											height={node.h}
 											rx="8"
 											fill={color.fill}
 											stroke={color.stroke}
-											stroke-width={selectedNodeId === node.id ? 4 : 2}
-											opacity={isHighlighted ? 1 : 0.25}
+											stroke-width={selectedNodeId === node.id ? 3 : 1.5}
 										/>
 									{/if}
 
@@ -528,31 +560,21 @@
 										text-anchor="middle"
 										y="0"
 										dominant-baseline="middle"
-										fill="white"
-										font-weight="600"
+										fill={color.stroke}
+										font-weight="500"
 										font-size="13"
 										pointer-events="none"
-										opacity={isHighlighted ? 1 : 0.3}
 									>
 										{node.label}
-									</text>
-
-									<!-- Node type icon -->
-									<text
-										class="node-type-icon"
-										text-anchor="middle"
-										y={-NODE_HEIGHT / 2 + 12}
-										fill={color.stroke}
-										font-size="16"
-										pointer-events="none"
-										opacity={isHighlighted ? 1 : 0.3}
-									>
-										{color.icon}
 									</text>
 								</g>
 							{/each}
 						</g>
 					</svg>
+
+					{#if selectedNodeId}
+						<button class="show-all-btn" onclick={() => (selectedNodeId = null)}>Show all</button>
+					{/if}
 				</div>
 			{/if}
 		</div>
@@ -901,7 +923,7 @@
 	.node {
 		cursor: grab;
 		user-select: none;
-		transition: all 0.15s ease;
+		transition: opacity 0.25s ease;
 	}
 
 	.node:active {
@@ -909,44 +931,86 @@
 	}
 
 	.node.faded {
-		opacity: 0.3;
+		opacity: 0.2;
 	}
 
 	.node-body {
 		transition: all 0.2s ease;
-		filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
+		filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.12));
 	}
 
-	.node:hover .node-body:not(.faded) {
-		filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.3));
-		stroke-width: 3 !important;
+	.node:hover .node-body {
+		filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
 	}
 
 	.node.selected .node-body {
-		filter: drop-shadow(0 0 20px currentColor);
-		animation: pulse 1.5s ease-in-out infinite;
+		filter: drop-shadow(0 0 14px currentColor);
 	}
 
-	@keyframes pulse {
-		0%,
-		100% {
-			filter: drop-shadow(0 0 20px currentColor);
-		}
-		50% {
-			filter: drop-shadow(0 0 30px currentColor);
-		}
+	.node-label {
+		text-shadow: none;
+	}
+
+	.edge-group {
+		transition: opacity 0.25s ease;
+	}
+
+	.edge-group.faded {
+		opacity: 0.12;
 	}
 
 	.edge {
-		transition: all 0.2s ease;
+		stroke: var(--color-border);
+		stroke-width: 1.5;
+		stroke-dasharray: 6 6;
+		animation: flowmove 0.8s linear infinite;
 	}
 
-	.edge-group.faded .edge {
-		opacity: 0.15 !important;
+	.edge-group.highlighted .edge {
+		stroke: var(--color-primary);
+		stroke-width: 2.5;
+	}
+
+	@keyframes flowmove {
+		to {
+			stroke-dashoffset: -16;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.edge {
+			animation: none;
+		}
 	}
 
 	.edge-label {
-		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+		fill: var(--color-text-muted);
+	}
+
+	.edge-group.highlighted .edge-label {
+		fill: var(--color-primary);
+	}
+
+	.show-all-btn {
+		position: absolute;
+		bottom: 1.5rem;
+		right: 1.5rem;
+		padding: 0.5rem 1rem;
+		border-radius: 8px;
+		border: 1px solid var(--color-border);
+		background: var(--color-surface);
+		color: var(--color-text);
+		font-size: 0.8125rem;
+		font-weight: 600;
+		cursor: pointer;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		transition: all 0.2s;
+	}
+
+	.show-all-btn:hover {
+		background: var(--color-primary);
+		color: white;
+		border-color: var(--color-primary);
 	}
 
 	@media (max-width: 900px) {
