@@ -24,32 +24,31 @@
 		edges: FlowEdge[];
 	}
 
-	let inputMode = $state<'json' | 'english'>('english');
-	let englishInput = $state('Request in → Validate → Manual review → Done\nRequest in → Auto-approve → Done\nRequest in → Validate → Reject → Done');
-	let jsonInput = $state(JSON.stringify(getDefaultDiagram(), null, 2));
-	let diagram = $state<FlowDiagram>(getDefaultDiagram());
-	let error = $state<string | null>(null);
-	let selectedNodeId = $state<string | null>(null);
-	let draggedNodeId = $state<string | null>(null);
-	let dragOffset = $state({ x: 0, y: 0 });
-	let scale = $state(1);
-	let panX = $state(0);
-	let panY = $state(0);
-	let isDragging = $state(false);
-	let dragStart = $state({ x: 0, y: 0 });
-	let sidebarOpen = $state(true);
-	let svgElement: SVGSVGElement | null = null;
+	// A tab bundles one independent diagram together with its input text and
+	// view state, so switching tabs restores exactly what the user was editing.
+	interface FlowTab {
+		id: number;
+		name: string;
+		inputMode: 'json' | 'english';
+		englishInput: string;
+		jsonInput: string;
+		diagram: FlowDiagram;
+		error: string | null;
+		selectedNodeId: string | null;
+		scale: number;
+		panX: number;
+		panY: number;
+	}
 
 	const NODE_HEIGHT = 44;
 	const COL_WIDTH = 220;
 	const ROW_HEIGHT = 100;
 
+	const DEFAULT_ENGLISH =
+		'Request in - Validate - Manual review - Done\nRequest in - Auto-approve - Done\nRequest in - Validate - Reject - Done';
+
 	function nodeWidth(label: string): number {
 		return Math.max(90, Math.min(200, label.length * 8 + 40));
-	}
-
-	function getDefaultDiagram(): FlowDiagram {
-		return parseEnglish(englishInput);
 	}
 
 	function parseEnglish(text: string): FlowDiagram {
@@ -57,14 +56,6 @@
 		const nodeMap = new Map<string, FlowNode>();
 		const edges: FlowEdge[] = [];
 		let nodeId = 0;
-
-		const getNodeId = (label: string) => {
-			const normalized = label.toLowerCase().trim();
-			for (const [id, node] of nodeMap) {
-				if (node.label.toLowerCase() === normalized) return id;
-			}
-			return null;
-		};
 
 		const createOrGetNode = (label: string, type: 'start' | 'end' | 'process' | 'decision' | 'data', flow: string) => {
 			const normalized = label.toLowerCase().trim();
@@ -80,27 +71,28 @@
 		};
 
 		lines.forEach((line, lineIndex) => {
-			const parts = line.split('→').map(p => p.trim()).filter(p => p);
+			// Accept arrows (→, ->, —>, ➔, ➜) or a spaced hyphen ( - ) as step
+			// separators. The spaced-hyphen rule preserves hyphenated words
+			// like "Auto-approve" and "Request-in".
+			const parts = line
+				.split(/\s*(?:->|—>|➔|➜|→|>)\s*|\s+-\s+/)
+				.map(p => p.trim())
+				.filter(p => p);
 			if (parts.length < 2) return;
 			const flowId = `f${lineIndex + 1}`;
 
-			for (let i = 0; i < parts.length; i++) {
-				const label = parts[i];
+			// Create every node on this line first, collecting ids in order, so
+			// that edges can reference targets that appear later in the line.
+			const ids = parts.map((label, i) => {
 				let type: 'start' | 'end' | 'process' | 'decision' | 'data' = 'process';
-
 				if (i === 0) type = 'start';
 				else if (i === parts.length - 1) type = 'end';
-				else if (label.toLowerCase().includes('?')) type = 'decision';
+				else if (label.includes('?')) type = 'decision';
+				return createOrGetNode(label, type, flowId);
+			});
 
-				createOrGetNode(label, type, flowId);
-
-				if (i < parts.length - 1) {
-					const fromId = getNodeId(label);
-					const toId = getNodeId(parts[i + 1]);
-					if (fromId && toId) {
-						edges.push({ from: fromId, to: toId, flow: flowId });
-					}
-				}
+			for (let i = 0; i < ids.length - 1; i++) {
+				edges.push({ from: ids[i], to: ids[i + 1], flow: flowId });
 			}
 		});
 
@@ -146,13 +138,47 @@
 		});
 	}
 
+	function createTab(id: number, name?: string): FlowTab {
+		const diagram = parseEnglish(DEFAULT_ENGLISH);
+		return {
+			id,
+			name: name ?? `Flow ${id}`,
+			inputMode: 'english',
+			englishInput: DEFAULT_ENGLISH,
+			jsonInput: JSON.stringify(diagram, null, 2),
+			diagram,
+			error: null,
+			selectedNodeId: null,
+			scale: 1,
+			panX: 0,
+			panY: 0
+		};
+	}
+
+	let tabIdCounter = $state(1);
+	let tabs = $state<FlowTab[]>([createTab(1, 'Flow 1')]);
+	let activeTabId = $state(1);
+	let activeTab = $derived(tabs.find(t => t.id === activeTabId) ?? tabs[0]);
+
+	// Transient pointer-interaction state — only meaningful for the tab the user
+	// is currently pointing at, so it lives outside the per-tab model.
+	let draggedNodeId = $state<string | null>(null);
+	let dragOffset = $state({ x: 0, y: 0 });
+	let isDragging = $state(false);
+	let dragStart = $state({ x: 0, y: 0 });
+	let sidebarOpen = $state(true);
+	let inputMaximized = $state(false);
+	let canvasMaximized = $state(false);
+	let svgElement: SVGSVGElement | null = null;
+
 	function parseInput() {
-		error = null;
+		const tab = activeTab;
+		tab.error = null;
 		try {
-			if (inputMode === 'english') {
-				diagram = parseEnglish(englishInput);
+			if (tab.inputMode === 'english') {
+				tab.diagram = parseEnglish(tab.englishInput);
 			} else {
-				const parsed = JSON.parse(jsonInput) as Partial<FlowDiagram>;
+				const parsed = JSON.parse(tab.jsonInput) as Partial<FlowDiagram>;
 				if (!parsed.nodes || !Array.isArray(parsed.nodes)) {
 					throw new Error('Missing nodes array');
 				}
@@ -177,20 +203,21 @@
 				}));
 				const needsLayout = nodes.every(n => n.x === 0 && n.y === 0);
 				if (needsLayout) layoutNodes(nodes, edges);
-				diagram = { nodes, edges };
+				tab.diagram = { nodes, edges };
 			}
-			selectedNodeId = null;
+			tab.selectedNodeId = null;
 			centerGraph();
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Invalid input';
+			tab.error = e instanceof Error ? e.message : 'Invalid input';
 		}
 	}
 
 	function centerGraph() {
-		if (!svgElement || diagram.nodes.length === 0) return;
+		const tab = activeTab;
+		if (!svgElement || tab.diagram.nodes.length === 0) return;
 		const bbox = svgElement.getBoundingClientRect();
-		const allX = diagram.nodes.map(n => n.x);
-		const allY = diagram.nodes.map(n => n.y);
+		const allX = tab.diagram.nodes.map(n => n.x);
+		const allY = tab.diagram.nodes.map(n => n.y);
 		const minX = Math.min(...allX);
 		const maxX = Math.max(...allX);
 		const minY = Math.min(...allY);
@@ -198,8 +225,8 @@
 
 		const centerX = (minX + maxX) / 2;
 		const centerY = (minY + maxY) / 2;
-		panX = bbox.width / 2 - centerX;
-		panY = bbox.height / 2 - centerY;
+		tab.panX = bbox.width / 2 - centerX;
+		tab.panY = bbox.height / 2 - centerY;
 	}
 
 	function getNodeColor(type: string): { fill: string; stroke: string } {
@@ -214,15 +241,15 @@
 	}
 
 	function activeFlows(): Set<string> | null {
-		if (!selectedNodeId) return null;
-		const node = diagram.nodes.find(n => n.id === selectedNodeId);
+		if (!activeTab.selectedNodeId) return null;
+		const node = activeTab.diagram.nodes.find(n => n.id === activeTab.selectedNodeId);
 		return node ? new Set(node.flows) : null;
 	}
 
 	function isNodeHighlighted(nodeId: string): boolean {
 		const flows = activeFlows();
 		if (!flows) return true;
-		const node = diagram.nodes.find(n => n.id === nodeId);
+		const node = activeTab.diagram.nodes.find(n => n.id === nodeId);
 		return !!node && node.flows.some(f => flows.has(f));
 	}
 
@@ -235,7 +262,7 @@
 	function handleNodeMouseDown(e: MouseEvent, nodeId: string) {
 		if (e.button !== 0) return;
 		draggedNodeId = nodeId;
-		const node = diagram.nodes.find(n => n.id === nodeId);
+		const node = activeTab.diagram.nodes.find(n => n.id === nodeId);
 		if (node) {
 			dragOffset = {
 				x: e.clientX - node.x,
@@ -248,21 +275,20 @@
 	function handleSvgMouseDown(e: MouseEvent) {
 		if (e.button === 0 && !draggedNodeId) {
 			isDragging = true;
-			dragStart = { x: e.clientX - panX, y: e.clientY - panY };
+			dragStart = { x: e.clientX - activeTab.panX, y: e.clientY - activeTab.panY };
 		}
 	}
 
 	function handleMouseMove(e: MouseEvent) {
 		if (draggedNodeId) {
-			const node = diagram.nodes.find(n => n.id === draggedNodeId);
+			const node = activeTab.diagram.nodes.find(n => n.id === draggedNodeId);
 			if (node) {
 				node.x = e.clientX - dragOffset.x;
 				node.y = e.clientY - dragOffset.y;
-				diagram = diagram;
 			}
 		} else if (isDragging) {
-			panX = e.clientX - dragStart.x;
-			panY = e.clientY - dragStart.y;
+			activeTab.panX = e.clientX - dragStart.x;
+			activeTab.panY = e.clientY - dragStart.y;
 		}
 	}
 
@@ -274,25 +300,25 @@
 	function handleWheel(e: WheelEvent) {
 		e.preventDefault();
 		const delta = e.deltaY > 0 ? 0.9 : 1.1;
-		scale = Math.max(0.3, Math.min(3, scale * delta));
+		activeTab.scale = Math.max(0.3, Math.min(3, activeTab.scale * delta));
 	}
 
 	function selectNode(nodeId: string) {
-		selectedNodeId = selectedNodeId === nodeId ? null : nodeId;
+		activeTab.selectedNodeId = activeTab.selectedNodeId === nodeId ? null : nodeId;
 	}
 
 	function resetView() {
-		scale = 1;
+		activeTab.scale = 1;
 		centerGraph();
 	}
 
 	function updateJsonFromDiagram() {
-		jsonInput = JSON.stringify(diagram, null, 2);
+		activeTab.jsonInput = JSON.stringify(activeTab.diagram, null, 2);
 	}
 
 	function getEdgePoints(fromId: string, toId: string) {
-		const from = diagram.nodes.find(n => n.id === fromId);
-		const to = diagram.nodes.find(n => n.id === toId);
+		const from = activeTab.diagram.nodes.find(n => n.id === fromId);
+		const to = activeTab.diagram.nodes.find(n => n.id === toId);
 		if (!from || !to) return null;
 
 		const x1 = from.x + from.w / 2;
@@ -312,14 +338,144 @@
 		};
 	}
 
-	function exportDiagram() {
+	function fileBaseName(): string {
+		return activeTab.name.replace(/\s+/g, '-').toLowerCase() || 'flow-diagram';
+	}
+
+	function downloadFile(href: string, filename: string) {
 		const element = document.createElement('a');
-		element.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(jsonInput));
-		element.setAttribute('download', 'flow-diagram.json');
+		element.setAttribute('href', href);
+		element.setAttribute('download', filename);
 		element.style.display = 'none';
 		document.body.appendChild(element);
 		element.click();
 		document.body.removeChild(element);
+	}
+
+	function exportDiagram() {
+		downloadFile(
+			'data:text/json;charset=utf-8,' + encodeURIComponent(activeTab.jsonInput),
+			`${fileBaseName()}.json`
+		);
+	}
+
+	// Build a standalone, self-contained SVG of just the diagram (no pan/zoom,
+	// tightly cropped to the nodes) and rasterize it to a PNG the browser can
+	// download. Scoped component styles and CSS vars are inlined so the
+	// exported image looks identical to what's on screen.
+	function exportImage() {
+		if (!svgElement || activeTab.diagram.nodes.length === 0) return;
+
+		const nodes = activeTab.diagram.nodes;
+		const pad = 48;
+		const minX = Math.min(...nodes.map(n => n.x - n.w / 2)) - pad;
+		const maxX = Math.max(...nodes.map(n => n.x + n.w / 2)) + pad;
+		const minY = Math.min(...nodes.map(n => n.y - n.h * 0.7)) - pad;
+		const maxY = Math.max(...nodes.map(n => n.y + n.h * 0.7)) + pad;
+		const width = Math.max(1, maxX - minX);
+		const height = Math.max(1, maxY - minY);
+
+		// Resolve theme colours so the standalone SVG doesn't rely on var().
+		const cs = getComputedStyle(svgElement);
+		const border = cs.getPropertyValue('--color-border').trim() || '#334155';
+		const primary = cs.getPropertyValue('--color-primary').trim() || '#3b82f6';
+		const muted = cs.getPropertyValue('--color-text-muted').trim() || '#94a3b8';
+		const bg = cs.getPropertyValue('--color-bg').trim() || '#0f172a';
+
+		const clone = svgElement.cloneNode(true) as SVGSVGElement;
+		clone.setAttribute('width', String(width));
+		clone.setAttribute('height', String(height));
+		clone.setAttribute('viewBox', `${minX} ${minY} ${width} ${height}`);
+
+		// Drop the infinite grid and neutralise the pan/zoom transform.
+		clone.querySelector('#canvas-grid')?.remove();
+		const root = clone.querySelector('#export-root') as SVGGElement | null;
+		if (root) root.removeAttribute('transform');
+
+		// Solid background rect covering the crop.
+		const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+		bgRect.setAttribute('x', String(minX));
+		bgRect.setAttribute('y', String(minY));
+		bgRect.setAttribute('width', String(width));
+		bgRect.setAttribute('height', String(height));
+		bgRect.setAttribute('fill', bg);
+		clone.insertBefore(bgRect, clone.firstChild);
+
+		// Inline the edge/label styles the scoped CSS normally supplies.
+		const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+		styleEl.textContent =
+			`.edge{stroke:${border};stroke-width:1.5;fill:none;stroke-dasharray:6 6;}` +
+			`.edge-group.highlighted .edge{stroke:${primary};stroke-width:2.5;}` +
+			`.edge-label{fill:${muted};}` +
+			`.edge-group.highlighted .edge-label{fill:${primary};}`;
+		clone.insertBefore(styleEl, clone.firstChild);
+
+		let svgStr = new XMLSerializer().serializeToString(clone);
+		// Any remaining var() refs (e.g. marker strokes) → concrete colours.
+		svgStr = svgStr
+			.replaceAll('var(--color-border)', border)
+			.replaceAll('var(--color-primary)', primary)
+			.replaceAll('var(--color-text-muted)', muted)
+			.replaceAll('var(--color-bg)', bg);
+
+		const svg64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+		const img = new Image();
+		img.onload = () => {
+			const dpr = 2; // render at 2x for a crisp image
+			const canvas = document.createElement('canvas');
+			canvas.width = Math.round(width * dpr);
+			canvas.height = Math.round(height * dpr);
+			const ctx = canvas.getContext('2d');
+			if (!ctx) return;
+			ctx.scale(dpr, dpr);
+			ctx.drawImage(img, 0, 0);
+			canvas.toBlob(blob => {
+				if (!blob) return;
+				const url = URL.createObjectURL(blob);
+				downloadFile(url, `${fileBaseName()}.png`);
+				URL.revokeObjectURL(url);
+			}, 'image/png');
+		};
+		img.src = svg64;
+	}
+
+	function toggleCanvasMaximize() {
+		canvasMaximized = !canvasMaximized;
+		requestAnimationFrame(() => centerGraph());
+	}
+
+	// --- Tab management ---------------------------------------------------
+	function addTab() {
+		tabIdCounter += 1;
+		const tab = createTab(tabIdCounter);
+		tabs = [...tabs, tab];
+		activeTabId = tab.id;
+		requestAnimationFrame(() => centerGraph());
+	}
+
+	function closeTab(id: number) {
+		if (tabs.length === 1) return; // always keep at least one diagram
+		const idx = tabs.findIndex(t => t.id === id);
+		tabs = tabs.filter(t => t.id !== id);
+		if (activeTabId === id) {
+			activeTabId = tabs[Math.min(idx, tabs.length - 1)].id;
+			requestAnimationFrame(() => centerGraph());
+		}
+	}
+
+	function switchTab(id: number) {
+		if (id === activeTabId) return;
+		activeTabId = id;
+		requestAnimationFrame(() => centerGraph());
+	}
+
+	function renameTab(id: number) {
+		const tab = tabs.find(t => t.id === id);
+		if (!tab) return;
+		const newName = prompt('Diagram name:', tab.name);
+		if (newName && newName.trim()) {
+			tab.name = newName.trim();
+		}
 	}
 
 	onMount(() => {
@@ -329,7 +485,7 @@
 
 <svelte:window onmousemove={handleMouseMove} onmouseup={handleMouseUp} />
 
-<div class="app-container">
+<div class="app-container flow-root">
 	<header class="app-header">
 		<div class="header-left">
 			<button class="sidebar-toggle" onclick={() => (sidebarOpen = !sidebarOpen)} title={sidebarOpen ? 'Hide panel' : 'Show panel'}>
@@ -345,55 +501,94 @@
 			</div>
 		</div>
 		<div class="header-controls">
-			<span class="zoom-level">{Math.round(scale * 100)}%</span>
+			<span class="zoom-level">{Math.round(activeTab.scale * 100)}%</span>
 			<button class="icon-btn" onclick={resetView} title="Reset zoom & pan">↺</button>
+			<button class="icon-btn" onclick={toggleCanvasMaximize} title="Maximize diagram">⛶</button>
+			<button class="icon-btn" onclick={exportImage} title="Export as PNG image">🖼</button>
 			<button class="icon-btn" onclick={exportDiagram} title="Export as JSON">⬇</button>
 		</div>
 	</header>
+
+	<!-- Diagram tabs: each holds an independent flow you can switch between. -->
+	<div class="tab-bar" role="tablist">
+		{#each tabs as tab (tab.id)}
+			<div
+				class="diagram-tab"
+				class:active={tab.id === activeTabId}
+				onclick={() => switchTab(tab.id)}
+				ondblclick={() => renameTab(tab.id)}
+				role="tab"
+				tabindex="0"
+				aria-selected={tab.id === activeTabId}
+				title="Double-click to rename"
+			>
+				<span class="diagram-tab-name">{tab.name}</span>
+				{#if tabs.length > 1}
+					<button
+						type="button"
+						class="diagram-tab-close"
+						onclick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
+						title="Close diagram"
+					>✕</button>
+				{/if}
+			</div>
+		{/each}
+		<button type="button" class="diagram-tab-add" onclick={addTab} title="New diagram">＋</button>
+	</div>
 
 	<div class="main-content">
 		{#if sidebarOpen}
 			<aside class="sidebar">
 				<div class="sidebar-header">
-					<h2>Input</h2>
+					<div class="sidebar-header-row">
+						<h2>Input</h2>
+						<button
+							type="button"
+							class="maximize-btn"
+							onclick={() => (inputMaximized = true)}
+							title="Maximize input editor"
+						>⤢ Expand</button>
+					</div>
 					<div class="mode-tabs">
-						<button class="tab" class:active={inputMode === 'english'} onclick={() => (inputMode = 'english')}>English</button>
-						<button class="tab" class:active={inputMode === 'json'} onclick={() => (inputMode = 'json')}>JSON</button>
+						<button class="tab" class:active={activeTab.inputMode === 'english'} onclick={() => (activeTab.inputMode = 'english')}>English</button>
+						<button class="tab" class:active={activeTab.inputMode === 'json'} onclick={() => (activeTab.inputMode = 'json')}>JSON</button>
 					</div>
 				</div>
 
-				{#if inputMode === 'english'}
+				{#if activeTab.inputMode === 'english'}
 					<div class="input-section">
-						<label>Describe your flows (one per line):</label>
+						<label for="flow-english-input">Describe your flows (one per line):</label>
 						<textarea
+							id="flow-english-input"
 							class="text-input"
-							bind:value={englishInput}
-							placeholder="Request in → Validate → Done&#10;Request in → Reject → Done"
+							bind:value={activeTab.englishInput}
+							placeholder="Request in - Validate - Manual review - Done&#10;Request in - Auto-approve - Done&#10;Request in - Reject - Done"
 							spellcheck="false"
 						></textarea>
 						<div class="help-text">
-							Use → to connect steps. First step is start (green), last is end (red), others are process (blue).
+							Connect steps with <strong>-&gt;</strong>, <strong>→</strong>, or a spaced <strong>-</strong> (one flow per line). First step is start (green), last is end (red), others are process (blue). Add a <strong>?</strong> to a label to make it a decision diamond.
 						</div>
 					</div>
 				{:else}
 					<div class="input-section">
-						<label>Paste JSON diagram:</label>
+						<label for="flow-json-input">Paste JSON diagram:</label>
 						<textarea
+							id="flow-json-input"
 							class="text-input"
-							bind:value={jsonInput}
+							bind:value={activeTab.jsonInput}
 							placeholder="Paste flow diagram JSON..."
 							spellcheck="false"
 						></textarea>
 					</div>
 				{/if}
 
-				{#if error}
+				{#if activeTab.error}
 					<div class="error-box">
 						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 							<circle cx="12" cy="12" r="10" />
 							<path d="M12 8v4M12 16h.01" />
 						</svg>
-						{error}
+						{activeTab.error}
 					</div>
 				{/if}
 
@@ -404,14 +599,15 @@
 					Generate
 				</button>
 
-				{#if selectedNodeId}
-					{@const selectedNode = diagram.nodes.find(n => n.id === selectedNodeId)}
+				{#if activeTab.selectedNodeId}
+					{@const selectedNode = activeTab.diagram.nodes.find(n => n.id === activeTab.selectedNodeId)}
 					{#if selectedNode}
 						<div class="node-editor">
 							<h3>Node Details</h3>
 							<div class="form-group">
-								<label>Label</label>
+								<label for="flow-node-label">Label</label>
 								<input
+									id="flow-node-label"
 									type="text"
 									value={selectedNode.label}
 									onchange={(e) => {
@@ -421,8 +617,9 @@
 								/>
 							</div>
 							<div class="form-group">
-								<label>Type</label>
+								<label for="flow-node-type">Type</label>
 								<select
+									id="flow-node-type"
 									value={selectedNode.type}
 									onchange={(e) => {
 										selectedNode.type = e.currentTarget.value as FlowNode['type'];
@@ -437,8 +634,8 @@
 								</select>
 							</div>
 							<div class="info-box">
-								<div>↓ In: {diagram.edges.filter(e => e.to === selectedNodeId).length}</div>
-								<div>↑ Out: {diagram.edges.filter(e => e.from === selectedNodeId).length}</div>
+								<div>↓ In: {activeTab.diagram.edges.filter(e => e.to === activeTab.selectedNodeId).length}</div>
+								<div>↑ Out: {activeTab.diagram.edges.filter(e => e.from === activeTab.selectedNodeId).length}</div>
 							</div>
 						</div>
 					{/if}
@@ -446,8 +643,17 @@
 			</aside>
 		{/if}
 
-		<div class="canvas-area">
-			{#if diagram.nodes.length === 0}
+		<div class="canvas-area" class:maximized={canvasMaximized}>
+			{#if canvasMaximized}
+				<div class="canvas-toolbar">
+					<span class="zoom-level">{Math.round(activeTab.scale * 100)}%</span>
+					<button class="icon-btn" onclick={resetView} title="Reset zoom & pan">↺</button>
+					<button class="icon-btn" onclick={exportImage} title="Export as PNG image">🖼</button>
+					<button class="icon-btn" onclick={exportDiagram} title="Export as JSON">⬇</button>
+					<button class="icon-btn minimize-btn" onclick={toggleCanvasMaximize} title="Minimize diagram">⤡ Minimize</button>
+				</div>
+			{/if}
+			{#if activeTab.diagram.nodes.length === 0}
 				<div class="empty-state">
 					<svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
 						<circle cx="18" cy="5" r="3" />
@@ -486,15 +692,15 @@
 							</pattern>
 						</defs>
 
-						<rect width="5000" height="5000" fill="url(#grid)" />
+						<rect id="canvas-grid" width="5000" height="5000" fill="url(#grid)" />
 
-						<g transform="translate({panX}, {panY}) scale({scale})">
+						<g id="export-root" transform="translate({activeTab.panX}, {activeTab.panY}) scale({activeTab.scale})">
 							<!-- Edges -->
-							{#each diagram.edges as edge}
+							{#each activeTab.diagram.edges as edge}
 								{@const edgePoints = getEdgePoints(edge.from, edge.to)}
 								{@const isHighlighted = isEdgeHighlighted(edge)}
 								{#if edgePoints}
-									<g class="edge-group" class:highlighted={isHighlighted} class:faded={selectedNodeId && !isHighlighted}>
+									<g class="edge-group" class:highlighted={isHighlighted} class:faded={activeTab.selectedNodeId && !isHighlighted}>
 										<path
 											class="edge"
 											d={edgePoints.path}
@@ -518,13 +724,13 @@
 							{/each}
 
 							<!-- Nodes -->
-							{#each diagram.nodes as node (node.id)}
+							{#each activeTab.diagram.nodes as node (node.id)}
 								{@const color = getNodeColor(node.type)}
 								{@const isHighlighted = isNodeHighlighted(node.id)}
 								<g
 									class="node"
-									class:selected={selectedNodeId === node.id}
-									class:faded={selectedNodeId && !isHighlighted}
+									class:selected={activeTab.selectedNodeId === node.id}
+									class:faded={activeTab.selectedNodeId && !isHighlighted}
 									transform="translate({node.x}, {node.y})"
 									onmousedown={(e) => handleNodeMouseDown(e, node.id)}
 									onclick={() => selectNode(node.id)}
@@ -538,7 +744,7 @@
 											points="0,{-node.h * 0.7} {node.w / 2},0 0,{node.h * 0.7} {-node.w / 2},0"
 											fill={color.fill}
 											stroke={color.stroke}
-											stroke-width={selectedNodeId === node.id ? 3 : 1.5}
+											stroke-width={activeTab.selectedNodeId === node.id ? 3 : 1.5}
 										/>
 									{:else}
 										<rect
@@ -550,7 +756,7 @@
 											rx="8"
 											fill={color.fill}
 											stroke={color.stroke}
-											stroke-width={selectedNodeId === node.id ? 3 : 1.5}
+											stroke-width={activeTab.selectedNodeId === node.id ? 3 : 1.5}
 										/>
 									{/if}
 
@@ -572,26 +778,78 @@
 						</g>
 					</svg>
 
-					{#if selectedNodeId}
-						<button class="show-all-btn" onclick={() => (selectedNodeId = null)}>Show all</button>
+					{#if activeTab.selectedNodeId}
+						<button class="show-all-btn" onclick={() => (activeTab.selectedNodeId = null)}>Show all</button>
 					{/if}
 				</div>
 			{/if}
 		</div>
 	</div>
+
+	<!-- Maximized input editor: a full-canvas overlay for comfortably writing
+	     or pasting large flows, then minimizing back to the sidebar. -->
+	{#if inputMaximized}
+		<div class="input-overlay" role="dialog" aria-modal="true" aria-label="Maximized input editor">
+			<div class="input-overlay-header">
+				<div class="input-overlay-title">
+					<h2>Edit input — {activeTab.name}</h2>
+					<div class="mode-tabs">
+						<button class="tab" class:active={activeTab.inputMode === 'english'} onclick={() => (activeTab.inputMode = 'english')}>English</button>
+						<button class="tab" class:active={activeTab.inputMode === 'json'} onclick={() => (activeTab.inputMode = 'json')}>JSON</button>
+					</div>
+				</div>
+				<div class="overlay-actions">
+					<button class="btn btn-primary overlay-btn" onclick={() => { parseInput(); inputMaximized = false; }}>
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M5 12h14M12 5v14" />
+						</svg>
+						Generate &amp; Close
+					</button>
+					<button class="icon-btn" onclick={() => (inputMaximized = false)} title="Minimize">⤡ Minimize</button>
+				</div>
+			</div>
+
+			{#if activeTab.inputMode === 'english'}
+				<textarea
+					class="overlay-textarea"
+					bind:value={activeTab.englishInput}
+					placeholder="Request in - Validate - Manual review - Done&#10;Request in - Auto-approve - Done&#10;Request in - Reject - Done"
+					spellcheck="false"
+				></textarea>
+			{:else}
+				<textarea
+					class="overlay-textarea"
+					bind:value={activeTab.jsonInput}
+					placeholder="Paste flow diagram JSON..."
+					spellcheck="false"
+				></textarea>
+			{/if}
+
+			{#if activeTab.error}
+				<div class="error-box overlay-error">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<circle cx="12" cy="12" r="10" />
+						<path d="M12 8v4M12 16h.01" />
+					</svg>
+					{activeTab.error}
+				</div>
+			{/if}
+		</div>
+	{/if}
 </div>
 
 <style>
-	:global(body) {
-		overflow: hidden;
-	}
-
+	/* Fill the space the site layout gives us (between the sticky header and
+	   footer) instead of forcing a full 100vh, which pushed the panel and
+	   canvas off-screen. The page route neutralises .main padding. */
 	.app-container {
 		display: flex;
 		flex-direction: column;
-		height: 100vh;
+		flex: 1;
+		min-height: 0;
 		overflow: hidden;
 		background: var(--color-bg);
+		position: relative;
 	}
 
 	.app-header {
@@ -630,10 +888,16 @@
 	}
 
 	.header-title h1 {
-		font-size: 1.5rem;
+		font-family: 'Georgia', 'Times New Roman', serif;
+		font-size: 1.55rem;
 		font-weight: 700;
+		font-style: italic;
+		letter-spacing: -0.01em;
 		margin: 0;
-		color: var(--color-text);
+		background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
 	}
 
 	.header-title p {
@@ -670,6 +934,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		white-space: nowrap;
 	}
 
 	.icon-btn:hover {
@@ -678,10 +943,100 @@
 		border-color: var(--color-primary);
 	}
 
+	/* --- Diagram tab bar ------------------------------------------------ */
+	.tab-bar {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.375rem 0.75rem;
+		background: var(--color-surface);
+		border-bottom: 1px solid var(--color-border);
+		flex-shrink: 0;
+		overflow-x: auto;
+	}
+
+	.diagram-tab {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.4rem 0.75rem;
+		border: 1px solid var(--color-border);
+		border-radius: 6px 6px 0 0;
+		background: var(--color-bg);
+		color: var(--color-text-muted);
+		font-size: 0.8125rem;
+		font-weight: 600;
+		cursor: pointer;
+		white-space: nowrap;
+		transition: all 0.15s;
+		user-select: none;
+	}
+
+	.diagram-tab:hover {
+		color: var(--color-text);
+		border-color: var(--color-primary);
+	}
+
+	.diagram-tab.active {
+		background: var(--color-primary);
+		color: white;
+		border-color: var(--color-primary);
+	}
+
+	.diagram-tab-name {
+		max-width: 160px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.diagram-tab-close {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 16px;
+		height: 16px;
+		border: none;
+		border-radius: 4px;
+		background: transparent;
+		color: inherit;
+		font-size: 0.7rem;
+		line-height: 1;
+		cursor: pointer;
+		opacity: 0.7;
+		transition: all 0.15s;
+	}
+
+	.diagram-tab-close:hover {
+		background: rgba(0, 0, 0, 0.2);
+		opacity: 1;
+	}
+
+	.diagram-tab-add {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 30px;
+		height: 30px;
+		border: 1px dashed var(--color-border);
+		border-radius: 6px;
+		background: var(--color-bg);
+		color: var(--color-text-muted);
+		font-size: 1.1rem;
+		cursor: pointer;
+		flex-shrink: 0;
+		transition: all 0.15s;
+	}
+
+	.diagram-tab-add:hover {
+		color: var(--color-primary);
+		border-color: var(--color-primary);
+	}
+
 	.main-content {
 		display: flex;
 		flex: 1;
 		overflow: hidden;
+		position: relative;
 	}
 
 	.sidebar {
@@ -699,11 +1054,38 @@
 		border-bottom: 1px solid var(--color-border);
 	}
 
+	.sidebar-header-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 0.75rem;
+	}
+
 	.sidebar-header h2 {
 		font-size: 1rem;
 		font-weight: 600;
-		margin: 0 0 0.75rem 0;
+		margin: 0;
 		color: var(--color-text);
+	}
+
+	.maximize-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.3rem 0.6rem;
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
+		background: var(--color-bg);
+		color: var(--color-text-muted);
+		font-size: 0.75rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	.maximize-btn:hover {
+		color: var(--color-primary);
+		border-color: var(--color-primary);
 	}
 
 	.mode-tabs {
@@ -881,6 +1263,40 @@
 		background: var(--color-bg);
 	}
 
+	/* Maximize just the diagram: cover the whole viewport so the canvas gets
+	   all the space, with a floating toolbar for zoom/export/exit. */
+	.canvas-area.maximized {
+		position: fixed;
+		inset: 0;
+		z-index: 1000;
+	}
+
+	.canvas-toolbar {
+		position: absolute;
+		top: 1rem;
+		right: 1rem;
+		z-index: 5;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.4rem 0.5rem;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+	}
+
+	.minimize-btn {
+		font-weight: 600;
+		background: var(--color-primary);
+		color: white;
+		border-color: var(--color-primary);
+	}
+
+	.minimize-btn:hover {
+		filter: brightness(1.1);
+	}
+
 	.empty-state {
 		display: flex;
 		flex-direction: column;
@@ -1013,6 +1429,78 @@
 		border-color: var(--color-primary);
 	}
 
+	/* --- Maximized input overlay ---------------------------------------- */
+	.input-overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 40;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		padding: 1.25rem 1.5rem 1.5rem;
+		background: var(--color-surface);
+	}
+
+	.input-overlay-header {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.input-overlay-title {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.input-overlay-title h2 {
+		font-size: 1.05rem;
+		font-weight: 600;
+		margin: 0;
+		color: var(--color-text);
+	}
+
+	.input-overlay-title .mode-tabs {
+		width: 200px;
+	}
+
+	.overlay-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.overlay-btn {
+		margin: 0;
+	}
+
+	.overlay-textarea {
+		flex: 1;
+		width: 100%;
+		padding: 1rem;
+		border: 1px solid var(--color-border);
+		background: var(--color-bg);
+		color: var(--color-text);
+		border-radius: 8px;
+		font-family: var(--font-mono);
+		font-size: 0.95rem;
+		line-height: 1.6;
+		resize: none;
+		outline: none;
+	}
+
+	.overlay-textarea:focus {
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+	}
+
+	.overlay-error {
+		margin: 0;
+	}
+
 	@media (max-width: 900px) {
 		.sidebar {
 			width: 280px;
@@ -1020,6 +1508,24 @@
 
 		.header-title h1 {
 			font-size: 1.25rem;
+		}
+	}
+
+	/* On phones the panel overlays the canvas (toggled by the ◀/▶ button)
+	   instead of stealing horizontal space and crushing the diagram. */
+	@media (max-width: 640px) {
+		.sidebar {
+			position: absolute;
+			top: 0;
+			left: 0;
+			bottom: 0;
+			z-index: 20;
+			width: min(88%, 340px);
+			box-shadow: 6px 0 24px rgba(0, 0, 0, 0.28);
+		}
+
+		.header-title p {
+			display: none;
 		}
 	}
 </style>
