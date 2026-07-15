@@ -5,3 +5,4 @@ export { default as DiffList } from './DiffList.svelte';
 export { default as StatsPanel } from './StatsPanel.svelte';
 export { default as InlineDiffViewer } from './InlineDiffViewer.svelte';
 export { default as SideBySideDiff } from './SideBySideDiff.svelte';
+export { default as FlowDiagramEditor } from './FlowDiagramEditor.svelte';

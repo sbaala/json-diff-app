@@ -61,6 +61,19 @@
 		</p>
 		<div class="hero-cta">
 			<a href="/format" class="btn btn-primary">Explore the Toolkit</a>
+			<a
+				href="https://vinmi-frontend-d3h34miv7q-ue.a.run.app/"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="btn btn-secondary btn-blog"
+			>
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+					<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+				</svg>
+				Read Our Blog
+				<span class="blog-badge">New</span>
+			</a>
 			<a href="mailto:{CONTACT_EMAIL}" class="btn btn-secondary">Get in touch</a>
 		</div>
 
@@ -263,6 +276,32 @@
 		justify-content: center;
 		flex-wrap: wrap;
 		margin-top: 2rem;
+	}
+
+	.btn-blog {
+		position: relative;
+		border-color: var(--color-primary);
+		color: var(--color-primary);
+		animation: pulse-glow 2.4s ease-in-out infinite;
+	}
+
+	.btn-blog:hover {
+		color: var(--color-primary);
+		border-color: var(--color-primary);
+	}
+
+	.blog-badge {
+		display: inline-flex;
+		align-items: center;
+		font-size: 0.62rem;
+		font-weight: 700;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		background: var(--gradient-primary);
+		color: #fff;
+		padding: 1px 6px;
+		border-radius: var(--radius-full);
+		margin-left: 0.15rem;
 	}
 
 	.stats {
