@@ -25,6 +25,11 @@
 
 	const currentTheme = $derived(themes.find((t) => t.id === $theme) ?? themes[0]);
 
+	// The JSON Diff (/compare) page sends data to the backend API, so the
+	// browser-only privacy note must not appear there. Everything else runs
+	// entirely client-side.
+	const showPrivacyNote = $derived($page.url.pathname !== '/compare');
+
 	onMount(() => {
 		theme.init();
 	});
@@ -161,6 +166,20 @@
 			</div>
 		</div>
 	</header>
+
+	{#if showPrivacyNote}
+		<div class="privacy-banner" role="note">
+			<div class="container privacy-content">
+				<svg class="privacy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+					<path d="M7 11V7a5 5 0 0 1 10 0v4" />
+				</svg>
+				<span>
+					<strong>100% private.</strong> Everything runs in your browser — your data is never uploaded, stored, or sent to any server.
+				</span>
+			</div>
+		</div>
+	{/if}
 
 	<main class="main">
 		{@render children()}
@@ -430,6 +449,33 @@
 
 	.check {
 		color: var(--color-primary);
+	}
+
+	/* ---- Privacy banner -------------------------------------------------- */
+	.privacy-banner {
+		background: var(--color-primary-soft);
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.privacy-content {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.55rem;
+		padding: 0.5rem 0;
+		font-size: 0.8rem;
+		color: var(--color-text);
+		text-align: center;
+	}
+
+	.privacy-content strong {
+		color: var(--color-primary);
+		font-weight: 700;
+	}
+
+	.privacy-icon {
+		color: var(--color-primary);
+		flex-shrink: 0;
 	}
 
 	/* ---- Main / footer --------------------------------------------------- */
