@@ -62,7 +62,7 @@
 	<div class="dashboard-header">
 		<div class="header-content">
 			<h1 class="dashboard-title">Developer Tools</h1>
-			<p class="dashboard-subtitle">59 utilities for JSON, text, dates, cryptography, and API development</p>
+			<p class="dashboard-subtitle">{TOOLS.length} utilities for JSON, text, dates, cryptography, and API development</p>
 		</div>
 	</div>
 

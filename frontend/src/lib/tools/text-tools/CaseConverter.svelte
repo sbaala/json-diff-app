@@ -17,6 +17,11 @@
 	let error: string | null = $state(null);
 	let caseType = $state<'camel' | 'snake' | 'kebab' | 'pascal' | 'title' | 'lower' | 'upper'>('camel');
 
+	$effect(() => {
+		void [input, caseType];
+		transform();
+	});
+
 	function transform() {
 		if (!input.trim()) {
 			output = '';

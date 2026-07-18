@@ -22,6 +22,11 @@
 		paragraphs: number;
 	} | null>(null);
 
+	$effect(() => {
+		void input;
+		transform();
+	});
+
 	function transform() {
 		if (!input) {
 			stats = null;

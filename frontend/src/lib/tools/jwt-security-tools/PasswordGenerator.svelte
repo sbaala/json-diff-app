@@ -192,7 +192,7 @@
 					</div>
 					{#if strength}
 						<div class="strength-bar">
-							<div class="strength-indicator {strength}" />
+							<div class="strength-indicator {strength}"></div>
 							<span class="strength-text">{strength.charAt(0).toUpperCase() + strength.slice(1)}</span>
 						</div>
 					{/if}

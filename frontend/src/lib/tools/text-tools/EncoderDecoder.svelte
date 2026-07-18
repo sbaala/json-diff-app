@@ -9,6 +9,7 @@
 		toolDescription?: string;
 		defaultEncoding?: EncodingType;
 		supportedEncodings?: EncodingType[];
+		defaultMode?: 'encode' | 'decode';
 	}
 
 	const {
@@ -16,7 +17,8 @@
 		toolName = 'Base64 Encoder',
 		toolDescription = 'Encode/decode text',
 		defaultEncoding = 'base64' as EncodingType,
-		supportedEncodings = ['base64'] as EncodingType[]
+		supportedEncodings = ['base64'] as EncodingType[],
+		defaultMode = 'encode' as 'encode' | 'decode'
 	}: Props = $props();
 
 	const tool: ToolMetadata = {
@@ -32,7 +34,12 @@
 	let output = $state('');
 	let error: string | null = $state(null);
 	let encoding = $state<EncodingType>(defaultEncoding);
-	let mode = $state<'encode' | 'decode'>('encode');
+	let mode = $state<'encode' | 'decode'>(defaultMode);
+
+	$effect(() => {
+		void [input, encoding, mode];
+		transform();
+	});
 
 	function transform() {
 		if (!input) {

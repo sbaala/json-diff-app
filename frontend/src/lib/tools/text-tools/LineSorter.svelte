@@ -18,6 +18,11 @@
 	let operation = $state<'sort' | 'reverse' | 'dedupe' | 'remove-blank'>('sort');
 	let descending = $state(false);
 
+	$effect(() => {
+		void [input, operation, descending];
+		transform();
+	});
+
 	function transform() {
 		if (!input) {
 			output = '';

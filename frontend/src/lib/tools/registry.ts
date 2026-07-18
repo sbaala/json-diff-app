@@ -420,11 +420,19 @@ export const TOOLS: ToolMetadata[] = [
 	},
 	{
 		id: 'bcrypt-generator',
-		name: 'BCrypt Generator',
-		description: 'Generate BCrypt password hashes',
+		name: 'Password Hash Generator',
+		description: 'Generate salted password hashes (PBKDF2)',
 		category: 'jwt-security',
 		icon: 'lock',
-		keywords: ['bcrypt', 'password', 'hash', 'generate']
+		keywords: ['bcrypt', 'password', 'hash', 'generate', 'pbkdf2']
+	},
+	{
+		id: 'password-generator',
+		name: 'Password Generator',
+		description: 'Generate secure random passwords with strength meter',
+		category: 'jwt-security',
+		icon: 'lock',
+		keywords: ['password', 'generate', 'random', 'secure', 'strength']
 	},
 	{
 		id: 'aes-crypto',
