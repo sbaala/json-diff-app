@@ -451,7 +451,7 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
-		margin-bottom: 1rem;
+		margin-bottom: 0.75rem;
 		flex-wrap: wrap;
 		gap: 1rem;
 	}

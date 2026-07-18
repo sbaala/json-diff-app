@@ -269,16 +269,16 @@
 
 <style>
 	.page-header {
-		margin-bottom: 1.5rem;
+		margin-bottom: 0.75rem;
 	}
 
 	.page-header h1 {
-		font-size: 2rem;
+		font-size: 1.5rem;
 		background: var(--gradient-primary);
 		-webkit-background-clip: text;
 		background-clip: text;
 		color: transparent;
-		margin-bottom: 0.5rem;
+		margin-bottom: 0.25rem;
 	}
 
 	.page-header p {

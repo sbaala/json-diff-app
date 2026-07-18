@@ -1,0 +1,265 @@
+{
+  "diagram": "Flow Diagram: Consumer Data Platform",
+  "metadata": {
+    "sections": ["Inbound", "Registration Flow", "Batch Process", "Profiles", "Event Flow", "Outbound Connector"]
+  },
+  "nodes": [
+    {
+      "id": "source_segment",
+      "label": "Segment",
+      "type": "source",
+      "section": "Inbound"
+    },
+    {
+      "id": "source_rudder",
+      "label": "Rudder",
+      "type": "source",
+      "section": "Inbound"
+    },
+    {
+      "id": "source_mparticle",
+      "label": "mParticle",
+      "type": "source",
+      "section": "Inbound"
+    },
+    {
+      "id": "source_snap_cdt",
+      "label": "SNAP CDT",
+      "type": "source",
+      "section": "Inbound"
+    },
+    {
+      "id": "source_unisender",
+      "label": "Unisender",
+      "type": "source",
+      "section": "Inbound"
+    },
+    {
+      "id": "source_external",
+      "label": "External/Custom",
+      "type": "source",
+      "section": "Inbound"
+    },
+    {
+      "id": "identity_resolution",
+      "label": "Identity Resolution",
+      "type": "processor",
+      "section": "Registration Flow"
+    },
+    {
+      "id": "traits",
+      "label": "Traits",
+      "type": "processor",
+      "section": "Registration Flow"
+    },
+    {
+      "id": "staging_traits",
+      "label": "Staging Traits",
+      "type": "staging",
+      "section": "Registration Flow"
+    },
+    {
+      "id": "ods",
+      "label": "ODS",
+      "type": "processor",
+      "section": "Registration Flow"
+    },
+    {
+      "id": "batch_process",
+      "label": "Batch Process",
+      "type": "processor",
+      "section": "Batch Process"
+    },
+    {
+      "id": "profiles",
+      "label": "Profiles",
+      "type": "data_store",
+      "section": "Profiles"
+    },
+    {
+      "id": "profile_segments",
+      "label": "Profile Segments",
+      "type": "processor",
+      "section": "Profiles"
+    },
+    {
+      "id": "event_flow",
+      "label": "Event Flow",
+      "type": "processor",
+      "section": "Event Flow"
+    },
+    {
+      "id": "outbound_connector",
+      "label": "Outbound Connector",
+      "type": "connector",
+      "section": "Outbound Connector"
+    },
+    {
+      "id": "dest_braze",
+      "label": "Braze",
+      "type": "destination",
+      "section": "Outbound Connector"
+    },
+    {
+      "id": "dest_salesforce",
+      "label": "Salesforce",
+      "type": "destination",
+      "section": "Outbound Connector"
+    },
+    {
+      "id": "dest_google_ads",
+      "label": "Google Ads",
+      "type": "destination",
+      "section": "Outbound Connector"
+    },
+    {
+      "id": "dest_snowflake",
+      "label": "Snowflake",
+      "type": "destination",
+      "section": "Outbound Connector"
+    },
+    {
+      "id": "dest_warehouse",
+      "label": "Data Warehouse",
+      "type": "destination",
+      "section": "Outbound Connector"
+    }
+  ],
+  "edges": [
+    {
+      "source": "source_segment",
+      "target": "identity_resolution",
+      "type": "ingest",
+      "label": "Raw Events"
+    },
+    {
+      "source": "source_rudder",
+      "target": "identity_resolution",
+      "type": "ingest",
+      "label": "Raw Events"
+    },
+    {
+      "source": "source_mparticle",
+      "target": "identity_resolution",
+      "type": "ingest",
+      "label": "Raw Events"
+    },
+    {
+      "source": "source_snap_cdt",
+      "target": "identity_resolution",
+      "type": "ingest",
+      "label": "Raw Events"
+    },
+    {
+      "source": "source_unisender",
+      "target": "identity_resolution",
+      "type": "ingest",
+      "label": "Raw Events"
+    },
+    {
+      "source": "source_external",
+      "target": "identity_resolution",
+      "type": "ingest",
+      "label": "Raw Events"
+    },
+    {
+      "source": "identity_resolution",
+      "target": "traits",
+      "type": "process",
+      "label": "Resolved Identities"
+    },
+    {
+      "source": "traits",
+      "target": "ods",
+      "type": "process",
+      "label": "Enriched Traits"
+    },
+    {
+      "source": "ods",
+      "target": "staging_traits",
+      "type": "staging",
+      "label": "Staging"
+    },
+    {
+      "source": "staging_traits",
+      "target": "batch_process",
+      "type": "process",
+      "label": "Batch Load"
+    },
+    {
+      "source": "batch_process",
+      "target": "profiles",
+      "type": "store",
+      "label": "Profile Data"
+    },
+    {
+      "source": "profiles",
+      "target": "profile_segments",
+      "type": "process",
+      "label": "Segmentation"
+    },
+    {
+      "source": "identity_resolution",
+      "target": "event_flow",
+      "type": "process",
+      "label": "Real-time Events"
+    },
+    {
+      "source": "profiles",
+      "target": "event_flow",
+      "type": "process",
+      "label": "Profile Context"
+    },
+    {
+      "source": "profile_segments",
+      "target": "outbound_connector",
+      "type": "activation",
+      "label": "Segments"
+    },
+    {
+      "source": "event_flow",
+      "target": "outbound_connector",
+      "type": "activation",
+      "label": "Real-time Events"
+    },
+    {
+      "source": "outbound_connector",
+      "target": "dest_braze",
+      "type": "send",
+      "label": "Activate"
+    },
+    {
+      "source": "outbound_connector",
+      "target": "dest_salesforce",
+      "type": "send",
+      "label": "Activate"
+    },
+    {
+      "source": "outbound_connector",
+      "target": "dest_google_ads",
+      "type": "send",
+      "label": "Activate"
+    },
+    {
+      "source": "outbound_connector",
+      "target": "dest_snowflake",
+      "type": "send",
+      "label": "Export"
+    },
+    {
+      "source": "outbound_connector",
+      "target": "dest_warehouse",
+      "type": "send",
+      "label": "Export"
+    }
+  ],
+  "flow_summary": {
+    "data_ingestion": "Multiple CDP/event sources → Identity Resolution",
+    "registration": "Identity Resolution → Traits → ODS → Batch Process",
+    "storage": "Batch Process → Profiles Database",
+    "segmentation": "Profiles → Profile Segments",
+    "activation": "Segments + Real-time Events → Outbound Connectors → Destinations",
+    "real_time_path": "Identity Resolution → Event Flow → Outbound Connector (parallel to batch)",
+    "destinations": ["Braze", "Salesforce", "Google Ads", "Snowflake", "Data Warehouse"]
+  }
+}

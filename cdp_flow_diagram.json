@@ -1,0 +1,380 @@
+{
+  "nodes": [
+    {
+      "id": "source_segment",
+      "label": "Segment",
+      "type": "start",
+      "x": 0,
+      "y": 0,
+      "w": 96,
+      "h": 44,
+      "flows": [
+        "f1"
+      ]
+    },
+    {
+      "id": "source_rudder",
+      "label": "Rudder",
+      "type": "start",
+      "x": 0,
+      "y": 0,
+      "w": 90,
+      "h": 44,
+      "flows": [
+        "f1"
+      ]
+    },
+    {
+      "id": "source_mparticle",
+      "label": "mParticle",
+      "type": "start",
+      "x": 0,
+      "y": 0,
+      "w": 112,
+      "h": 44,
+      "flows": [
+        "f1"
+      ]
+    },
+    {
+      "id": "source_snap_cdt",
+      "label": "SNAP CDT",
+      "type": "start",
+      "x": 0,
+      "y": 0,
+      "w": 104,
+      "h": 44,
+      "flows": [
+        "f1"
+      ]
+    },
+    {
+      "id": "source_unisender",
+      "label": "Unisender",
+      "type": "start",
+      "x": 0,
+      "y": 0,
+      "w": 112,
+      "h": 44,
+      "flows": [
+        "f1"
+      ]
+    },
+    {
+      "id": "source_external",
+      "label": "External/Custom",
+      "type": "start",
+      "x": 0,
+      "y": 0,
+      "w": 160,
+      "h": 44,
+      "flows": [
+        "f1"
+      ]
+    },
+    {
+      "id": "identity_resolution",
+      "label": "Identity Resolution",
+      "type": "process",
+      "x": 0,
+      "y": 0,
+      "w": 192,
+      "h": 44,
+      "flows": [
+        "f1",
+        "f2"
+      ]
+    },
+    {
+      "id": "traits",
+      "label": "Traits",
+      "type": "process",
+      "x": 0,
+      "y": 0,
+      "w": 90,
+      "h": 44,
+      "flows": [
+        "f2"
+      ]
+    },
+    {
+      "id": "staging_traits",
+      "label": "Staging Traits",
+      "type": "data",
+      "x": 0,
+      "y": 0,
+      "w": 152,
+      "h": 44,
+      "flows": [
+        "f2",
+        "f3"
+      ]
+    },
+    {
+      "id": "ods",
+      "label": "ODS",
+      "type": "process",
+      "x": 0,
+      "y": 0,
+      "w": 90,
+      "h": 44,
+      "flows": [
+        "f2",
+        "f3"
+      ]
+    },
+    {
+      "id": "batch_process",
+      "label": "Batch Process",
+      "type": "process",
+      "x": 0,
+      "y": 0,
+      "w": 144,
+      "h": 44,
+      "flows": [
+        "f2",
+        "f4"
+      ]
+    },
+    {
+      "id": "profiles",
+      "label": "Profiles",
+      "type": "data",
+      "x": 0,
+      "y": 0,
+      "w": 104,
+      "h": 44,
+      "flows": [
+        "f2",
+        "f4"
+      ]
+    },
+    {
+      "id": "profile_segments",
+      "label": "Profile Segments",
+      "type": "process",
+      "x": 0,
+      "y": 0,
+      "w": 168,
+      "h": 44,
+      "flows": [
+        "f2",
+        "f5"
+      ]
+    },
+    {
+      "id": "event_flow",
+      "label": "Event Flow",
+      "type": "process",
+      "x": 0,
+      "y": 0,
+      "w": 120,
+      "h": 44,
+      "flows": [
+        "f2",
+        "f5"
+      ]
+    },
+    {
+      "id": "outbound_connector",
+      "label": "Outbound Connector",
+      "type": "process",
+      "x": 0,
+      "y": 0,
+      "w": 184,
+      "h": 44,
+      "flows": [
+        "f5",
+        "f6"
+      ]
+    },
+    {
+      "id": "dest_braze",
+      "label": "Braze",
+      "type": "end",
+      "x": 0,
+      "y": 0,
+      "w": 90,
+      "h": 44,
+      "flows": [
+        "f6"
+      ]
+    },
+    {
+      "id": "dest_salesforce",
+      "label": "Salesforce",
+      "type": "end",
+      "x": 0,
+      "y": 0,
+      "w": 120,
+      "h": 44,
+      "flows": [
+        "f6"
+      ]
+    },
+    {
+      "id": "dest_google_ads",
+      "label": "Google Ads",
+      "type": "end",
+      "x": 0,
+      "y": 0,
+      "w": 120,
+      "h": 44,
+      "flows": [
+        "f6"
+      ]
+    },
+    {
+      "id": "dest_snowflake",
+      "label": "Snowflake",
+      "type": "end",
+      "x": 0,
+      "y": 0,
+      "w": 112,
+      "h": 44,
+      "flows": [
+        "f6"
+      ]
+    },
+    {
+      "id": "dest_warehouse",
+      "label": "Data Warehouse",
+      "type": "end",
+      "x": 0,
+      "y": 0,
+      "w": 152,
+      "h": 44,
+      "flows": [
+        "f6"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "source_segment",
+      "to": "identity_resolution",
+      "flow": "f1",
+      "label": "Raw Events"
+    },
+    {
+      "from": "source_rudder",
+      "to": "identity_resolution",
+      "flow": "f1",
+      "label": "Raw Events"
+    },
+    {
+      "from": "source_mparticle",
+      "to": "identity_resolution",
+      "flow": "f1",
+      "label": "Raw Events"
+    },
+    {
+      "from": "source_snap_cdt",
+      "to": "identity_resolution",
+      "flow": "f1",
+      "label": "Raw Events"
+    },
+    {
+      "from": "source_unisender",
+      "to": "identity_resolution",
+      "flow": "f1",
+      "label": "Raw Events"
+    },
+    {
+      "from": "source_external",
+      "to": "identity_resolution",
+      "flow": "f1",
+      "label": "Raw Events"
+    },
+    {
+      "from": "identity_resolution",
+      "to": "traits",
+      "flow": "f2",
+      "label": "Resolved Identities"
+    },
+    {
+      "from": "traits",
+      "to": "ods",
+      "flow": "f2",
+      "label": "Enriched Traits"
+    },
+    {
+      "from": "ods",
+      "to": "staging_traits",
+      "flow": "f3",
+      "label": "Staging"
+    },
+    {
+      "from": "staging_traits",
+      "to": "batch_process",
+      "flow": "f2",
+      "label": "Batch Load"
+    },
+    {
+      "from": "batch_process",
+      "to": "profiles",
+      "flow": "f4",
+      "label": "Profile Data"
+    },
+    {
+      "from": "profiles",
+      "to": "profile_segments",
+      "flow": "f2",
+      "label": "Segmentation"
+    },
+    {
+      "from": "identity_resolution",
+      "to": "event_flow",
+      "flow": "f2",
+      "label": "Real-time Events"
+    },
+    {
+      "from": "profiles",
+      "to": "event_flow",
+      "flow": "f2",
+      "label": "Profile Context"
+    },
+    {
+      "from": "profile_segments",
+      "to": "outbound_connector",
+      "flow": "f5",
+      "label": "Segments"
+    },
+    {
+      "from": "event_flow",
+      "to": "outbound_connector",
+      "flow": "f5",
+      "label": "Real-time Events"
+    },
+    {
+      "from": "outbound_connector",
+      "to": "dest_braze",
+      "flow": "f6",
+      "label": "Activate"
+    },
+    {
+      "from": "outbound_connector",
+      "to": "dest_salesforce",
+      "flow": "f6",
+      "label": "Activate"
+    },
+    {
+      "from": "outbound_connector",
+      "to": "dest_google_ads",
+      "flow": "f6",
+      "label": "Activate"
+    },
+    {
+      "from": "outbound_connector",
+      "to": "dest_snowflake",
+      "flow": "f6",
+      "label": "Export"
+    },
+    {
+      "from": "outbound_connector",
+      "to": "dest_warehouse",
+      "flow": "f6",
+      "label": "Export"
+    }
+  ]
+}
