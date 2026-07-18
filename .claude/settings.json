@@ -1,29 +1,16 @@
 {
   "permissions": {
-    "global": {
-      "allowed": [
-        "bash:git",
-        "bash:npm",
-        "bash:python",
-        "bash:find",
-        "bash:grep",
-        "bash:ls",
-        "read",
-        "edit",
-        "write"
-      ]
-    }
-  },
-  "hooks": {
-    "pre-commit": "npm run lint 2>/dev/null || true"
-  },
-  "codeGraph": {
-    "enabled": true,
-    "autoIndexing": true
-  },
-  "outputCompression": {
-    "enabled": true,
-    "excludePatterns": ["ERROR", "error", "FAIL", "failed"]
+    "allow": [
+      "Bash(git *)",
+      "Bash(npm *)",
+      "Bash(python *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(ls *)",
+      "Read",
+      "Edit",
+      "Write"
+    ]
   },
   "model": "claude-haiku-4-5-20251001"
 }

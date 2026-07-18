@@ -1511,6 +1511,23 @@
 		}
 	}
 
+	/* Short laptop screens (e.g. a 13" MacBook ~800px tall): compact the
+	   builder's own header so the canvas keeps as much vertical room as
+	   possible. The subtitle is decorative, so it goes first. */
+	@media (max-height: 820px) {
+		.app-header {
+			padding: 0.5rem 1.5rem;
+		}
+
+		.header-title h1 {
+			font-size: 1.3rem;
+		}
+
+		.header-title p {
+			display: none;
+		}
+	}
+
 	/* On phones the panel overlays the canvas (toggled by the ◀/▶ button)
 	   instead of stealing horizontal space and crushing the diagram. */
 	@media (max-width: 640px) {

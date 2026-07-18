@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { CategoryTabs, ToolGrid, ToolSearch } from '$lib/components/tools';
 	import { TOOLS, getToolsByCategory, searchTools, TOOL_CATEGORIES } from '$lib/tools/registry';
+	import { loadToolComponent, hasToolImplementation } from '$lib/tools/loader';
 	import type { ToolCategory, ToolMetadata } from '$lib/types';
 
 	let activeCategory: ToolCategory = 'json-api';
 	let searchQuery = '';
 	let selectedTool: ToolMetadata | null = null;
+	let selectedToolComponent: any = null;
+	let isLoadingComponent = false;
 	let filteredTools: ToolMetadata[] = [];
 
-	// Update filtered tools when category or search changes
 	function updateFilteredTools() {
 		if (searchQuery.trim()) {
 			filteredTools = searchTools(searchQuery);
@@ -21,6 +23,7 @@
 		activeCategory = category;
 		searchQuery = '';
 		selectedTool = null;
+		selectedToolComponent = null;
 		updateFilteredTools();
 	}
 
@@ -29,15 +32,25 @@
 		updateFilteredTools();
 	}
 
-	function handleSelectTool(tool: ToolMetadata) {
+	async function handleSelectTool(tool: ToolMetadata) {
 		selectedTool = tool;
+		isLoadingComponent = true;
+		selectedToolComponent = null;
+
+		try {
+			selectedToolComponent = await loadToolComponent(tool.id);
+		} catch (e) {
+			console.error(`Failed to load tool ${tool.id}:`, e);
+		} finally {
+			isLoadingComponent = false;
+		}
 	}
 
 	function handleCloseTool() {
 		selectedTool = null;
+		selectedToolComponent = null;
 	}
 
-	// Initialize
 	updateFilteredTools();
 </script>
 
@@ -63,12 +76,26 @@
 					</button>
 				</div>
 				<div class="tool-viewer-content">
-					<p>Tool: {selectedTool.name}</p>
-					<p>Category: {TOOL_CATEGORIES[selectedTool.category].name}</p>
-					<p>Description: {selectedTool.description}</p>
-					<p style="color: var(--color-text-secondary); font-size: 0.875rem; margin-top: var(--spacing-md);">
-						Coming soon - tool implementation in progress
-					</p>
+					{#if isLoadingComponent}
+						<div class="loading-state">
+							<div class="loading-spinner"></div>
+							<span>Loading tool...</span>
+						</div>
+					{:else if selectedToolComponent}
+						<svelte:component this={selectedToolComponent} />
+					{:else if hasToolImplementation(selectedTool.id)}
+						<div class="error-state">
+							<div class="error-icon">❌</div>
+							<div class="error-text">Failed to load tool</div>
+						</div>
+					{:else}
+						<div class="placeholder-state">
+							<div class="placeholder-icon">🔜</div>
+							<div class="placeholder-title">{selectedTool.name}</div>
+							<div class="placeholder-desc">{selectedTool.description}</div>
+							<div class="placeholder-note">Coming soon - tool implementation in progress</div>
+						</div>
+					{/if}
 				</div>
 			</div>
 		{:else}
@@ -204,7 +231,80 @@
 		flex: 1;
 	}
 
-	/* Responsive layout */
+	.loading-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: var(--spacing-md);
+		height: 100%;
+	}
+
+	.loading-spinner {
+		width: 32px;
+		height: 32px;
+		border: 3px solid var(--color-border);
+		border-top-color: var(--color-primary);
+		border-radius: 50%;
+		animation: spin 0.8s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	.error-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: var(--spacing-md);
+		height: 100%;
+		color: var(--color-removed-border);
+	}
+
+	.error-icon {
+		font-size: 2.5rem;
+	}
+
+	.error-text {
+		font-size: 0.875rem;
+	}
+
+	.placeholder-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: var(--spacing-md);
+		height: 100%;
+		color: var(--color-text-muted);
+		text-align: center;
+	}
+
+	.placeholder-icon {
+		font-size: 3rem;
+		opacity: 0.5;
+	}
+
+	.placeholder-title {
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: var(--color-text);
+	}
+
+	.placeholder-desc {
+		font-size: 0.875rem;
+		max-width: 300px;
+	}
+
+	.placeholder-note {
+		font-size: 0.8125rem;
+		margin-top: var(--spacing-md);
+	}
+
 	@media (max-width: 768px) {
 		.dashboard-header {
 			padding: var(--spacing-md);
