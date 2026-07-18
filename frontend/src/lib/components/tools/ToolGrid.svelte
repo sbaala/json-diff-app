@@ -88,11 +88,12 @@
 <style>
 	.tool-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 		gap: var(--spacing-md);
 		padding: var(--spacing-md);
 		background: var(--color-bg);
 		min-height: 300px;
+		align-content: start;
 	}
 
 	.empty-state {

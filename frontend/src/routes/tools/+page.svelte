@@ -133,27 +133,35 @@
 	}
 
 	.dashboard-header {
-		padding: var(--spacing-lg);
+		display: flex;
+		align-items: baseline;
+		gap: var(--spacing-md);
+		flex-wrap: wrap;
+		padding: var(--spacing-sm) var(--spacing-lg);
 		background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
 		color: white;
 		border-bottom: 1px solid var(--color-border);
 	}
 
 	.header-content {
-		max-width: 1200px;
-		margin: 0 auto;
+		display: flex;
+		align-items: baseline;
+		gap: var(--spacing-md);
+		flex-wrap: wrap;
 		width: 100%;
+		margin: 0 auto;
 	}
 
 	.dashboard-title {
-		margin: 0 0 var(--spacing-xs) 0;
-		font-size: 2rem;
+		margin: 0;
+		font-size: 1.375rem;
 		font-weight: 700;
+		white-space: nowrap;
 	}
 
 	.dashboard-subtitle {
 		margin: 0;
-		font-size: 0.9375rem;
+		font-size: 0.8125rem;
 		opacity: 0.9;
 	}
 
@@ -307,15 +315,15 @@
 
 	@media (max-width: 768px) {
 		.dashboard-header {
-			padding: var(--spacing-md);
+			padding: var(--spacing-sm) var(--spacing-md);
 		}
 
 		.dashboard-title {
-			font-size: 1.5rem;
+			font-size: 1.25rem;
 		}
 
 		.dashboard-subtitle {
-			font-size: 0.875rem;
+			font-size: 0.75rem;
 		}
 
 		.tools-sidebar {

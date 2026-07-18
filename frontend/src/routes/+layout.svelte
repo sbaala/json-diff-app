@@ -482,7 +482,7 @@
 	/* ---- Main / footer --------------------------------------------------- */
 	.main {
 		flex: 1;
-		padding: 1.5rem 0;
+		padding: 0.75rem 0;
 	}
 
 	.footer {
