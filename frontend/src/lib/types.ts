@@ -45,3 +45,31 @@ export interface StatisticsResponse {
 	object_count_left: number;
 	object_count_right: number;
 }
+
+// Tool System Types
+export type ToolCategory = 'json-api' | 'text-utils' | 'date-time' | 'jwt-security' | 'api-dev';
+
+export interface ToolMetadata {
+	id: string;
+	name: string;
+	description: string;
+	category: ToolCategory;
+	icon: string;
+	keywords: string[];
+	featured?: boolean;
+}
+
+export interface ToolResult {
+	success: boolean;
+	output?: string;
+	error?: string;
+	duration?: number;
+}
+
+export interface CategoryInfo {
+	id: ToolCategory;
+	name: string;
+	description: string;
+	icon: string;
+	color: string;
+}

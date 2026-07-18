@@ -11,6 +11,7 @@
 
 	const navItems = [
 		{ href: '/', label: 'Home' },
+		{ href: '/tools', label: 'Tools', flash: true },
 		{ href: '/format', label: 'Format' },
 		{ href: '/viewer', label: 'Viewer' },
 		{ href: '/grid', label: 'Grid', flash: true },
@@ -27,8 +28,8 @@
 
 	// The JSON Diff (/compare) page sends data to the backend API, so the
 	// browser-only privacy note must not appear there. Everything else runs
-	// entirely client-side.
-	const showPrivacyNote = $derived($page.url.pathname !== '/compare');
+	// entirely client-side. The /tools dashboard is also client-side only.
+	const showPrivacyNote = $derived($page.url.pathname !== '/compare' && !$page.url.pathname.startsWith('/tools'));
 
 	onMount(() => {
 		theme.init();
