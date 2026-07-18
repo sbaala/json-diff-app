@@ -14,8 +14,24 @@ const toolMap: Record<string, () => Promise<{ default: any }>> = {
 	'date-calculator': () => import('./date-tools/DateCalculator.svelte'),
 	'cron-parser': () => import('./date-tools/CronParser.svelte'),
 
-	// JWT/Security tools
-	'uuid-generator': () => import('./jwt-security-tools/UUIDGenerator.svelte')
+	// JWT/Security tools (Phase 3)
+	'uuid-generator': () => import('./jwt-security-tools/UUIDGenerator.svelte'),
+	'jwt-decoder': () => import('./jwt-security-tools/JWTDecoder.svelte'),
+	'jwt-generator': () => import('./jwt-security-tools/JWTGenerator.svelte'),
+	'hash-generator': () => import('./jwt-security-tools/HashGenerator.svelte'),
+	'hmac-generator': () => import('./jwt-security-tools/HMACGenerator.svelte'),
+	'secret-generator': () => import('./jwt-security-tools/SecretGenerator.svelte'),
+	'oauth-pkce-generator': () => import('./jwt-security-tools/OAuthPKCEGenerator.svelte'),
+	'password-generator': () => import('./jwt-security-tools/PasswordGenerator.svelte'),
+
+	// API Development tools (Phase 4)
+	'http-header-builder': () => import('./api-dev-tools/HTTPHeaderBuilder.svelte'),
+	'http-status-lookup': () => import('./api-dev-tools/HTTPStatusLookup.svelte'),
+	'mime-type-lookup': () => import('./api-dev-tools/MIMETypeLookup.svelte'),
+	'xml-formatter': () => import('./api-dev-tools/XMLFormatter.svelte'),
+	'curl-converter': () => import('./api-dev-tools/CURLConverter.svelte'),
+	'form-data-generator': () => import('./api-dev-tools/FormDataGenerator.svelte'),
+	'cors-validator': () => import('./api-dev-tools/CORSValidator.svelte')
 };
 
 export async function loadToolComponent(toolId: string): Promise<any | null> {
