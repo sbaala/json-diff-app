@@ -30,11 +30,12 @@
 		{ href: '/text', label: 'Text Diff', desc: 'Line-by-line comparison' },
 		{ href: '/convert', label: 'Convert', desc: 'JSON ↔ YAML / CSV / XML' },
 		{ href: '/lint', label: 'Lint', desc: 'Validate & lint schemas' },
-		{ href: '/graph', label: 'Graph', desc: 'Visual structure rendering' }
+		{ href: '/graph', label: 'Graph', desc: 'Visual structure rendering' },
+		{ href: '/visualize', label: 'Charts', desc: 'Intelligent data visualization' }
 	];
 
 	const stats = [
-		{ value: '8', label: 'Built-in tools' },
+		{ value: '9', label: 'Built-in tools' },
 		{ value: '5', label: 'Professional themes' },
 		{ value: '100%', label: 'Client-first privacy' }
 	];

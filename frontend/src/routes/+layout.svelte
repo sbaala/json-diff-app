@@ -20,6 +20,7 @@
 		{ href: '/convert', label: 'Convert' },
 		{ href: '/lint', label: 'Lint' },
 		{ href: '/graph', label: 'Graph' },
+		{ href: '/visualize', label: 'Charts', flash: true },
 		{ href: '/flow', label: 'Flow', flash: true },
 		{ href: 'https://vinmi-frontend-d3h34miv7q-ue.a.run.app/', label: 'Blog', external: true, flash: true }
 	];
