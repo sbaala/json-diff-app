@@ -255,15 +255,19 @@
 		/>
 	{/if}
 
-	{#if showUploadZone && (!spreadsheetState.workbook || !spreadsheetState.activeSheetId)}
-		<FileUploadZone on:fileSelect={handleFileSelect} />
-	{/if}
+	<div class="content-wrapper">
+		{#if spreadsheetState.workbook && spreadsheetState.activeSheetId}
+			<div class="handsontable-wrapper">
+				<div bind:this={containerElement} class="handsontable-container" />
+			</div>
+		{/if}
 
-	{#if spreadsheetState.workbook && spreadsheetState.activeSheetId}
-		<div class="handsontable-wrapper">
-			<div bind:this={containerElement} class="handsontable-container" />
-		</div>
-	{/if}
+		{#if showUploadZone}
+			<div class="upload-overlay">
+				<FileUploadZone on:fileSelect={handleFileSelect} />
+			</div>
+		{/if}
+	</div>
 </div>
 
 <style>
@@ -276,14 +280,35 @@
 		color: var(--color-text);
 	}
 
+	.content-wrapper {
+		flex: 1;
+		position: relative;
+		overflow: hidden;
+	}
+
 	.handsontable-wrapper {
 		flex: 1;
 		overflow: auto;
 		background-color: var(--color-surface);
+		width: 100%;
+		height: 100%;
 	}
 
 	.handsontable-container {
 		width: 100%;
 		height: 100%;
+	}
+
+	.upload-overlay {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background-color: rgba(0, 0, 0, 0.1);
+		z-index: 10;
 	}
 </style>
