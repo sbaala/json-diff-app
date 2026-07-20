@@ -95,6 +95,13 @@ export class SpreadsheetService {
 			skipEmptyLines: false
 		});
 
+		console.log('Papa.parse result:', {
+			dataLength: result.data.length,
+			firstRow: result.data[0],
+			errors: result.errors,
+			meta: result.meta
+		});
+
 		return result.data as string[][];
 	}
 

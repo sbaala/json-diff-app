@@ -38,7 +38,10 @@ export class FileImportService {
 
 	private async importCSV(file: File): Promise<ImportResult> {
 		const content = await file.text();
+		console.log('Raw file content (first 500 chars):', JSON.stringify(content.substring(0, 500)));
+		console.log('Content length:', content.length);
 		const data = spreadsheetService.csvToData(content);
+		console.log('Parsed CSV data (first 3 rows):', data.slice(0, 3));
 
 		const sheet: Sheet = {
 			sheetId: this.generateId(),
