@@ -83,11 +83,30 @@
 		}
 
 		try {
-			// Custom renderer to display cell content
+			// Custom renderer to display cell content with formatting
 			const textRenderer = (instance: any, td: any, row: any, col: any, prop: any, value: any) => {
 				td.innerHTML = '';
 				const text = document.createTextNode(String(value ?? ''));
 				td.appendChild(text);
+
+				// Get cell metadata for formatting
+				const meta = instance.getCellMeta(row, col);
+				const format = meta?.format || {};
+
+				// Apply formatting styles
+				if (format.bold) {
+					td.style.fontWeight = 'bold';
+				}
+				if (format.italic) {
+					td.style.fontStyle = 'italic';
+				}
+				if (format.color) {
+					td.style.color = format.color;
+				}
+				if (format.backgroundColor) {
+					td.style.backgroundColor = format.backgroundColor;
+				}
+
 				return td;
 			};
 
@@ -290,9 +309,14 @@
 		if (!handsontable) return;
 
 		const selected = handsontable.getSelected();
-		if (!selected || selected.length === 0) return;
+		if (!selected || selected.length === 0) {
+			console.warn('⚠️  No cells selected for formatting');
+			return;
+		}
 
-		// Apply formatting through Handsontable's CSS class system
+		console.log('🎨 Applying format:', format, 'to selected cells');
+
+		// Apply formatting to all selected cells
 		const [startRow, startCol, endRow, endCol] = selected[0];
 		const start = Math.min(startRow, endRow);
 		const end = Math.max(startRow, endRow);
@@ -301,11 +325,23 @@
 
 		for (let row = start; row <= end; row++) {
 			for (let col = colStart; col <= colEnd; col++) {
-				handsontable.setCellMeta(row, col, 'format', format);
+				// Get existing format or create new one
+				const meta = handsontable.getCellMeta(row, col);
+				const currentFormat = meta?.format || {};
+
+				// Merge with new format
+				const newFormat = { ...currentFormat, ...format };
+				handsontable.setCellMeta(row, col, 'format', newFormat);
+
+				console.log(`  Cell [${row},${col}]: Applied format`, newFormat);
 			}
 		}
 
+		// Force re-render to show formatting
 		handsontable.render();
+		console.log('✓ Formatting applied and rendered');
+
+		// Save changes
 		handleAutoSave();
 	}
 
