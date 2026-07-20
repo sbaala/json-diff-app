@@ -228,6 +228,130 @@
 		return typeof value;
 	}
 
+	// File input reference
+	let fileInput = $state<HTMLInputElement | null>(null);
+
+	// Parse a CSV string into an array of objects (RFC 4180-ish: handles quotes, commas, newlines)
+	function parseCsv(text: string): Record<string, unknown>[] {
+		const rows: string[][] = [];
+		let field = '';
+		let row: string[] = [];
+		let inQuotes = false;
+		const src = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+		for (let i = 0; i < src.length; i++) {
+			const char = src[i];
+			if (inQuotes) {
+				if (char === '"') {
+					if (src[i + 1] === '"') {
+						field += '"';
+						i++;
+					} else {
+						inQuotes = false;
+					}
+				} else {
+					field += char;
+				}
+			} else if (char === '"') {
+				inQuotes = true;
+			} else if (char === ',') {
+				row.push(field);
+				field = '';
+			} else if (char === '\n') {
+				row.push(field);
+				rows.push(row);
+				field = '';
+				row = [];
+			} else {
+				field += char;
+			}
+		}
+		// Flush trailing field/row
+		if (field.length > 0 || row.length > 0) {
+			row.push(field);
+			rows.push(row);
+		}
+
+		// Drop trailing empty rows
+		while (rows.length > 0 && rows[rows.length - 1].every(c => c.trim() === '')) {
+			rows.pop();
+		}
+		if (rows.length === 0) return [];
+
+		const headers = rows[0].map((h, idx) => h.trim() || `column_${idx + 1}`);
+		return rows.slice(1).map(cells => {
+			const obj: Record<string, unknown> = {};
+			headers.forEach((header, idx) => {
+				obj[header] = coerceCsvValue(cells[idx] ?? '');
+			});
+			return obj;
+		});
+	}
+
+	// Coerce CSV string cells into numbers/booleans/null where sensible
+	function coerceCsvValue(raw: string): unknown {
+		const val = raw.trim();
+		if (val === '') return '';
+		if (val === 'true') return true;
+		if (val === 'false') return false;
+		if (val === 'null') return null;
+		// Numeric (but not things like "01" zip codes or values with leading zeros)
+		if (/^-?\d+(\.\d+)?$/.test(val) && !/^0\d/.test(val)) {
+			const num = Number(val);
+			if (Number.isFinite(num)) return num;
+		}
+		return raw;
+	}
+
+	// Load parsed data directly (used by both JSON and CSV file uploads)
+	function loadParsedData(data: unknown, sourceText: string) {
+		activeTab.jsonInput = sourceText;
+		activeTab.parsedData = data;
+		activeTab.error = null;
+		activeTab.currentPath = [];
+		activeTab.expandedPaths.clear();
+		activeTab.columnFilters = {};
+		activeTab.hiddenColumns = new Set();
+		resetFlatten();
+		activeTab.showInput = false;
+	}
+
+	// Handle file upload (JSON or CSV)
+	async function handleFileUpload(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+
+		try {
+			const text = await file.text();
+			const isCsv = file.name.toLowerCase().endsWith('.csv') || file.type === 'text/csv';
+
+			if (isCsv) {
+				const data = parseCsv(text);
+				if (data.length === 0) {
+					activeTab.error = 'CSV file appears to be empty or has no data rows';
+					activeTab.showInput = true;
+				} else {
+					loadParsedData(data, JSON.stringify(data, null, 2));
+				}
+			} else {
+				const data = JSON.parse(text);
+				loadParsedData(data, text);
+			}
+		} catch (err) {
+			activeTab.error = err instanceof Error ? `Failed to load file: ${err.message}` : 'Failed to load file';
+			activeTab.parsedData = null;
+			activeTab.showInput = true;
+		} finally {
+			// Reset so the same file can be re-uploaded
+			input.value = '';
+		}
+	}
+
+	function triggerFileUpload() {
+		fileInput?.click();
+	}
+
 	// Parse JSON input
 	function parseJson() {
 		activeTab.error = null;
@@ -458,6 +582,14 @@
 
 <svelte:window onclick={handleClickOutside} />
 
+<input
+	type="file"
+	accept=".json,.csv,application/json,text/csv"
+	bind:this={fileInput}
+	onchange={handleFileUpload}
+	style="display: none;"
+/>
+
 <div class="container">
 	<div class="page-header">
 		<div class="header-info">
@@ -474,6 +606,14 @@
 					<span class="btn-text">Edit</span>
 				</button>
 			{/if}
+			<button type="button" class="btn btn-secondary" onclick={triggerFileUpload}>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+					<polyline points="17 8 12 3 7 8"/>
+					<line x1="12" y1="3" x2="12" y2="15"/>
+				</svg>
+				<span class="btn-text">Upload</span>
+			</button>
 			<button type="button" class="btn btn-secondary" onclick={loadSample}>
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 					<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -537,13 +677,23 @@
 			<!-- Input Mode -->
 			<div class="input-section">
 				<div class="editor-header">
-					<span>Paste your JSON</span>
-					<button type="button" class="btn btn-primary btn-sm" onclick={parseJson}>
+					<span>Paste JSON, or upload a JSON / CSV file</span>
+					<div class="editor-header-actions">
+						<button type="button" class="btn btn-secondary btn-sm" onclick={triggerFileUpload}>
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+								<polyline points="17 8 12 3 7 8"/>
+								<line x1="12" y1="3" x2="12" y2="15"/>
+							</svg>
+							Upload File
+						</button>
+						<button type="button" class="btn btn-primary btn-sm" onclick={parseJson}>
 						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 							<polygon points="5 3 19 12 5 21 5 3"/>
 						</svg>
 						View as Grid
-					</button>
+						</button>
+					</div>
 				</div>
 				<textarea
 					class="json-input"
@@ -952,11 +1102,16 @@
 					<line x1="3" y1="9" x2="21" y2="9"/>
 					<line x1="9" y1="21" x2="9" y2="9"/>
 				</svg>
-				<h3>No JSON loaded</h3>
-				<p>Paste JSON or load a sample to view as grid</p>
-				<button type="button" class="btn btn-primary" onclick={loadSample}>
-					Load Sample Data
-				</button>
+				<h3>No data loaded</h3>
+				<p>Paste JSON, upload a JSON / CSV file, or load a sample to view as grid</p>
+				<div class="empty-actions">
+					<button type="button" class="btn btn-primary" onclick={triggerFileUpload}>
+						Upload JSON / CSV
+					</button>
+					<button type="button" class="btn btn-secondary" onclick={loadSample}>
+						Load Sample Data
+					</button>
+				</div>
 			</div>
 		{/if}
 	</div>
@@ -1125,6 +1280,18 @@
 		background: var(--color-bg);
 		border-bottom: 1px solid var(--color-border);
 		font-weight: 500;
+	}
+
+	.editor-header-actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.empty-actions {
+		display: flex;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+		justify-content: center;
 	}
 
 	.json-input {
