@@ -29,6 +29,24 @@
 	border-right: 1px solid var(--color-border, #333);
 }
 
+/* Ensure cells are visible and display text */
+.handsontable td {
+	display: table-cell !important;
+	visibility: visible !important;
+	opacity: 1 !important;
+}
+
+.handsontable td div {
+	display: block !important;
+	visibility: visible !important;
+	opacity: 1 !important;
+}
+
+.handsontable .htCore {
+	visibility: visible !important;
+	opacity: 1 !important;
+}
+
 .handsontable col {
 	width: 100px;
 }
