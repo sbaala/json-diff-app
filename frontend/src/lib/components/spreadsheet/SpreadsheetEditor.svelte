@@ -30,8 +30,16 @@
 	});
 
 	function initializeHandsontable() {
+		console.log('initializeHandsontable called');
+		console.log('State check:', {
+			containerElement: !!containerElement,
+			workbook: !!spreadsheetState.workbook,
+			activeSheetId: !!spreadsheetState.activeSheetId,
+			showUploadZone
+		});
+
 		if (!containerElement || !spreadsheetState.workbook || !spreadsheetState.activeSheetId) {
-			console.log('Cannot initialize - missing:', {
+			console.log('❌ Cannot initialize - missing:', {
 				containerElement: !!containerElement,
 				workbook: !!spreadsheetState.workbook,
 				activeSheetId: !!spreadsheetState.activeSheetId
@@ -39,8 +47,11 @@
 			return;
 		}
 
+		console.log('✓ All conditions met, proceeding...');
+
 		// Destroy existing instance
 		if (handsontable) {
+			console.log('Destroying existing Handsontable instance');
 			handsontable.destroy();
 		}
 
@@ -49,14 +60,16 @@
 		);
 
 		if (!activeSheet) {
-			console.error('Active sheet not found:', spreadsheetState.activeSheetId);
+			console.error('❌ Active sheet not found:', spreadsheetState.activeSheetId);
+			console.error('Available sheets:', spreadsheetState.workbook.sheets.map((s) => s.sheetId));
 			return;
 		}
 
-		console.log('Initializing Handsontable with:', {
+		console.log('✓ Active sheet found:', {
 			sheetName: activeSheet.sheetName,
-			rowCount: activeSheet.data.length,
-			colCount: activeSheet.data[0]?.length || 0
+			dataLength: activeSheet.data.length,
+			firstRow: activeSheet.data[0],
+			sheetData: activeSheet.data
 		});
 
 		const currentWorkbook = spreadsheetState.workbook;
