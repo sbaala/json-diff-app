@@ -105,8 +105,7 @@
 				data: activeSheet.data.length > 0 ? activeSheet.data : [['']],
 				colHeaders: true,
 				rowHeaders: true,
-				height: 'auto',
-				width: '100%',
+				stretchH: 'all',
 				afterChange(changes) {
 					if (changes && currentWorkbook && currentSheetId) {
 						const data = handsontable!.getData() as unknown[][];
@@ -367,17 +366,21 @@
 
 	.handsontable-wrapper {
 		flex: 1;
-		overflow: auto;
+		overflow: hidden;
 		background-color: var(--color-surface);
 		width: 100%;
 		height: 100%;
 		min-height: 0;
+		display: flex;
+		flex-direction: column;
 	}
 
 	.handsontable-container {
 		width: 100%;
 		height: 100%;
 		min-height: 0;
+		flex: 1;
+		overflow: auto;
 	}
 
 	.upload-overlay {
