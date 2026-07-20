@@ -141,8 +141,8 @@
 				}
 			};
 
-			console.log('Final config data length:', htConfig.data.length);
-			console.log('Final config first row:', htConfig.data[0]);
+			console.log('Data to load length:', activeSheet.data.length);
+			console.log('Data to load first row:', activeSheet.data[0]);
 
 			handsontable = new Handsontable(containerElement, htConfig);
 
