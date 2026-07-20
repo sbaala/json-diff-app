@@ -12,6 +12,16 @@ export class FileImportService {
 	async importFile(file: File): Promise<ImportResult> {
 		const ext = file.name.split('.').pop()?.toLowerCase();
 
+		console.log('🔍 Importing file:', file.name);
+		console.log('  Extension:', ext);
+		console.log('  MIME type:', file.type);
+		console.log('  Size:', file.size, 'bytes');
+
+		// Detect if this might be an Excel file even if extension says CSV
+		if (file.type && file.type.includes('spreadsheet')) {
+			console.log('⚠️  File MIME type indicates spreadsheet format');
+		}
+
 		try {
 			if (ext === 'csv') {
 				return this.importCSV(file);
@@ -27,7 +37,7 @@ export class FileImportService {
 				};
 			}
 		} catch (error) {
-			console.error('File import error:', error);
+			console.error('❌ File import error:', error);
 			return {
 				sheets: [],
 				workbookName: file.name,
@@ -41,9 +51,22 @@ export class FileImportService {
 		console.log('  File type:', file.type);
 		console.log('  File size:', file.size, 'bytes');
 
-		let content = await file.text();
-		console.log('✓ File.text() completed');
+		// Read file content using FileReader for better reliability
+		let content: string;
+		try {
+			content = await this.readFileAsText(file);
+		} catch (error) {
+			console.error('❌ Failed to read file:', error);
+			return {
+				sheets: [],
+				workbookName: file.name.replace(/\.[^/.]+$/, ''),
+				error: `Failed to read file: ${error instanceof Error ? error.message : 'Unknown error'}`
+			};
+		}
+
+		console.log('✓ File read completed');
 		console.log('  Content length:', content.length);
+		console.log('  Content bytes:', content.split('').map((c, i) => i < 30 ? c.charCodeAt(0) : null).filter(c => c !== null));
 
 		if (content.length === 0) {
 			console.error('❌ File content is empty!');
@@ -54,13 +77,6 @@ export class FileImportService {
 			};
 		}
 
-		// Log character codes to detect encoding issues
-		const charCodes = [];
-		for (let i = 0; i < Math.min(20, content.length); i++) {
-			charCodes.push(content.charCodeAt(i));
-		}
-		console.log('  First 20 char codes:', charCodes);
-		console.log('  First char code:', content.charCodeAt(0));
 		console.log('  First 10 chars:', JSON.stringify(content.substring(0, 10)));
 		console.log('  First line:', JSON.stringify(content.split('\n')[0]));
 
@@ -167,8 +183,38 @@ export class FileImportService {
 	}
 
 	private async importExcel(file: File): Promise<ImportResult> {
-		const buffer = await file.arrayBuffer();
-		const workbook = XLSX.read(buffer, { type: 'array' });
+		console.log('📊 Importing Excel file:', file.name);
+		console.log('  File type:', file.type);
+		console.log('  File size:', file.size, 'bytes');
+
+		let buffer: ArrayBuffer;
+		try {
+			buffer = await file.arrayBuffer();
+		} catch (error) {
+			console.error('❌ Failed to read Excel file:', error);
+			return {
+				sheets: [],
+				workbookName: file.name.replace(/\.[^/.]+$/, ''),
+				error: `Failed to read file: ${error instanceof Error ? error.message : 'Unknown error'}`
+			};
+		}
+
+		console.log('✓ File read as ArrayBuffer, size:', buffer.byteLength);
+
+		let workbook;
+		try {
+			workbook = XLSX.read(buffer, { type: 'array' });
+		} catch (error) {
+			console.error('❌ Failed to parse Excel file:', error);
+			return {
+				sheets: [],
+				workbookName: file.name.replace(/\.[^/.]+$/, ''),
+				error: `Failed to parse Excel file: ${error instanceof Error ? error.message : 'Unknown error'}`
+			};
+		}
+
+		console.log('✓ Excel workbook parsed');
+		console.log('  Sheet names:', workbook.SheetNames);
 
 		const sheets: Sheet[] = workbook.SheetNames.map((sheetName) => {
 			const worksheet = workbook.Sheets[sheetName];
@@ -232,6 +278,27 @@ export class FileImportService {
 			hiddenColumns: [],
 			hiddenRows: []
 		};
+	}
+
+	private readFileAsText(file: File): Promise<string> {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = (event) => {
+				const result = event.target?.result;
+				if (typeof result === 'string') {
+					resolve(result);
+				} else {
+					reject(new Error('FileReader did not return a string'));
+				}
+			};
+			reader.onerror = () => {
+				reject(new Error(`FileReader error: ${reader.error?.message || 'Unknown'}`));
+			};
+			reader.onabort = () => {
+				reject(new Error('FileReader was aborted'));
+			};
+			reader.readAsText(file, 'UTF-8');
+		});
 	}
 
 	private generateId(): string {
