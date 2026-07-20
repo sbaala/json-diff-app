@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import Handsontable from 'handsontable';
 	import 'handsontable/dist/handsontable.full.min.css';
 	import '$lib/spreadsheet.css';
@@ -34,6 +34,12 @@
 
 	function initializeHandsontable() {
 		if (isInitializing || !containerElement || !spreadsheetState.workbook || !spreadsheetState.activeSheetId) {
+			console.log('⚠️  Early return - conditions not met:', {
+				isInitializing,
+				hasContainer: !!containerElement,
+				hasWorkbook: !!spreadsheetState.workbook,
+				hasActiveSheetId: !!spreadsheetState.activeSheetId
+			});
 			return;
 		}
 
@@ -49,6 +55,8 @@
 		);
 
 		if (!activeSheet) {
+			console.error('❌ Active sheet not found:', spreadsheetState.activeSheetId);
+			isInitializing = false;  // Reset flag!
 			return;
 		}
 
@@ -58,11 +66,21 @@
 		console.log('📊 Initializing Handsontable with sheet:', {
 			sheetId: activeSheet.sheetId,
 			sheetName: activeSheet.sheetName,
-			dataRows: activeSheet.data.length,
-			firstRow: activeSheet.data[0],
-			secondRow: activeSheet.data[1],
-			lastRow: activeSheet.data[activeSheet.data.length - 1]
+			data: activeSheet.data,
+			dataIsArray: Array.isArray(activeSheet.data),
+			dataRows: Array.isArray(activeSheet.data) ? activeSheet.data.length : 'N/A',
+			dataType: typeof activeSheet.data,
+			firstRow: Array.isArray(activeSheet.data) && activeSheet.data.length > 0 ? activeSheet.data[0] : 'EMPTY',
+			secondRow: Array.isArray(activeSheet.data) && activeSheet.data.length > 1 ? activeSheet.data[1] : 'N/A',
+			lastRow: Array.isArray(activeSheet.data) && activeSheet.data.length > 0 ? activeSheet.data[activeSheet.data.length - 1] : 'N/A'
 		});
+
+		// Validate data
+		if (!Array.isArray(activeSheet.data)) {
+			console.error('❌ Sheet data is not an array:', typeof activeSheet.data);
+			isInitializing = false;
+			return;
+		}
 
 		try {
 			const htConfig = {
@@ -199,14 +217,30 @@
 		// Save to persistent storage immediately
 		spreadsheetStorageService.saveWorkbook(workbook);
 
-		// Hide upload overlay and initialize in next microtask to ensure state is updated
+		// Hide upload overlay and initialize after DOM updates
 		showUploadZone = false;
 
-		// Use Promise to wait for state updates to complete
-		Promise.resolve().then(() => {
-			console.log('📊 State updated, initializing Handsontable...');
+		// Use tick() to wait for DOM to fully update (including bind:this)
+		tick().then(() => {
+			console.log('📊 DOM updated, checking for container element...');
+			console.log('  - containerElement:', !!containerElement);
+			console.log('  - spreadsheetState.workbook:', !!spreadsheetState.workbook);
+			console.log('  - spreadsheetState.activeSheetId:', !!spreadsheetState.activeSheetId);
+
+			if (!containerElement) {
+				console.error('❌ Container element not bound! Waiting additional tick...');
+				// Try again in next tick
+				return tick().then(() => {
+					if (containerElement && spreadsheetState.workbook && spreadsheetState.activeSheetId) {
+						initializeHandsontable();
+					}
+				});
+			}
+
 			if (containerElement && spreadsheetState.workbook && spreadsheetState.activeSheetId) {
 				initializeHandsontable();
+			} else {
+				console.warn('⚠️  Cannot initialize - missing requirements');
 			}
 		});
 	}
