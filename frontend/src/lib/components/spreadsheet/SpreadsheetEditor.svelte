@@ -79,10 +79,24 @@
 			containerElement: containerElement.id,
 			containerSize: {
 				width: containerElement.offsetWidth,
-				height: containerElement.offsetHeight
+				height: containerElement.offsetHeight,
+				computed: window.getComputedStyle(containerElement)
+			},
+			parentSize: {
+				width: containerElement.parentElement?.offsetWidth,
+				height: containerElement.parentElement?.offsetHeight
 			},
 			dataToPass: activeSheet.data.length,
 			firstRow: activeSheet.data[0]
+		});
+
+		console.log('Container details:', {
+			offsetWidth: containerElement.offsetWidth,
+			offsetHeight: containerElement.offsetHeight,
+			clientWidth: containerElement.clientWidth,
+			clientHeight: containerElement.clientHeight,
+			scrollWidth: containerElement.scrollWidth,
+			scrollHeight: containerElement.scrollHeight
 		});
 
 		try {
