@@ -11,10 +11,10 @@
 	import FileUploadZone from './FileUploadZone.svelte';
 	import ExportDialog from './ExportDialog.svelte';
 
-	let containerElement: HTMLDivElement;
-	let handsontable: Handsontable | null = null;
-	let showUploadZone = true;
-	let showExportDialog = false;
+	let containerElement: HTMLDivElement = $state() as any;
+	let handsontable: Handsontable | null = $state(null);
+	let showUploadZone = $state(true);
+	let showExportDialog = $state(false);
 
 	const config = spreadsheetService.getDefaultConfig();
 
