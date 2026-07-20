@@ -17,6 +17,20 @@
 	border-right: 1px solid var(--color-border, #333);
 	border-bottom: 1px solid var(--color-border, #333);
 	padding: 8px;
+	font-size: 14px;
+	line-height: 1.5;
+	text-align: left;
+	vertical-align: middle;
+}
+
+/* Ensure cell content is visible */
+.handsontable tbody td > * {
+	color: inherit;
+	font-size: inherit;
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 /* Headers */
@@ -40,11 +54,29 @@
 	display: block !important;
 	visibility: visible !important;
 	opacity: 1 !important;
+	color: inherit;
+	font-size: inherit;
 }
 
 .handsontable .htCore {
 	visibility: visible !important;
 	opacity: 1 !important;
+}
+
+/* Handsontable inner text content */
+.handsontable td span,
+.handsontable td div span {
+	color: var(--color-text) !important;
+	visibility: visible !important;
+	opacity: 1 !important;
+	display: inline;
+	font-size: 14px;
+}
+
+/* Ensure text in cells is always visible */
+.handsontable .htContent,
+.handsontable .htCore {
+	color: var(--color-text);
 }
 
 .handsontable col {

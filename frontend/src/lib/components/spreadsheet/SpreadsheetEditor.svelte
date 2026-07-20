@@ -145,6 +145,19 @@
 				console.log(`    Row ${i}:`, loadedData[i]);
 			}
 
+			// Debug: Check rendered cells in DOM
+			setTimeout(() => {
+				const cells = containerElement.querySelectorAll('td');
+				console.log('📍 Rendered cells count:', cells.length);
+				if (cells.length > 0) {
+					const firstCell = cells[0];
+					console.log('📍 First cell HTML:', firstCell.innerHTML);
+					console.log('📍 First cell text content:', firstCell.textContent);
+					console.log('📍 First cell computed style color:', window.getComputedStyle(firstCell).color);
+					console.log('📍 First cell computed style background:', window.getComputedStyle(firstCell).backgroundColor);
+				}
+			}, 100);
+
 			// Force multiple renders to ensure display
 			handsontable.render();
 
