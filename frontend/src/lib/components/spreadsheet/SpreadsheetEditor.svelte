@@ -15,6 +15,7 @@
 	let handsontable: Handsontable | null = $state(null);
 	let showUploadZone = $state(true);
 	let showExportDialog = $state(false);
+	let isInitializing = $state(false);
 
 	const config = spreadsheetService.getDefaultConfig();
 
@@ -32,9 +33,11 @@
 	});
 
 	function initializeHandsontable() {
-		if (!containerElement || !spreadsheetState.workbook || !spreadsheetState.activeSheetId) {
+		if (isInitializing || !containerElement || !spreadsheetState.workbook || !spreadsheetState.activeSheetId) {
 			return;
 		}
+
+		isInitializing = true;
 
 		// Destroy existing instance
 		if (handsontable) {
@@ -138,10 +141,11 @@
 			console.log('✓ Handsontable initialization complete');
 		} catch (error) {
 			console.error('❌ Error creating Handsontable:', error);
+			isInitializing = false;
 			throw error;
 		}
 
-		showUploadZone = false;
+		isInitializing = false;
 	}
 
 	function handleAutoSave() {
