@@ -199,8 +199,16 @@
 		// Save to persistent storage immediately
 		spreadsheetStorageService.saveWorkbook(workbook);
 
-		// Hide upload overlay - this will trigger reactive statement which initializes Handsontable
+		// Hide upload overlay and initialize in next microtask to ensure state is updated
 		showUploadZone = false;
+
+		// Use Promise to wait for state updates to complete
+		Promise.resolve().then(() => {
+			console.log('📊 State updated, initializing Handsontable...');
+			if (containerElement && spreadsheetState.workbook && spreadsheetState.activeSheetId) {
+				initializeHandsontable();
+			}
+		});
 	}
 
 	function handleSheetChange(event: CustomEvent<string>) {
@@ -284,13 +292,18 @@
 		URL.revokeObjectURL(url);
 	}
 
-	$effect(() => {
+	// Safety effect: if for some reason we have a workbook but Handsontable isn't initialized,
+	// initialize it. This handles edge cases like programmatic sheet switching.
+	$effect.pre(() => {
 		if (
+			!isInitializing &&
 			spreadsheetState.workbook &&
 			spreadsheetState.activeSheetId &&
 			containerElement &&
-			!showUploadZone
+			!showUploadZone &&
+			!handsontable
 		) {
+			console.log('🔄 Safety initialization triggered');
 			initializeHandsontable();
 		}
 	});
