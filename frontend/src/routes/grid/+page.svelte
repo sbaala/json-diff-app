@@ -237,7 +237,8 @@
 		let field = '';
 		let row: string[] = [];
 		let inQuotes = false;
-		const src = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+		// Strip UTF-8 BOM (common in Excel exports) and normalize line endings
+		const src = text.replace(/^﻿/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
 		for (let i = 0; i < src.length; i++) {
 			const char = src[i];
@@ -286,6 +287,17 @@
 			});
 			return obj;
 		});
+	}
+
+	// Heuristic: does this text look like CSV rather than JSON?
+	function looksLikeCsv(text: string): boolean {
+		const trimmed = text.trim();
+		if (!trimmed) return false;
+		// JSON almost always starts with { or [
+		if (trimmed[0] === '{' || trimmed[0] === '[') return false;
+		const firstLine = trimmed.split('\n')[0];
+		// A CSV header row should contain at least one comma
+		return firstLine.includes(',');
 	}
 
 	// Coerce CSV string cells into numbers/booleans/null where sensible
@@ -352,15 +364,42 @@
 		fileInput?.click();
 	}
 
-	// Parse JSON input
+	// Parse pasted input — auto-detects CSV vs JSON
 	function parseJson() {
 		activeTab.error = null;
-		if (!activeTab.jsonInput.trim()) {
+		const text = activeTab.jsonInput;
+		if (!text.trim()) {
 			activeTab.parsedData = null;
 			return;
 		}
+
+		// CSV path: detect comma-separated tabular text
+		if (looksLikeCsv(text)) {
+			try {
+				const data = parseCsv(text);
+				if (data.length === 0) {
+					activeTab.error = 'CSV has headers but no data rows';
+					activeTab.parsedData = null;
+					return;
+				}
+				activeTab.parsedData = data;
+				activeTab.currentPath = [];
+				activeTab.expandedPaths.clear();
+				activeTab.columnFilters = {};
+				activeTab.hiddenColumns = new Set();
+				resetFlatten();
+				activeTab.showInput = false;
+				return;
+			} catch (e) {
+				activeTab.error = e instanceof Error ? `Failed to parse CSV: ${e.message}` : 'Failed to parse CSV';
+				activeTab.parsedData = null;
+				return;
+			}
+		}
+
+		// JSON path
 		try {
-			activeTab.parsedData = JSON.parse(activeTab.jsonInput);
+			activeTab.parsedData = JSON.parse(text);
 			activeTab.currentPath = [];
 			activeTab.expandedPaths.clear();
 			activeTab.columnFilters = {};
