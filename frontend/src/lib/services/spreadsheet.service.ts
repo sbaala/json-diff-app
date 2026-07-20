@@ -1,4 +1,5 @@
 import type Handsontable from 'handsontable';
+import HyperFormula from 'hyperformula';
 
 export interface HandsontableConfig {
 	rowHeaders: boolean;
@@ -14,7 +15,7 @@ export interface HandsontableConfig {
 	outsideClickDeselects: boolean;
 	licenseKey: string;
 	formulas?: {
-		engine: string;
+		engine: any;
 	};
 	hiddenColumns?: {
 		columns: number[];
@@ -52,9 +53,9 @@ export class SpreadsheetService {
 			autoWrapColumn: true,
 			outsideClickDeselects: false,
 			licenseKey: 'non-commercial-and-evaluation',
-			// Formula configuration
+			// Formula configuration - use actual HyperFormula instance
 			formulas: {
-				engine: 'hyperformula'
+				engine: HyperFormula
 			},
 			// Column/row visibility
 			hiddenColumns: {
