@@ -30,8 +30,14 @@
 	});
 
 	function initializeHandsontable() {
-		if (!containerElement || !spreadsheetState.workbook || !spreadsheetState.activeSheetId)
+		if (!containerElement || !spreadsheetState.workbook || !spreadsheetState.activeSheetId) {
+			console.log('Cannot initialize - missing:', {
+				containerElement: !!containerElement,
+				workbook: !!spreadsheetState.workbook,
+				activeSheetId: !!spreadsheetState.activeSheetId
+			});
 			return;
+		}
 
 		// Destroy existing instance
 		if (handsontable) {
@@ -42,7 +48,16 @@
 			(s) => s.sheetId === spreadsheetState.activeSheetId
 		);
 
-		if (!activeSheet) return;
+		if (!activeSheet) {
+			console.error('Active sheet not found:', spreadsheetState.activeSheetId);
+			return;
+		}
+
+		console.log('Initializing Handsontable with:', {
+			sheetName: activeSheet.sheetName,
+			rowCount: activeSheet.data.length,
+			colCount: activeSheet.data[0]?.length || 0
+		});
 
 		const currentWorkbook = spreadsheetState.workbook;
 		const currentSheetId = spreadsheetState.activeSheetId;
@@ -102,10 +117,21 @@
 	function handleFileSelect(event: CustomEvent<{ sheets: any[]; name: string }>) {
 		const { sheets, name } = event.detail;
 
+		console.log('handleFileSelect called with:', { sheetCount: sheets.length, workbookName: name });
+
 		if (sheets.length === 0) {
 			console.error('No sheets to load');
 			return;
 		}
+
+		// Log sheet details
+		sheets.forEach((sheet, idx) => {
+			console.log(`Sheet ${idx}:`, {
+				name: sheet.sheetName,
+				rows: sheet.data.length,
+				cols: sheet.data[0]?.length || 0
+			});
+		});
 
 		// Import sheets into store (creates workbook and sets active sheet)
 		spreadsheetStore.importSheets(sheets, name);
@@ -113,6 +139,10 @@
 		// Get the workbook from store and save to persistent storage
 		const unsubscribe = spreadsheetStore.subscribe(($state) => {
 			if ($state.workbook) {
+				console.log('Workbook loaded to store:', {
+					activeSheetId: $state.activeSheetId,
+					sheetCount: $state.workbook.sheets.length
+				});
 				spreadsheetStorageService.saveWorkbook($state.workbook);
 				unsubscribe();
 			}
@@ -225,11 +255,11 @@
 		/>
 	{/if}
 
-	{#if showUploadZone && (!spreadsheetState.workbook || spreadsheetState.workbook.sheets[0]?.data?.length === 0)}
+	{#if showUploadZone && (!spreadsheetState.workbook || !spreadsheetState.activeSheetId)}
 		<FileUploadZone on:fileSelect={handleFileSelect} />
 	{/if}
 
-	{#if spreadsheetState.workbook && spreadsheetState.workbook.sheets[0]?.data?.length > 0}
+	{#if spreadsheetState.workbook && spreadsheetState.activeSheetId}
 		<div class="handsontable-wrapper">
 			<div bind:this={containerElement} class="handsontable-container" />
 		</div>
