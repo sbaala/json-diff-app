@@ -95,13 +95,40 @@
 
 			handsontable = new Handsontable(containerElement, htConfig);
 
+			// Validate Handsontable instance created
+			if (!handsontable) {
+				throw new Error('Handsontable instance not created');
+			}
+
 			// Load data using the standard loadData method
 			handsontable.loadData(activeSheet.data);
 
-			// Render to display data
+			// Validate data was loaded
+			const loadedData = handsontable.getData();
+			console.log('✓ Data loaded into Handsontable:');
+			console.log('  - Total rows:', loadedData.length);
+			console.log('  - First row:', loadedData[0]);
+			console.log('  - First cell value:', handsontable.getDataAtCell(0, 0));
+			console.log('  - Sample values:');
+			for (let i = 0; i < Math.min(3, loadedData.length); i++) {
+				console.log(`    Row ${i}:`, loadedData[i]);
+			}
+
+			// Force multiple renders to ensure display
 			handsontable.render();
+
+			// Additional render after a brief delay to ensure DOM is updated
+			setTimeout(() => {
+				if (handsontable) {
+					handsontable.render();
+					console.log('✓ Final render complete');
+				}
+			}, 100);
+
+			console.log('✓ Handsontable initialization complete');
 		} catch (error) {
 			console.error('❌ Error creating Handsontable:', error);
+			throw error;
 		}
 
 		showUploadZone = false;
