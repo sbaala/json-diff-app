@@ -30,28 +30,12 @@
 	});
 
 	function initializeHandsontable() {
-		console.log('initializeHandsontable called');
-		console.log('State check:', {
-			containerElement: !!containerElement,
-			workbook: !!spreadsheetState.workbook,
-			activeSheetId: !!spreadsheetState.activeSheetId,
-			showUploadZone
-		});
-
 		if (!containerElement || !spreadsheetState.workbook || !spreadsheetState.activeSheetId) {
-			console.log('❌ Cannot initialize - missing:', {
-				containerElement: !!containerElement,
-				workbook: !!spreadsheetState.workbook,
-				activeSheetId: !!spreadsheetState.activeSheetId
-			});
 			return;
 		}
 
-		console.log('✓ All conditions met, proceeding...');
-
 		// Destroy existing instance
 		if (handsontable) {
-			console.log('Destroying existing Handsontable instance');
 			handsontable.destroy();
 		}
 
@@ -60,44 +44,11 @@
 		);
 
 		if (!activeSheet) {
-			console.error('❌ Active sheet not found:', spreadsheetState.activeSheetId);
-			console.error('Available sheets:', spreadsheetState.workbook.sheets.map((s) => s.sheetId));
 			return;
 		}
 
-		console.log('✓ Active sheet found:', {
-			sheetName: activeSheet.sheetName,
-			dataLength: activeSheet.data.length,
-			firstRow: activeSheet.data[0],
-			sheetData: activeSheet.data
-		});
-
 		const currentWorkbook = spreadsheetState.workbook;
 		const currentSheetId = spreadsheetState.activeSheetId;
-
-		console.log('Creating Handsontable with config:', {
-			containerElement: containerElement.id,
-			containerSize: {
-				width: containerElement.offsetWidth,
-				height: containerElement.offsetHeight,
-				computed: window.getComputedStyle(containerElement)
-			},
-			parentSize: {
-				width: containerElement.parentElement?.offsetWidth,
-				height: containerElement.parentElement?.offsetHeight
-			},
-			dataToPass: activeSheet.data.length,
-			firstRow: activeSheet.data[0]
-		});
-
-		console.log('Container details:', {
-			offsetWidth: containerElement.offsetWidth,
-			offsetHeight: containerElement.offsetHeight,
-			clientWidth: containerElement.clientWidth,
-			clientHeight: containerElement.clientHeight,
-			scrollWidth: containerElement.scrollWidth,
-			scrollHeight: containerElement.scrollHeight
-		});
 
 		try {
 			const htConfig = {
@@ -141,31 +92,13 @@
 				}
 			};
 
-			console.log('Data to load length:', activeSheet.data.length);
-			console.log('Data to load first row:', activeSheet.data[0]);
-
 			handsontable = new Handsontable(containerElement, htConfig);
 
-			console.log('✓ Handsontable created successfully');
-
 			// Load data using the standard loadData method
-			console.log('Loading data into Handsontable...');
 			handsontable.loadData(activeSheet.data);
-			console.log('✓ Data loaded successfully');
-			console.log('Handsontable data:', handsontable.getData());
-			console.log('Handsontable dimensions:', {
-				rows: handsontable.countRows(),
-				cols: handsontable.countCols()
-			});
 
-			// Force render to display data
-			console.log('Calling handsontable.render()...');
+			// Render to display data
 			handsontable.render();
-			console.log('✓ Render complete - data should be visible now');
-
-			// Log first cell content to verify data is there
-			const cellContent = handsontable.getDataAtCell(0, 0);
-			console.log('First cell content [0,0]:', cellContent);
 		} catch (error) {
 			console.error('❌ Error creating Handsontable:', error);
 		}
