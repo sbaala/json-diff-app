@@ -137,7 +137,8 @@
 		spreadsheetStore.importSheets(sheets, name);
 
 		// Get the workbook from store and save to persistent storage
-		const unsubscribe = spreadsheetStore.subscribe(($state) => {
+		let unsubscribe: () => void;
+		unsubscribe = spreadsheetStore.subscribe(($state) => {
 			if ($state.workbook) {
 				console.log('Workbook loaded to store:', {
 					activeSheetId: $state.activeSheetId,
