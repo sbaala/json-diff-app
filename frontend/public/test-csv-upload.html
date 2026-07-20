@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Upload Debug Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: monospace;
+            background: #0b1020;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #fff;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #6496ff;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin-bottom: 30px;
+            background: #1a2332;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #6496ff;
+        }
+        .section h2 {
+            color: #6496ff;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        input[type="file"] {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background: #2a3a4a;
+            border: 1px solid #6496ff;
+            border-radius: 4px;
+            color: #e0e0e0;
+            cursor: pointer;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px 5px 10px 0;
+            background: #6496ff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: monospace;
+        }
+        button:hover {
+            background: #7aa5ff;
+        }
+        button:active {
+            background: #5585ff;
+        }
+        .logs-container {
+            background: #0b1020;
+            border: 1px solid #6496ff;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        .log-line {
+            margin: 4px 0;
+            padding: 4px 8px;
+            border-left: 3px solid transparent;
+            font-size: 12px;
+        }
+        .log-line.info {
+            border-left-color: #69db7c;
+            color: #69db7c;
+        }
+        .log-line.error {
+            border-left-color: #ff6b6b;
+            color: #ff6b6b;
+        }
+        .log-line.warn {
+            border-left-color: #ffd43b;
+            color: #ffd43b;
+        }
+        .log-line.debug {
+            border-left-color: #9775fa;
+            color: #9775fa;
+        }
+        .summary {
+            background: #2a3a4a;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            border-left: 4px solid #ffd43b;
+        }
+        .summary-item {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .summary-label {
+            color: #ffd43b;
+            font-weight: bold;
+        }
+        .summary-value {
+            color: #e0e0e0;
+        }
+        code {
+            background: #2a3a4a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #69db7c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 CSV Upload Diagnostic Test</h1>
+
+        <div class="section">
+            <h2>📁 Step 1: Select and Upload CSV File</h2>
+            <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.json" />
+            <div style="margin-top: 10px;">
+                <button onclick="testFileRead()">Test File Reading</button>
+                <button onclick="testFileParsing()">Test CSV Parsing</button>
+                <button onclick="clearLogs()">Clear Logs</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔍 File Information</h2>
+            <div class="summary" id="fileSummary" style="display: none;">
+                <div class="summary-item">
+                    <span class="summary-label">Filename:</span>
+                    <span class="summary-value" id="summaryName">-</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">File Type:</span>
+                    <span class="summary-value" id="summaryType">-</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">File Size:</span>
+                    <span class="summary-value" id="summarySize">-</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Content Length:</span>
+                    <span class="summary-value" id="summaryLength">-</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">CSV Rows:</span>
+                    <span class="summary-value" id="summaryRows">-</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">First Row Cells:</span>
+                    <span class="summary-value" id="summaryCells">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📝 Console Logs</h2>
+            <div class="logs-container" id="logsContainer"></div>
+        </div>
+
+        <div class="section">
+            <h2>✅ Expected Results</h2>
+            <p>When you upload a CSV file and click "Test CSV Parsing", you should see:</p>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li>✓ File read successfully with non-zero content length</li>
+                <li>✓ Papa.parse returns multiple rows (not empty array)</li>
+                <li>✓ First row contains column names or data</li>
+                <li>✓ All cells contain actual data, not just empty strings</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const logsContainer = document.getElementById('logsContainer');
+        const fileInput = document.getElementById('fileInput');
+        const fileSummary = document.getElementById('fileSummary');
+
+        // Capture console
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function addLog(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = `log-line ${type}`;
+            line.textContent = message;
+            logsContainer.appendChild(line);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        console.log = (...args) => {
+            originalLog(...args);
+            addLog(args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '), 'info');
+        };
+        console.error = (...args) => {
+            originalError(...args);
+            addLog('ERROR: ' + args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '), 'error');
+        };
+        console.warn = (...args) => {
+            originalWarn(...args);
+            addLog('WARN: ' + args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '), 'warn');
+        };
+
+        function clearLogs() {
+            logsContainer.innerHTML = '';
+            fileSummary.style.display = 'none';
+        }
+
+        function updateSummary(data) {
+            document.getElementById('summaryName').textContent = data.name || '-';
+            document.getElementById('summaryType').textContent = data.type || '-';
+            document.getElementById('summarySize').textContent = data.size || '-';
+            document.getElementById('summaryLength').textContent = data.contentLength || '-';
+            document.getElementById('summaryRows').textContent = data.rows || '-';
+            document.getElementById('summaryCells').textContent = data.cells || '-';
+            fileSummary.style.display = 'block';
+        }
+
+        async function testFileRead() {
+            if (!fileInput.files.length) {
+                alert('Please select a file first');
+                return;
+            }
+
+            clearLogs();
+            const file = fileInput.files[0];
+
+            console.log(`📁 Testing file: ${file.name}`);
+            console.log(`   Type: ${file.type}, Size: ${file.size} bytes`);
+
+            try {
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    const content = e.target.result;
+                    console.log(`✓ File read successfully`);
+                    console.log(`   Content length: ${content.length}`);
+                    console.log(`   First 100 chars: ${JSON.stringify(content.substring(0, 100))}`);
+                    console.log(`   First line: ${JSON.stringify(content.split('\\n')[0])}`);
+
+                    updateSummary({
+                        name: file.name,
+                        type: file.type,
+                        size: file.size + ' bytes',
+                        contentLength: content.length
+                    });
+                };
+
+                reader.onerror = (error) => {
+                    console.error(`✗ FileReader error:`, error);
+                };
+
+                reader.readAsText(file, 'UTF-8');
+            } catch (error) {
+                console.error('✗ Error testing file read:', error.message);
+            }
+        }
+
+        async function testFileParsing() {
+            if (!fileInput.files.length) {
+                alert('Please select a file first');
+                return;
+            }
+
+            clearLogs();
+            const file = fileInput.files[0];
+
+            console.log(`📊 Testing CSV parsing for: ${file.name}`);
+
+            try {
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    const content = e.target.result;
+                    console.log(`✓ File read, length: ${content.length}`);
+
+                    // Check if Papa is available
+                    if (typeof Papa === 'undefined') {
+                        console.error('✗ Papa.parse not available - please open this from the main app');
+                        return;
+                    }
+
+                    console.log(`🔍 Parsing CSV with Papa.parse()...`);
+                    const result = Papa.parse(content, {
+                        header: false,
+                        dynamicTyping: false,
+                        skipEmptyLines: false
+                    });
+
+                    console.log(`✓ Parsing complete`);
+                    console.log(`   Rows: ${result.data.length}`);
+                    console.log(`   Errors: ${result.errors ? result.errors.length : 0}`);
+
+                    if (result.errors && result.errors.length > 0) {
+                        console.warn(`   Parse errors:`, result.errors);
+                    }
+
+                    // Show first few rows
+                    for (let i = 0; i < Math.min(3, result.data.length); i++) {
+                        console.log(`   Row ${i}: ${JSON.stringify(result.data[i])}`);
+                    }
+
+                    updateSummary({
+                        name: file.name,
+                        type: file.type,
+                        size: file.size + ' bytes',
+                        contentLength: content.length,
+                        rows: result.data.length,
+                        cells: result.data[0] ? result.data[0].length : 0
+                    });
+                };
+
+                reader.onerror = (error) => {
+                    console.error(`✗ FileReader error:`, error);
+                };
+
+                reader.readAsText(file, 'UTF-8');
+            } catch (error) {
+                console.error('✗ Error testing CSV parsing:', error.message);
+            }
+        }
+    </script>
+</body>
+</html>
