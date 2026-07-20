@@ -37,11 +37,51 @@ export class FileImportService {
 	}
 
 	private async importCSV(file: File): Promise<ImportResult> {
-		const content = await file.text();
+		console.log('📁 Importing CSV file:', file.name);
+		let content = await file.text();
+		console.log('Raw file size:', file.size, 'bytes');
+		console.log('Raw content length:', content.length);
+
+		// Check for and remove BOM if present
+		if (content.charCodeAt(0) === 0xFEFF) {
+			console.log('⚠️  BOM detected, removing');
+			content = content.slice(1);
+		}
+
+		console.log('Content after BOM check:', content.length);
 		console.log('Raw file content (first 500 chars):', JSON.stringify(content.substring(0, 500)));
-		console.log('Content length:', content.length);
+		console.log('Raw file content (last 200 chars):', JSON.stringify(content.substring(Math.max(0, content.length - 200))));
+
+		// Check if content is just whitespace
+		const trimmed = content.trim();
+		if (trimmed.length === 0) {
+			console.warn('⚠️  File content is empty or only whitespace');
+			return {
+				sheets: [],
+				workbookName: file.name.replace(/\.[^/.]+$/, ''),
+				error: 'CSV file is empty'
+			};
+		}
+
 		const data = spreadsheetService.csvToData(content);
-		console.log('Parsed CSV data (first 3 rows):', data.slice(0, 3));
+		console.log('✓ Parsed CSV data:');
+		console.log('  - Total rows:', data.length);
+		console.log('  - First 3 rows:', data.slice(0, 3));
+		console.log('  - Last 3 rows:', data.slice(-3));
+
+		// Log first row cell count
+		if (data.length > 0) {
+			console.log('  - First row cells:', data[0].length);
+		}
+
+		if (data.length === 0) {
+			console.warn('⚠️  CSV parsing resulted in no rows');
+			return {
+				sheets: [],
+				workbookName: file.name.replace(/\.[^/.]+$/, ''),
+				error: 'CSV file appears to be empty after parsing'
+			};
+		}
 
 		const sheet: Sheet = {
 			sheetId: this.generateId(),

@@ -41,7 +41,7 @@
 		}
 
 		const activeSheet = spreadsheetState.workbook.sheets.find(
-			(s) => s.sheetId === spreadsheetState.activeSheetId
+			(s: any) => s.sheetId === spreadsheetState.activeSheetId
 		);
 
 		if (!activeSheet) {
@@ -233,7 +233,7 @@
 
 		const data = handsontable.getData();
 		const sheet = spreadsheetState.workbook.sheets.find(
-			(s) => s.sheetId === spreadsheetState.activeSheetId
+			(s: any) => s.sheetId === spreadsheetState.activeSheetId
 		);
 		if (!sheet) return;
 

@@ -88,8 +88,10 @@ export class SpreadsheetService {
 	}
 
 	parseCSV(csvText: string): string[][] {
-		// Use PapaParse for robust CSV parsing
-		const result = Papa.parse(csvText.trim(), {
+		console.log('Parsing CSV - input length:', csvText.length);
+
+		// Parse CSV using Papa.parse
+		const result = Papa.parse(csvText, {
 			header: false,
 			dynamicTyping: false,
 			skipEmptyLines: false
@@ -97,11 +99,25 @@ export class SpreadsheetService {
 
 		console.log('Papa.parse result:', {
 			dataLength: result.data.length,
-			firstRow: result.data[0],
-			errors: result.errors,
-			meta: result.meta
+			errorCount: result.errors.length,
+			errors: result.errors
 		});
 
+		if (result.errors && result.errors.length > 0) {
+			console.error('Papa.parse errors:', result.errors);
+		}
+
+		// Log sample rows
+		for (let i = 0; i < Math.min(5, result.data.length); i++) {
+			console.log(`  Row ${i}:`, result.data[i]);
+		}
+
+		if (result.data.length === 0) {
+			console.warn('⚠️  Papa.parse returned empty data');
+			return [];
+		}
+
+		// Return data as-is; Papa.parse handles the structure
 		return result.data as string[][];
 	}
 
