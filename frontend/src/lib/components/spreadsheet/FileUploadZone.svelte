@@ -110,7 +110,7 @@
 	<div class="upload-content">
 		{#if isLoading}
 			<div class="loading">
-				<div class="spinner" />
+				<div class="spinner"></div>
 				<p>Loading file...</p>
 			</div>
 		{:else if errorMessage}

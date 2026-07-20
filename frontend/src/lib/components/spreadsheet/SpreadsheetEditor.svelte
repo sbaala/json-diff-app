@@ -144,6 +144,8 @@
 					sheetCount: $state.workbook.sheets.length
 				});
 				spreadsheetStorageService.saveWorkbook($state.workbook);
+				// Hide upload overlay after successful import
+				showUploadZone = false;
 				unsubscribe();
 			}
 		});
@@ -230,7 +232,12 @@
 		URL.revokeObjectURL(url);
 	}
 
-	$: if (spreadsheetState.workbook && spreadsheetState.activeSheetId && containerElement) {
+	$: if (
+		spreadsheetState.workbook &&
+		spreadsheetState.activeSheetId &&
+		containerElement &&
+		!showUploadZone
+	) {
 		initializeHandsontable();
 	}
 </script>
@@ -258,7 +265,7 @@
 	<div class="content-wrapper">
 		{#if spreadsheetState.workbook && spreadsheetState.activeSheetId}
 			<div class="handsontable-wrapper">
-				<div bind:this={containerElement} class="handsontable-container" />
+				<div bind:this={containerElement} class="handsontable-container"></div>
 			</div>
 		{/if}
 
