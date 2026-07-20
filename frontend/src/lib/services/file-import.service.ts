@@ -44,8 +44,25 @@ export class FileImportService {
 		let content = await file.text();
 		console.log('✓ File.text() completed');
 		console.log('  Content length:', content.length);
-		console.log('  First char code:', content.length > 0 ? content.charCodeAt(0) : 'N/A');
+
+		if (content.length === 0) {
+			console.error('❌ File content is empty!');
+			return {
+				sheets: [],
+				workbookName: file.name.replace(/\.[^/.]+$/, ''),
+				error: 'File is empty - no data to parse'
+			};
+		}
+
+		// Log character codes to detect encoding issues
+		const charCodes = [];
+		for (let i = 0; i < Math.min(20, content.length); i++) {
+			charCodes.push(content.charCodeAt(i));
+		}
+		console.log('  First 20 char codes:', charCodes);
+		console.log('  First char code:', content.charCodeAt(0));
 		console.log('  First 10 chars:', JSON.stringify(content.substring(0, 10)));
+		console.log('  First line:', JSON.stringify(content.split('\n')[0]));
 
 		// Check for and remove BOM if present
 		if (content.charCodeAt(0) === 0xFEFF) {

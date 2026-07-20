@@ -51,6 +51,15 @@
 		const currentWorkbook = spreadsheetState.workbook;
 		const currentSheetId = spreadsheetState.activeSheetId;
 
+		console.log('📊 Initializing Handsontable with sheet:', {
+			sheetId: activeSheet.sheetId,
+			sheetName: activeSheet.sheetName,
+			dataRows: activeSheet.data.length,
+			firstRow: activeSheet.data[0],
+			secondRow: activeSheet.data[1],
+			lastRow: activeSheet.data[activeSheet.data.length - 1]
+		});
+
 		try {
 			const htConfig = {
 				...config,
