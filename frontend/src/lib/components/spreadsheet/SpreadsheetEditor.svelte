@@ -100,13 +100,12 @@
 		});
 
 		try {
-			handsontable = new Handsontable(containerElement, {
+			const htConfig = {
 				...config,
-				data: activeSheet.data.length > 0 ? activeSheet.data : [['']],
 				colHeaders: true,
 				rowHeaders: true,
 				stretchH: 'all',
-				afterChange(changes) {
+				afterChange(changes: any) {
 					if (changes && currentWorkbook && currentSheetId) {
 						const data = handsontable!.getData() as unknown[][];
 						spreadsheetStore.updateSheetData(currentSheetId, data);
@@ -140,9 +139,19 @@
 						spreadsheetStorageService.autoSave(currentWorkbook);
 					}
 				}
-			});
+			};
+
+			console.log('Final config data length:', htConfig.data.length);
+			console.log('Final config first row:', htConfig.data[0]);
+
+			handsontable = new Handsontable(containerElement, htConfig);
 
 			console.log('✓ Handsontable created successfully');
+
+			// Load data using the standard loadData method
+			console.log('Loading data into Handsontable...');
+			handsontable.loadData(activeSheet.data);
+			console.log('✓ Data loaded successfully');
 			console.log('Handsontable data:', handsontable.getData());
 			console.log('Handsontable dimensions:', {
 				rows: handsontable.countRows(),
