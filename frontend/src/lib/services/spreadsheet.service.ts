@@ -1,5 +1,6 @@
 import type Handsontable from 'handsontable';
 import HyperFormula from 'hyperformula';
+import Papa from 'papaparse';
 
 export interface HandsontableConfig {
 	rowHeaders: boolean;
@@ -87,63 +88,28 @@ export class SpreadsheetService {
 	}
 
 	parseCSV(csvText: string): string[][] {
-		const rows: string[][] = [];
-		let currentRow: string[] = [];
-		let currentField = '';
-		let insideQuotes = false;
+		// Use PapaParse for robust CSV parsing
+		const result = Papa.parse(csvText.trim(), {
+			header: false,
+			dynamicTyping: false,
+			skipEmptyLines: false
+		});
 
-		for (let i = 0; i < csvText.length; i++) {
-			const char = csvText[i];
-			const nextChar = csvText[i + 1];
-
-			if (char === '"') {
-				if (insideQuotes && nextChar === '"') {
-					currentField += '"';
-					i++;
-				} else {
-					insideQuotes = !insideQuotes;
-				}
-			} else if (char === ',' && !insideQuotes) {
-				currentRow.push(currentField.trim());
-				currentField = '';
-			} else if ((char === '\n' || char === '\r') && !insideQuotes) {
-				if (currentField || currentRow.length > 0) {
-					currentRow.push(currentField.trim());
-					if (currentRow.some((field) => field.length > 0)) {
-						rows.push(currentRow);
-					}
-					currentRow = [];
-					currentField = '';
-				}
-				if (char === '\r' && nextChar === '\n') {
-					i++;
-				}
-			} else {
-				currentField += char;
-			}
-		}
-
-		if (currentField || currentRow.length > 0) {
-			currentRow.push(currentField.trim());
-			if (currentRow.some((field) => field.length > 0)) {
-				rows.push(currentRow);
-			}
-		}
-
-		return rows;
+		return result.data as string[][];
 	}
 
 	csvToData(csvText: string): unknown[][] {
 		const rows = this.parseCSV(csvText);
 		return rows.map((row) =>
 			row.map((cell) => {
-				if (cell === '') return '';
-				if (cell.toLowerCase() === 'true') return true;
-				if (cell.toLowerCase() === 'false') return false;
-				if (cell.toLowerCase() === 'null') return null;
-				const num = parseFloat(cell);
-				if (!isNaN(num) && cell.trim() !== '') return num;
-				return cell;
+				const str = String(cell).trim();
+				if (str === '') return '';
+				if (str.toLowerCase() === 'true') return true;
+				if (str.toLowerCase() === 'false') return false;
+				if (str.toLowerCase() === 'null') return null;
+				const num = parseFloat(str);
+				if (!isNaN(num)) return num;
+				return str;
 			})
 		);
 	}
