@@ -75,48 +75,69 @@
 		const currentWorkbook = spreadsheetState.workbook;
 		const currentSheetId = spreadsheetState.activeSheetId;
 
-		handsontable = new Handsontable(containerElement, {
-			...config,
-			data: activeSheet.data.length > 0 ? activeSheet.data : [['']],
-			colHeaders: true,
-			rowHeaders: true,
-			height: 'auto',
-			width: '100%',
-			afterChange(changes) {
-				if (changes && currentWorkbook && currentSheetId) {
-					const data = handsontable!.getData() as unknown[][];
-					spreadsheetStore.updateSheetData(currentSheetId, data);
-					spreadsheetStorageService.autoSave(currentWorkbook);
-				}
+		console.log('Creating Handsontable with config:', {
+			containerElement: containerElement.id,
+			containerSize: {
+				width: containerElement.offsetWidth,
+				height: containerElement.offsetHeight
 			},
-			afterCreateRow() {
-				if (currentWorkbook) {
-					spreadsheetStorageService.autoSave(currentWorkbook);
-				}
-			},
-			afterRemoveRow() {
-				if (currentWorkbook) {
-					spreadsheetStorageService.autoSave(currentWorkbook);
-				}
-			},
-			afterCreateCol() {
-				if (currentWorkbook) {
-					spreadsheetStorageService.autoSave(currentWorkbook);
-				}
-			},
-			afterRemoveCol() {
-				if (currentWorkbook) {
-					spreadsheetStorageService.autoSave(currentWorkbook);
-				}
-			},
-			afterPaste() {
-				if (currentWorkbook) {
-					const data = handsontable!.getData() as unknown[][];
-					spreadsheetStore.updateSheetData(currentSheetId, data);
-					spreadsheetStorageService.autoSave(currentWorkbook);
-				}
-			}
+			dataToPass: activeSheet.data.length,
+			firstRow: activeSheet.data[0]
 		});
+
+		try {
+			handsontable = new Handsontable(containerElement, {
+				...config,
+				data: activeSheet.data.length > 0 ? activeSheet.data : [['']],
+				colHeaders: true,
+				rowHeaders: true,
+				height: 'auto',
+				width: '100%',
+				afterChange(changes) {
+					if (changes && currentWorkbook && currentSheetId) {
+						const data = handsontable!.getData() as unknown[][];
+						spreadsheetStore.updateSheetData(currentSheetId, data);
+						spreadsheetStorageService.autoSave(currentWorkbook);
+					}
+				},
+				afterCreateRow() {
+					if (currentWorkbook) {
+						spreadsheetStorageService.autoSave(currentWorkbook);
+					}
+				},
+				afterRemoveRow() {
+					if (currentWorkbook) {
+						spreadsheetStorageService.autoSave(currentWorkbook);
+					}
+				},
+				afterCreateCol() {
+					if (currentWorkbook) {
+						spreadsheetStorageService.autoSave(currentWorkbook);
+					}
+				},
+				afterRemoveCol() {
+					if (currentWorkbook) {
+						spreadsheetStorageService.autoSave(currentWorkbook);
+					}
+				},
+				afterPaste() {
+					if (currentWorkbook) {
+						const data = handsontable!.getData() as unknown[][];
+						spreadsheetStore.updateSheetData(currentSheetId, data);
+						spreadsheetStorageService.autoSave(currentWorkbook);
+					}
+				}
+			});
+
+			console.log('✓ Handsontable created successfully');
+			console.log('Handsontable data:', handsontable.getData());
+			console.log('Handsontable dimensions:', {
+				rows: handsontable.countRows(),
+				cols: handsontable.countCols()
+			});
+		} catch (error) {
+			console.error('❌ Error creating Handsontable:', error);
+		}
 
 		showUploadZone = false;
 	}
