@@ -48,28 +48,142 @@
 	}
 
 	function mergeCells() {
-		if (!handsontableRef) return;
+		console.log('🔗 mergeCells called');
+		if (!handsontableRef) {
+			console.error('❌ Handsontable reference is null');
+			return;
+		}
+
 		const selected = handsontableRef.getSelected();
-		if (selected && selected.length > 0) {
-			const [startRow, startCol, endRow, endCol] = selected[0];
-			try {
-				handsontableRef.mergeCells(startRow, startCol, endRow, endCol);
-			} catch (e) {
-				console.error('Error merging cells:', e);
-			}
+		console.log('  Selected cells:', selected);
+
+		if (!selected || selected.length === 0) {
+			console.warn('⚠️  No cells selected for merging');
+			return;
+		}
+
+		const [startRow, startCol, endRow, endCol] = selected[0];
+		console.log(`  Merging cells: [${startRow},${startCol}] to [${endRow},${endCol}]`);
+
+		try {
+			// Handsontable merge cells function
+			handsontableRef.mergeCells(startRow, startCol, endRow, endCol);
+			console.log('✓ Cells merged successfully');
+			handsontableRef.render();
+		} catch (e) {
+			console.error('❌ Error merging cells:', e);
+		}
+	}
+
+	function removeColumn() {
+		console.log('❌ removeColumn called');
+		if (!handsontableRef) {
+			console.error('❌ Handsontable reference is null');
+			return;
+		}
+
+		const selected = handsontableRef.getSelected();
+		console.log('  Selected cells:', selected);
+
+		if (!selected || selected.length === 0) {
+			console.warn('⚠️  No cells selected');
+			return;
+		}
+
+		const [startRow, startCol, endRow, endCol] = selected[0];
+		const cols = [];
+
+		// Collect all columns in selection
+		for (let col = Math.min(startCol, endCol); col <= Math.max(startCol, endCol); col++) {
+			cols.push(col);
+		}
+
+		console.log(`  Removing columns: ${cols}`);
+
+		try {
+			handsontableRef.alter('remove_col', cols);
+			console.log('✓ Column(s) removed successfully');
+			handsontableRef.render();
+		} catch (e) {
+			console.error('❌ Error removing column:', e);
+		}
+	}
+
+	function removeRow() {
+		console.log('❌ removeRow called');
+		if (!handsontableRef) {
+			console.error('❌ Handsontable reference is null');
+			return;
+		}
+
+		const selected = handsontableRef.getSelected();
+		console.log('  Selected cells:', selected);
+
+		if (!selected || selected.length === 0) {
+			console.warn('⚠️  No cells selected');
+			return;
+		}
+
+		const [startRow, startCol, endRow, endCol] = selected[0];
+		const rows = [];
+
+		// Collect all rows in selection
+		for (let row = Math.min(startRow, endRow); row <= Math.max(startRow, endRow); row++) {
+			rows.push(row);
+		}
+
+		console.log(`  Removing rows: ${rows}`);
+
+		try {
+			handsontableRef.alter('remove_row', rows);
+			console.log('✓ Row(s) removed successfully');
+			handsontableRef.render();
+		} catch (e) {
+			console.error('❌ Error removing row:', e);
 		}
 	}
 
 	function unmergeCells() {
-		if (!handsontableRef) return;
+		console.log('🔗 unmergeCells called');
+		if (!handsontableRef) {
+			console.error('❌ Handsontable reference is null');
+			return;
+		}
+
 		const selected = handsontableRef.getSelected();
-		if (selected && selected.length > 0) {
-			const [startRow, startCol] = selected[0];
-			try {
-				handsontableRef.unmergeCells(startRow, startCol);
-			} catch (e) {
-				console.error('Error unmerging cells:', e);
+		console.log('  Selected cells:', selected);
+
+		if (!selected || selected.length === 0) {
+			console.warn('⚠️  No cells selected for unmerging');
+			return;
+		}
+
+		const [startRow, startCol, endRow, endCol] = selected[0];
+		console.log(`  Unmerging cells at: [${startRow},${startCol}]`);
+
+		try {
+			// Get the merged cell range at this position
+			const mergedCells = handsontableRef.getSettings().mergeCells || [];
+			console.log('  Current merged cells:', mergedCells);
+
+			// Find and unmerge the cell at this position
+			let found = false;
+			for (const merged of mergedCells) {
+				if (merged.row === startRow && merged.col === startCol) {
+					handsontableRef.unmergeCells(startRow, startCol, merged.rowspan - 1 + startRow, merged.colspan - 1 + startCol);
+					found = true;
+					console.log('✓ Cells unmerged successfully');
+					break;
+				}
 			}
+
+			if (!found) {
+				console.warn('⚠️  Cell is not merged');
+			}
+
+			handsontableRef.render();
+		} catch (e) {
+			console.error('❌ Error unmerging cells:', e);
 		}
 	}
 </script>
@@ -150,6 +264,23 @@
 			aria-label="Unmerge Cells"
 		>
 			⊞ Unmerge
+		</button>
+
+		<button
+			class="toolbar-btn"
+			on:click={removeColumn}
+			title="Remove Column"
+			aria-label="Remove Column"
+		>
+			✕ Remove Col
+		</button>
+		<button
+			class="toolbar-btn"
+			on:click={removeRow}
+			title="Remove Row"
+			aria-label="Remove Row"
+		>
+			✕ Remove Row
 		</button>
 	</div>
 
