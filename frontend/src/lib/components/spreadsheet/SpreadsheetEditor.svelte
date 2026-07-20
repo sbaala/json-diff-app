@@ -133,23 +133,34 @@
 			});
 		});
 
+		// Generate workbook ID
+		const workbookId = crypto.randomUUID?.() || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+			const r = (Math.random() * 16) | 0;
+			const v = c === 'x' ? r : (r & 0x3) | 0x8;
+			return v.toString(16);
+		});
+
+		// Create workbook object
+		const workbook = {
+			id: workbookId,
+			name,
+			sheets,
+			lastModified: new Date().toISOString()
+		};
+
+		console.log('Workbook created:', {
+			activeSheetId: sheets[0]?.sheetId,
+			sheetCount: sheets.length
+		});
+
 		// Import sheets into store (creates workbook and sets active sheet)
 		spreadsheetStore.importSheets(sheets, name);
 
-		// Get the workbook from store and save to persistent storage
-		let unsubscribe: () => void;
-		unsubscribe = spreadsheetStore.subscribe(($state) => {
-			if ($state.workbook) {
-				console.log('Workbook loaded to store:', {
-					activeSheetId: $state.activeSheetId,
-					sheetCount: $state.workbook.sheets.length
-				});
-				spreadsheetStorageService.saveWorkbook($state.workbook);
-				// Hide upload overlay after successful import
-				showUploadZone = false;
-				unsubscribe();
-			}
-		});
+		// Save to persistent storage immediately
+		spreadsheetStorageService.saveWorkbook(workbook);
+
+		// Hide upload overlay - this will trigger reactive statement which initializes Handsontable
+		showUploadZone = false;
 	}
 
 	function handleSheetChange(event: CustomEvent<string>) {
