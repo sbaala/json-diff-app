@@ -88,28 +88,38 @@ export class SpreadsheetService {
 	}
 
 	parseCSV(csvText: string): string[][] {
-		console.log('Parsing CSV - input length:', csvText.length);
+		console.log('🔍 parseCSV() - input length:', csvText.length);
+		console.log('  First 100 chars:', JSON.stringify(csvText.substring(0, 100)));
 
 		// Parse CSV using Papa.parse
+		console.log('  Calling Papa.parse()...');
 		const result = Papa.parse(csvText, {
 			header: false,
 			dynamicTyping: false,
 			skipEmptyLines: false
 		});
 
-		console.log('Papa.parse result:', {
+		console.log('✓ Papa.parse completed:', {
 			dataLength: result.data.length,
-			errorCount: result.errors.length,
-			errors: result.errors
+			errorCount: result.errors ? result.errors.length : 0,
+			hasErrors: result.errors && result.errors.length > 0
 		});
 
 		if (result.errors && result.errors.length > 0) {
-			console.error('Papa.parse errors:', result.errors);
+			console.error('  Parse errors:', result.errors);
 		}
 
-		// Log sample rows
-		for (let i = 0; i < Math.min(5, result.data.length); i++) {
-			console.log(`  Row ${i}:`, result.data[i]);
+		// Log detailed row information
+		console.log('  Detailed row analysis:');
+		for (let i = 0; i < Math.min(3, result.data.length); i++) {
+			const row = result.data[i];
+			console.log(`    Row ${i}:`, {
+				type: typeof row,
+				isArray: Array.isArray(row),
+				length: Array.isArray(row) ? row.length : 'N/A',
+				value: JSON.stringify(row),
+				cells: Array.isArray(row) ? row.map((c, idx) => ({ idx, type: typeof c, value: JSON.stringify(c) })) : 'N/A'
+			});
 		}
 
 		if (result.data.length === 0) {
@@ -118,13 +128,18 @@ export class SpreadsheetService {
 		}
 
 		// Return data as-is; Papa.parse handles the structure
-		return result.data as string[][];
+		const parsedData = result.data as string[][];
+		console.log('✓ parseCSV() returning', parsedData.length, 'rows');
+		return parsedData;
 	}
 
 	csvToData(csvText: string): unknown[][] {
+		console.log('🔄 csvToData() - input length:', csvText.length);
 		const rows = this.parseCSV(csvText);
-		return rows.map((row) =>
-			row.map((cell) => {
+		console.log('  parseCSV returned', rows.length, 'rows');
+
+		const result = rows.map((row, rowIdx) => {
+			const mappedRow = row.map((cell, cellIdx) => {
 				const str = String(cell).trim();
 				if (str === '') return '';
 				if (str.toLowerCase() === 'true') return true;
@@ -133,8 +148,15 @@ export class SpreadsheetService {
 				const num = parseFloat(str);
 				if (!isNaN(num)) return num;
 				return str;
-			})
-		);
+			});
+			if (rowIdx < 3) {
+				console.log(`    Mapped row ${rowIdx}:`, JSON.stringify(mappedRow));
+			}
+			return mappedRow;
+		});
+
+		console.log('✓ csvToData() returning', result.length, 'rows');
+		return result;
 	}
 
 	dataToCSV(data: unknown[][]): string {

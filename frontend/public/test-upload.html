@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSV Upload Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        #logs {
+            background: #333;
+            padding: 20px;
+            border-radius: 4px;
+            max-height: 600px;
+            overflow-y: auto;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #666;
+            padding-left: 10px;
+        }
+        .log-entry.error {
+            border-left-color: #ff6b6b;
+            color: #ff6b6b;
+        }
+        .log-entry.log {
+            border-left-color: #69db7c;
+            color: #69db7c;
+        }
+        input[type="file"] {
+            display: block;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>CSV Upload Test</h1>
+    <input type="file" id="fileInput" accept=".csv" />
+    <button onclick="testUpload()">Upload and Test</button>
+    <button onclick="clearLogs()">Clear Logs</button>
+    <div id="logs"></div>
+
+    <script>
+        const logsDiv = document.getElementById('logs');
+
+        // Capture console logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function addLog(msg, type = 'log') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = msg;
+            logsDiv.appendChild(entry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        console.log = (...args) => {
+            originalLog(...args);
+            addLog(args.join(' '), 'log');
+        };
+
+        console.error = (...args) => {
+            originalError(...args);
+            addLog('ERROR: ' + args.join(' '), 'error');
+        };
+
+        console.warn = (...args) => {
+            originalError(...args);
+            addLog('WARN: ' + args.join(' '), 'error');
+        };
+
+        function clearLogs() {
+            logsDiv.innerHTML = '';
+        }
+
+        function testUpload() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) {
+                alert('Please select a file');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            addLog('Selected file: ' + file.name, 'log');
+            addLog('File size: ' + file.size + ' bytes', 'log');
+
+            // Read file directly to test
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const content = e.target.result;
+                addLog('✓ File read complete', 'log');
+                addLog('Content length: ' + content.length, 'log');
+                addLog('First 100 chars: ' + JSON.stringify(content.substring(0, 100)), 'log');
+                addLog('', 'log');
+                addLog('Testing Papa.parse...', 'log');
+
+                // Test Papa.parse
+                try {
+                    // Papa should be available from the main app
+                    if (typeof Papa !== 'undefined') {
+                        const result = Papa.parse(content, {
+                            header: false,
+                            dynamicTyping: false,
+                            skipEmptyLines: false
+                        });
+                        addLog('Papa.parse succeeded!', 'log');
+                        addLog('Rows: ' + result.data.length, 'log');
+                        addLog('Errors: ' + result.errors.length, 'log');
+                        addLog('First row: ' + JSON.stringify(result.data[0]), 'log');
+                        addLog('Second row: ' + JSON.stringify(result.data[1]), 'log');
+                    } else {
+                        addLog('Papa.parse not available in this page', 'error');
+                        addLog('Please open this from within the app', 'error');
+                    }
+                } catch (err) {
+                    addLog('Error testing Papa.parse: ' + err.message, 'error');
+                }
+            };
+
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>

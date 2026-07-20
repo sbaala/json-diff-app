@@ -38,9 +38,14 @@ export class FileImportService {
 
 	private async importCSV(file: File): Promise<ImportResult> {
 		console.log('📁 Importing CSV file:', file.name);
+		console.log('  File type:', file.type);
+		console.log('  File size:', file.size, 'bytes');
+
 		let content = await file.text();
-		console.log('Raw file size:', file.size, 'bytes');
-		console.log('Raw content length:', content.length);
+		console.log('✓ File.text() completed');
+		console.log('  Content length:', content.length);
+		console.log('  First char code:', content.length > 0 ? content.charCodeAt(0) : 'N/A');
+		console.log('  First 10 chars:', JSON.stringify(content.substring(0, 10)));
 
 		// Check for and remove BOM if present
 		if (content.charCodeAt(0) === 0xFEFF) {
@@ -48,9 +53,10 @@ export class FileImportService {
 			content = content.slice(1);
 		}
 
-		console.log('Content after BOM check:', content.length);
-		console.log('Raw file content (first 500 chars):', JSON.stringify(content.substring(0, 500)));
-		console.log('Raw file content (last 200 chars):', JSON.stringify(content.substring(Math.max(0, content.length - 200))));
+		// Log line breaks
+		const lineCount = content.split('\n').length;
+		const crlfCount = content.split('\r\n').length - 1;
+		console.log('  Line breaks: LF:', lineCount - 1, '| CRLF:', crlfCount);
 
 		// Check if content is just whitespace
 		const trimmed = content.trim();
@@ -63,15 +69,21 @@ export class FileImportService {
 			};
 		}
 
+		console.log('📋 Calling csvToData()...');
 		const data = spreadsheetService.csvToData(content);
 		console.log('✓ Parsed CSV data:');
 		console.log('  - Total rows:', data.length);
-		console.log('  - First 3 rows:', data.slice(0, 3));
-		console.log('  - Last 3 rows:', data.slice(-3));
-
-		// Log first row cell count
+		console.log('  - First row:', JSON.stringify(data[0]));
+		console.log('  - Second row:', JSON.stringify(data[1]));
+		console.log('  - Third row:', JSON.stringify(data[2]));
 		if (data.length > 0) {
-			console.log('  - First row cells:', data[0].length);
+			console.log('  - First row type:', typeof data[0]);
+			console.log('  - First row is array?:', Array.isArray(data[0]));
+			if (Array.isArray(data[0])) {
+				console.log('  - First row cells:', data[0].length);
+				console.log('  - First cell type:', typeof data[0][0]);
+				console.log('  - First cell value:', JSON.stringify(data[0][0]));
+			}
 		}
 
 		if (data.length === 0) {
