@@ -13,6 +13,7 @@
 		currentPath: string[];
 		showInput: boolean;
 		columnFilters: Record<string, string>;
+		columnWidths: Record<string, number>;
 		hiddenColumns: Set<string>;
 		showColumnMenu: boolean;
 		showFilterRow: boolean;
@@ -37,6 +38,7 @@
 			currentPath: [],
 			showInput: true,
 			columnFilters: {},
+			columnWidths: {},
 			hiddenColumns: new Set(),
 			showColumnMenu: false,
 			showFilterRow: true,
@@ -428,10 +430,12 @@
 		resetFlatten();
 	}
 
-	// Reset flatten state and re-detect for current data
+	// Reset flatten state and re-detect for current data.
+	// Called on every data load / navigation, so also clear column widths here.
 	function resetFlatten() {
 		activeTab.flattenEnabled = false;
 		activeTab.flattenableKeys = [];
+		activeTab.columnWidths = {};
 	}
 
 	// Auto-detect flattenable keys when data changes and offer flatten
@@ -458,6 +462,43 @@
 			newSet.add(pathKey);
 		}
 		activeTab.expandedPaths = newSet;
+	}
+
+	// Column resize state
+	let resizing = $state<{ col: string; startX: number; startWidth: number } | null>(null);
+
+	// Begin dragging a column's resize handle
+	function startResize(e: MouseEvent, col: string) {
+		e.preventDefault();
+		e.stopPropagation();
+		const th = (e.currentTarget as HTMLElement).closest('th') as HTMLElement | null;
+		const startWidth = activeTab.columnWidths[col] ?? th?.offsetWidth ?? 150;
+		resizing = { col, startX: e.clientX, startWidth };
+	}
+
+	// Update the dragged column's width as the mouse moves
+	function handleResizeMove(e: MouseEvent) {
+		if (!resizing) return;
+		const delta = e.clientX - resizing.startX;
+		const newWidth = Math.max(60, resizing.startWidth + delta);
+		activeTab.columnWidths = { ...activeTab.columnWidths, [resizing.col]: newWidth };
+	}
+
+	// End resize drag
+	function stopResize() {
+		resizing = null;
+	}
+
+	// Double-click handle: reset column to auto width
+	function resetColumnWidth(col: string) {
+		const { [col]: _, ...rest } = activeTab.columnWidths;
+		activeTab.columnWidths = rest;
+	}
+
+	// Inline width style for a column (empty = auto)
+	function colStyle(col: string): string {
+		const w = activeTab.columnWidths[col];
+		return w ? `width:${w}px;min-width:${w}px;max-width:${w}px;` : '';
 	}
 
 	// Toggle column visibility
@@ -619,7 +660,7 @@
 	<title>JSON Grid - Freebies JSON Tools</title>
 </svelte:head>
 
-<svelte:window onclick={handleClickOutside} />
+<svelte:window onclick={handleClickOutside} onmousemove={handleResizeMove} onmouseup={stopResize} />
 
 <input
 	type="file"
@@ -702,13 +743,13 @@
 					{/if}
 				</div>
 			{/each}
+			<button type="button" class="tab-add" onclick={addTab} title="New tab">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<line x1="12" y1="5" x2="12" y2="19"/>
+					<line x1="5" y1="12" x2="19" y2="12"/>
+				</svg>
+			</button>
 		</div>
-		<button type="button" class="tab-add" onclick={addTab} title="New tab">
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<line x1="12" y1="5" x2="12" y2="19"/>
-				<line x1="5" y1="12" x2="19" y2="12"/>
-			</svg>
-		</button>
 	</div>
 
 	<div class="main-content card">
@@ -950,12 +991,12 @@
 						{@const columns = getVisibleColumns(allColumns)}
 						{@const filteredRows = filterRows(effectiveData)}
 						<div class="table-wrapper">
-							<table class="data-table">
+							<table class="data-table" class:col-resizing={resizing}>
 								<thead>
 									<tr class="header-row">
 										<th class="row-num">#</th>
 										{#each columns as col}
-											<th>
+											<th class="resizable-th" style={colStyle(col)}>
 												<div class="th-content">
 													{#if col.includes('.')}
 														<span class="th-label" title={col}>
@@ -976,6 +1017,14 @@
 														</svg>
 													</button>
 												</div>
+												<!-- svelte-ignore a11y_no_static_element_interactions -->
+												<span
+													class="resize-handle"
+													class:resizing={resizing?.col === col}
+													onmousedown={(e) => startResize(e, col)}
+													ondblclick={() => resetColumnWidth(col)}
+													title="Drag to resize • double-click to reset"
+												></span>
 											</th>
 										{/each}
 									</tr>
@@ -987,7 +1036,7 @@
 												</svg>
 											</th>
 											{#each columns as col}
-												<th>
+												<th style={colStyle(col)}>
 													<input
 														type="text"
 														class="column-filter"
@@ -1025,7 +1074,7 @@
 											</td>
 											{#each columns as col}
 												{@const cellValue = row[col]}
-												<td class="cell-{getValueType(cellValue)}">
+												<td class="cell-{getValueType(cellValue)}" style={colStyle(col)}>
 													{#if isExpandable(cellValue)}
 														<button
 															type="button"
@@ -1172,6 +1221,7 @@
 
 	.tab-list {
 		display: flex;
+		align-items: center;
 		gap: 0.25rem;
 		flex: 1;
 		overflow-x: auto;
@@ -1259,6 +1309,7 @@
 		color: var(--color-text-muted);
 		cursor: pointer;
 		margin-left: 0.25rem;
+		flex-shrink: 0;
 		transition: all 0.15s ease;
 	}
 
@@ -1647,6 +1698,52 @@
 		position: sticky;
 		top: 0;
 		z-index: 2;
+	}
+
+	/* Constrain cell content so resized columns actually shrink */
+	.data-table td {
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	/* Column resize */
+	.resizable-th {
+		position: relative;
+	}
+
+	.resize-handle {
+		position: absolute;
+		top: 0;
+		right: -3px;
+		width: 7px;
+		height: 100%;
+		cursor: col-resize;
+		z-index: 3;
+		user-select: none;
+		touch-action: none;
+	}
+
+	.resize-handle::after {
+		content: '';
+		position: absolute;
+		top: 20%;
+		right: 3px;
+		width: 1px;
+		height: 60%;
+		background: var(--color-border);
+		transition: background 0.15s ease;
+	}
+
+	.resize-handle:hover::after,
+	.resize-handle.resizing::after {
+		background: var(--color-primary);
+		width: 2px;
+	}
+
+	/* Disable text selection while dragging a handle */
+	.data-table.col-resizing {
+		user-select: none;
+		cursor: col-resize;
 	}
 
 	.header-row th {

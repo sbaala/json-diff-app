@@ -1,0 +1,169 @@
+/* Handsontable Dark Theme Customization */
+
+:root {
+	--ht-bg-color: var(--color-surface);
+	--ht-text-color: var(--color-text);
+	--ht-border-color: var(--color-border);
+	--ht-header-bg: var(--color-bg);
+	--ht-header-text: var(--color-text);
+	--ht-selection-bg: var(--color-primary);
+	--ht-selection-opacity: 0.2;
+}
+
+/* Table body */
+.handsontable {
+	background-color: var(--ht-bg-color);
+	color: var(--ht-text-color);
+	border-color: var(--ht-border-color);
+}
+
+.handsontable tbody tr {
+	border-bottom: 1px solid var(--ht-border-color);
+}
+
+.handsontable tbody td {
+	background-color: var(--ht-bg-color);
+	color: var(--ht-text-color);
+	border-color: var(--ht-border-color);
+	padding: 8px;
+}
+
+/* Headers */
+.handsontable thead tr th {
+	background-color: var(--ht-header-bg);
+	color: var(--ht-header-text);
+	border-color: var(--ht-border-color);
+	font-weight: 600;
+	padding: 8px;
+}
+
+.handsontable col {
+	width: 100px;
+}
+
+/* Selection */
+.handsontable tbody tr.ht-highlight td,
+.handsontable tbody tr td.ht-highlight {
+	background-color: rgba(
+		var(--color-primary-rgb, 100, 150, 255),
+		var(--ht-selection-opacity)
+	);
+}
+
+/* Active cell */
+.handsontable tbody tr td.ht-active {
+	border: 2px solid var(--ht-selection-bg);
+}
+
+/* Merged cells */
+.handsontable tbody tr td.htMergedCell {
+	background-color: rgba(var(--color-primary-rgb, 100, 150, 255), 0.1);
+	border: 1px solid var(--ht-selection-bg);
+}
+
+/* Context menu */
+.htContextMenu {
+	background-color: var(--color-surface);
+	border: 1px solid var(--ht-border-color);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.htContextMenu tbody tr td {
+	background-color: var(--color-surface);
+	color: var(--ht-text-color);
+	border-color: var(--ht-border-color);
+}
+
+.htContextMenu tbody tr:hover td {
+	background-color: var(--color-bg);
+}
+
+.htContextMenu tbody tr.htDisabled:hover td {
+	background-color: var(--color-surface);
+	opacity: 0.5;
+}
+
+/* Input field for cell editing */
+.handsontable .handsontableInput,
+.handsontableInput {
+	background-color: var(--color-bg);
+	color: var(--ht-text-color);
+	border: 1px solid var(--ht-selection-bg);
+	padding: 4px;
+}
+
+/* Placeholder cells */
+.handsontable tbody tr td.emptyCell {
+	background-color: var(--color-surface);
+}
+
+/* Copy/paste indicator */
+.handsontable tbody tr.htCopy td,
+.handsontable tbody tr td.htCopy {
+	border: 2px dashed var(--color-primary);
+}
+
+/* Row/column headers - row numbers and column letters */
+.handsontable thead th.ht-corner {
+	background-color: var(--ht-header-bg);
+	border-color: var(--ht-border-color);
+	cursor: default;
+}
+
+/* Scrollbars */
+.handsontable-container {
+	scrollbar-color: var(--ht-border-color) transparent;
+	scrollbar-width: thin;
+}
+
+.handsontable-container::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+.handsontable-container::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.handsontable-container::-webkit-scrollbar-thumb {
+	background-color: var(--ht-border-color);
+	border-radius: 4px;
+	border: 2px solid transparent;
+	background-clip: content-box;
+}
+
+.handsontable-container::-webkit-scrollbar-thumb:hover {
+	background-color: var(--ht-selection-bg);
+	background-clip: content-box;
+}
+
+/* Handsontable base font */
+.handsontable {
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+		Cantarell, sans-serif;
+	font-size: 14px;
+}
+
+/* Ensure good contrast */
+@media (prefers-color-scheme: dark) {
+	.handsontable tbody td {
+		background-color: var(--color-surface);
+		color: var(--color-text);
+	}
+
+	.handsontable thead tr th {
+		background-color: var(--color-bg);
+	}
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.handsontable {
+		font-size: 12px;
+	}
+
+	.handsontable tbody td,
+	.handsontable thead tr th {
+		padding: 4px;
+	}
+}
