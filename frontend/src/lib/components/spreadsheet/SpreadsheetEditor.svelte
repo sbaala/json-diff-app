@@ -337,6 +337,9 @@
 		flex: 1;
 		position: relative;
 		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		width: 100%;
 	}
 
 	.handsontable-wrapper {
@@ -345,11 +348,13 @@
 		background-color: var(--color-surface);
 		width: 100%;
 		height: 100%;
+		min-height: 0;
 	}
 
 	.handsontable-container {
 		width: 100%;
 		height: 100%;
+		min-height: 0;
 	}
 
 	.upload-overlay {
