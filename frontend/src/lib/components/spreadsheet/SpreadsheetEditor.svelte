@@ -135,6 +135,15 @@
 				rows: handsontable.countRows(),
 				cols: handsontable.countCols()
 			});
+
+			// Force render to display data
+			console.log('Calling handsontable.render()...');
+			handsontable.render();
+			console.log('✓ Render complete - data should be visible now');
+
+			// Log first cell content to verify data is there
+			const cellContent = handsontable.getDataAtCell(0, 0);
+			console.log('First cell content [0,0]:', cellContent);
 		} catch (error) {
 			console.error('❌ Error creating Handsontable:', error);
 		}
