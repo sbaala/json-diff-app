@@ -83,11 +83,24 @@
 		}
 
 		try {
+			// Custom renderer to display cell content
+			const textRenderer = (instance: any, td: any, row: any, col: any, prop: any, value: any) => {
+				td.innerHTML = '';
+				const text = document.createTextNode(String(value ?? ''));
+				td.appendChild(text);
+				return td;
+			};
+
 			const htConfig = {
 				...config,
 				colHeaders: true,
 				rowHeaders: true,
 				stretchH: 'all',
+				cells(row: any, col: any) {
+					return {
+						renderer: textRenderer
+					};
+				},
 				afterChange(changes: any) {
 					if (changes && currentWorkbook && currentSheetId) {
 						const data = handsontable!.getData() as unknown[][];
@@ -132,6 +145,7 @@
 			}
 
 			// Load data using the standard loadData method
+			console.log('📥 Loading data into Handsontable...');
 			handsontable.loadData(activeSheet.data);
 
 			// Validate data was loaded
@@ -145,29 +159,28 @@
 				console.log(`    Row ${i}:`, loadedData[i]);
 			}
 
-			// Debug: Check rendered cells in DOM
-			setTimeout(() => {
-				const cells = containerElement.querySelectorAll('td');
-				console.log('📍 Rendered cells count:', cells.length);
-				if (cells.length > 0) {
-					const firstCell = cells[0];
-					console.log('📍 First cell HTML:', firstCell.innerHTML);
-					console.log('📍 First cell text content:', firstCell.textContent);
-					console.log('📍 First cell computed style color:', window.getComputedStyle(firstCell).color);
-					console.log('📍 First cell computed style background:', window.getComputedStyle(firstCell).backgroundColor);
-				}
-			}, 100);
-
-			// Force multiple renders to ensure display
+			// Force complete re-render with multiple methods
+			console.log('🔄 Forcing Handsontable render...');
 			handsontable.render();
+			handsontable.updateSettings({});  // Force re-render
 
 			// Additional render after a brief delay to ensure DOM is updated
 			setTimeout(() => {
 				if (handsontable) {
 					handsontable.render();
 					console.log('✓ Final render complete');
+
+					// Debug: Check rendered cells in DOM
+					const cells = containerElement.querySelectorAll('td');
+					console.log('📍 Rendered cells count:', cells.length);
+					if (cells.length > 0) {
+						for (let i = 0; i < Math.min(3, cells.length); i++) {
+							const cell = cells[i];
+							console.log(`📍 Cell ${i}: HTML="${cell.innerHTML}" Text="${cell.textContent}"`);
+						}
+					}
 				}
-			}, 100);
+			}, 50);
 
 			console.log('✓ Handsontable initialization complete');
 		} catch (error) {
