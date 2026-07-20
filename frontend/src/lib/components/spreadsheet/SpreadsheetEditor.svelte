@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import Handsontable from 'handsontable';
 	import 'handsontable/dist/handsontable.full.min.css';
+	import '$lib/spreadsheet.css';
 	import { spreadsheetStore } from '$lib/stores/spreadsheet.store';
 	import { spreadsheetStorageService } from '$lib/services/spreadsheet-storage.service';
 	import { spreadsheetService } from '$lib/services/spreadsheet.service';
