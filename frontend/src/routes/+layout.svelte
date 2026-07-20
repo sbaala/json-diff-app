@@ -20,7 +20,7 @@
 		{ href: '/convert', label: 'Convert' },
 		{ href: '/lint', label: 'Lint' },
 		{ href: '/graph', label: 'Graph' },
-		{ href: '/spreadsheet', label: '📊 Spreadsheet' },
+		{ href: '/spreadsheet', label: 'Sheets', flash: true },
 		{ href: '/visualize', label: 'Charts', flash: true },
 		{ href: '/flow', label: 'Flow', flash: true },
 		{ href: 'https://vinmi-frontend-d3h34miv7q-ue.a.run.app/', label: 'Blog', external: true, flash: true }
@@ -243,7 +243,12 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		height: 68px;
+		/* min-height (not a fixed height) so the row grows if the nav wraps,
+		   instead of overflowing and clipping the "NEW" badges at the top edge.
+		   Vertical padding gives the top-row badges (top: -6px) room to sit
+		   fully inside the header. */
+		min-height: 68px;
+		padding: 8px 0;
 		gap: 1.25rem;
 	}
 
@@ -300,10 +305,10 @@
 	.nav-link {
 		color: var(--color-text-muted);
 		text-decoration: none;
-		padding: 0.5rem 0.8rem;
+		padding: 0.5rem 0.65rem;
 		border-radius: var(--radius-sm);
 		transition: color var(--transition), background var(--transition);
-		font-size: 0.875rem;
+		font-size: 0.85rem;
 		font-weight: 500;
 		white-space: nowrap;
 	}
