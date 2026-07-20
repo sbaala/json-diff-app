@@ -444,7 +444,8 @@
 	.spreadsheet-editor {
 		display: flex;
 		flex-direction: column;
-		height: 100vh;
+		height: 100%;
+		min-height: 0;
 		gap: 0;
 		background-color: var(--color-bg);
 		color: var(--color-text);
