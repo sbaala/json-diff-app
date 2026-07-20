@@ -15,12 +15,13 @@
 	let handsontable: Handsontable | null = null;
 	let showUploadZone = true;
 	let showExportDialog = false;
-	let spreadsheetState: any;
 
 	const config = spreadsheetService.getDefaultConfig();
 
+	let spreadsheetState = $state({ workbook: null as any, activeSheetId: null as string | null });
 	spreadsheetStore.subscribe((state) => {
-		spreadsheetState = state;
+		spreadsheetState.workbook = state.workbook;
+		spreadsheetState.activeSheetId = state.activeSheetId;
 	});
 
 	onMount(() => {
@@ -279,14 +280,16 @@
 		URL.revokeObjectURL(url);
 	}
 
-	$: if (
-		spreadsheetState.workbook &&
-		spreadsheetState.activeSheetId &&
-		containerElement &&
-		!showUploadZone
-	) {
-		initializeHandsontable();
-	}
+	$effect(() => {
+		if (
+			spreadsheetState.workbook &&
+			spreadsheetState.activeSheetId &&
+			containerElement &&
+			!showUploadZone
+		) {
+			initializeHandsontable();
+		}
+	});
 </script>
 
 <div class="spreadsheet-editor">
