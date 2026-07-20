@@ -1,40 +1,32 @@
 /* Handsontable Dark Theme Customization */
 
-:root {
-	--ht-bg-color: var(--color-surface);
-	--ht-text-color: var(--color-text);
-	--ht-border-color: var(--color-border);
-	--ht-header-bg: var(--color-bg);
-	--ht-header-text: var(--color-text);
-	--ht-selection-bg: var(--color-primary);
-	--ht-selection-opacity: 0.2;
-}
-
 /* Table body */
 .handsontable {
-	background-color: var(--ht-bg-color);
-	color: var(--ht-text-color);
-	border-color: var(--ht-border-color);
+	background-color: var(--color-surface);
+	color: var(--color-text);
+	border-color: var(--color-border, #333);
 }
 
 .handsontable tbody tr {
-	border-bottom: 1px solid var(--ht-border-color);
+	border-bottom: 1px solid var(--color-border, #333);
 }
 
 .handsontable tbody td {
-	background-color: var(--ht-bg-color);
-	color: var(--ht-text-color);
-	border-color: var(--ht-border-color);
+	background-color: var(--color-surface);
+	color: var(--color-text);
+	border-right: 1px solid var(--color-border, #333);
+	border-bottom: 1px solid var(--color-border, #333);
 	padding: 8px;
 }
 
 /* Headers */
 .handsontable thead tr th {
-	background-color: var(--ht-header-bg);
-	color: var(--ht-header-text);
-	border-color: var(--ht-border-color);
+	background-color: var(--color-bg);
+	color: var(--color-text);
+	border-color: var(--color-border, #333);
 	font-weight: 600;
 	padding: 8px;
+	border-right: 1px solid var(--color-border, #333);
 }
 
 .handsontable col {
@@ -44,21 +36,18 @@
 /* Selection */
 .handsontable tbody tr.ht-highlight td,
 .handsontable tbody tr td.ht-highlight {
-	background-color: rgba(
-		var(--color-primary-rgb, 100, 150, 255),
-		var(--ht-selection-opacity)
-	);
+	background-color: rgba(100, 150, 255, 0.2);
 }
 
 /* Active cell */
 .handsontable tbody tr td.ht-active {
-	border: 2px solid var(--ht-selection-bg);
+	border: 2px solid #6496ff;
 }
 
 /* Merged cells */
 .handsontable tbody tr td.htMergedCell {
-	background-color: rgba(var(--color-primary-rgb, 100, 150, 255), 0.1);
-	border: 1px solid var(--ht-selection-bg);
+	background-color: rgba(100, 150, 255, 0.1);
+	border: 1px solid #6496ff;
 }
 
 /* Context menu */
