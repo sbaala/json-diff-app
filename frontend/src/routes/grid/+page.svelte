@@ -13,6 +13,7 @@
 		currentPath: string[];
 		showInput: boolean;
 		columnFilters: Record<string, string>;
+		columnWidths: Record<string, number>;
 		hiddenColumns: Set<string>;
 		showColumnMenu: boolean;
 		showFilterRow: boolean;
@@ -37,6 +38,7 @@
 			currentPath: [],
 			showInput: true,
 			columnFilters: {},
+			columnWidths: {},
 			hiddenColumns: new Set(),
 			showColumnMenu: false,
 			showFilterRow: true,
@@ -228,15 +230,178 @@
 		return typeof value;
 	}
 
-	// Parse JSON input
+	// File input reference
+	let fileInput = $state<HTMLInputElement | null>(null);
+
+	// Parse a CSV string into an array of objects (RFC 4180-ish: handles quotes, commas, newlines)
+	function parseCsv(text: string): Record<string, unknown>[] {
+		const rows: string[][] = [];
+		let field = '';
+		let row: string[] = [];
+		let inQuotes = false;
+		// Strip UTF-8 BOM (common in Excel exports) and normalize line endings
+		const src = text.replace(/^﻿/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+		for (let i = 0; i < src.length; i++) {
+			const char = src[i];
+			if (inQuotes) {
+				if (char === '"') {
+					if (src[i + 1] === '"') {
+						field += '"';
+						i++;
+					} else {
+						inQuotes = false;
+					}
+				} else {
+					field += char;
+				}
+			} else if (char === '"') {
+				inQuotes = true;
+			} else if (char === ',') {
+				row.push(field);
+				field = '';
+			} else if (char === '\n') {
+				row.push(field);
+				rows.push(row);
+				field = '';
+				row = [];
+			} else {
+				field += char;
+			}
+		}
+		// Flush trailing field/row
+		if (field.length > 0 || row.length > 0) {
+			row.push(field);
+			rows.push(row);
+		}
+
+		// Drop trailing empty rows
+		while (rows.length > 0 && rows[rows.length - 1].every(c => c.trim() === '')) {
+			rows.pop();
+		}
+		if (rows.length === 0) return [];
+
+		const headers = rows[0].map((h, idx) => h.trim() || `column_${idx + 1}`);
+		return rows.slice(1).map(cells => {
+			const obj: Record<string, unknown> = {};
+			headers.forEach((header, idx) => {
+				obj[header] = coerceCsvValue(cells[idx] ?? '');
+			});
+			return obj;
+		});
+	}
+
+	// Heuristic: does this text look like CSV rather than JSON?
+	function looksLikeCsv(text: string): boolean {
+		const trimmed = text.trim();
+		if (!trimmed) return false;
+		// JSON almost always starts with { or [
+		if (trimmed[0] === '{' || trimmed[0] === '[') return false;
+		const firstLine = trimmed.split('\n')[0];
+		// A CSV header row should contain at least one comma
+		return firstLine.includes(',');
+	}
+
+	// Coerce CSV string cells into numbers/booleans/null where sensible
+	function coerceCsvValue(raw: string): unknown {
+		const val = raw.trim();
+		if (val === '') return '';
+		if (val === 'true') return true;
+		if (val === 'false') return false;
+		if (val === 'null') return null;
+		// Numeric (but not things like "01" zip codes or values with leading zeros)
+		if (/^-?\d+(\.\d+)?$/.test(val) && !/^0\d/.test(val)) {
+			const num = Number(val);
+			if (Number.isFinite(num)) return num;
+		}
+		return raw;
+	}
+
+	// Load parsed data directly (used by both JSON and CSV file uploads)
+	function loadParsedData(data: unknown, sourceText: string) {
+		activeTab.jsonInput = sourceText;
+		activeTab.parsedData = data;
+		activeTab.error = null;
+		activeTab.currentPath = [];
+		activeTab.expandedPaths.clear();
+		activeTab.columnFilters = {};
+		activeTab.hiddenColumns = new Set();
+		resetFlatten();
+		activeTab.showInput = false;
+	}
+
+	// Handle file upload (JSON or CSV)
+	async function handleFileUpload(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+
+		try {
+			const text = await file.text();
+			const isCsv = file.name.toLowerCase().endsWith('.csv') || file.type === 'text/csv';
+
+			if (isCsv) {
+				const data = parseCsv(text);
+				if (data.length === 0) {
+					activeTab.error = 'CSV file appears to be empty or has no data rows';
+					activeTab.showInput = true;
+				} else {
+					loadParsedData(data, JSON.stringify(data, null, 2));
+				}
+			} else {
+				const data = JSON.parse(text);
+				loadParsedData(data, text);
+			}
+		} catch (err) {
+			activeTab.error = err instanceof Error ? `Failed to load file: ${err.message}` : 'Failed to load file';
+			activeTab.parsedData = null;
+			activeTab.showInput = true;
+		} finally {
+			// Reset so the same file can be re-uploaded
+			input.value = '';
+		}
+	}
+
+	function triggerFileUpload() {
+		fileInput?.click();
+	}
+
+	// Parse pasted input — auto-detects CSV vs JSON
 	function parseJson() {
 		activeTab.error = null;
-		if (!activeTab.jsonInput.trim()) {
+		const text = activeTab.jsonInput;
+		if (!text.trim()) {
 			activeTab.parsedData = null;
 			return;
 		}
+
+		// CSV path: detect comma-separated tabular text
+		if (looksLikeCsv(text)) {
+			try {
+				const data = parseCsv(text);
+				if (data.length === 0) {
+					activeTab.error = 'CSV has headers but no data rows';
+					activeTab.parsedData = null;
+					return;
+				}
+				activeTab.parsedData = data;
+				activeTab.currentPath = [];
+				activeTab.expandedPaths.clear();
+				activeTab.columnFilters = {};
+				activeTab.hiddenColumns = new Set();
+				resetFlatten();
+				activeTab.showInput = false;
+				return;
+			} catch (e) {
+				activeTab.error = e instanceof Error ? `Failed to parse CSV: ${e.message}` : 'Failed to parse CSV';
+				activeTab.parsedData = null;
+				return;
+			}
+		}
+
+		// JSON path
 		try {
-			activeTab.parsedData = JSON.parse(activeTab.jsonInput);
+			activeTab.parsedData = JSON.parse(text);
 			activeTab.currentPath = [];
 			activeTab.expandedPaths.clear();
 			activeTab.columnFilters = {};
@@ -265,10 +430,12 @@
 		resetFlatten();
 	}
 
-	// Reset flatten state and re-detect for current data
+	// Reset flatten state and re-detect for current data.
+	// Called on every data load / navigation, so also clear column widths here.
 	function resetFlatten() {
 		activeTab.flattenEnabled = false;
 		activeTab.flattenableKeys = [];
+		activeTab.columnWidths = {};
 	}
 
 	// Auto-detect flattenable keys when data changes and offer flatten
@@ -295,6 +462,43 @@
 			newSet.add(pathKey);
 		}
 		activeTab.expandedPaths = newSet;
+	}
+
+	// Column resize state
+	let resizing = $state<{ col: string; startX: number; startWidth: number } | null>(null);
+
+	// Begin dragging a column's resize handle
+	function startResize(e: MouseEvent, col: string) {
+		e.preventDefault();
+		e.stopPropagation();
+		const th = (e.currentTarget as HTMLElement).closest('th') as HTMLElement | null;
+		const startWidth = activeTab.columnWidths[col] ?? th?.offsetWidth ?? 150;
+		resizing = { col, startX: e.clientX, startWidth };
+	}
+
+	// Update the dragged column's width as the mouse moves
+	function handleResizeMove(e: MouseEvent) {
+		if (!resizing) return;
+		const delta = e.clientX - resizing.startX;
+		const newWidth = Math.max(60, resizing.startWidth + delta);
+		activeTab.columnWidths = { ...activeTab.columnWidths, [resizing.col]: newWidth };
+	}
+
+	// End resize drag
+	function stopResize() {
+		resizing = null;
+	}
+
+	// Double-click handle: reset column to auto width
+	function resetColumnWidth(col: string) {
+		const { [col]: _, ...rest } = activeTab.columnWidths;
+		activeTab.columnWidths = rest;
+	}
+
+	// Inline width style for a column (empty = auto)
+	function colStyle(col: string): string {
+		const w = activeTab.columnWidths[col];
+		return w ? `width:${w}px;min-width:${w}px;max-width:${w}px;` : '';
 	}
 
 	// Toggle column visibility
@@ -456,7 +660,15 @@
 	<title>JSON Grid - Freebies JSON Tools</title>
 </svelte:head>
 
-<svelte:window onclick={handleClickOutside} />
+<svelte:window onclick={handleClickOutside} onmousemove={handleResizeMove} onmouseup={stopResize} />
+
+<input
+	type="file"
+	accept=".json,.csv,application/json,text/csv"
+	bind:this={fileInput}
+	onchange={handleFileUpload}
+	style="display: none;"
+/>
 
 <div class="container">
 	<div class="page-header">
@@ -474,6 +686,14 @@
 					<span class="btn-text">Edit</span>
 				</button>
 			{/if}
+			<button type="button" class="btn btn-secondary" onclick={triggerFileUpload}>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+					<polyline points="17 8 12 3 7 8"/>
+					<line x1="12" y1="3" x2="12" y2="15"/>
+				</svg>
+				<span class="btn-text">Upload</span>
+			</button>
 			<button type="button" class="btn btn-secondary" onclick={loadSample}>
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 					<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -523,13 +743,13 @@
 					{/if}
 				</div>
 			{/each}
+			<button type="button" class="tab-add" onclick={addTab} title="New tab">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<line x1="12" y1="5" x2="12" y2="19"/>
+					<line x1="5" y1="12" x2="19" y2="12"/>
+				</svg>
+			</button>
 		</div>
-		<button type="button" class="tab-add" onclick={addTab} title="New tab">
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<line x1="12" y1="5" x2="12" y2="19"/>
-				<line x1="5" y1="12" x2="19" y2="12"/>
-			</svg>
-		</button>
 	</div>
 
 	<div class="main-content card">
@@ -537,13 +757,23 @@
 			<!-- Input Mode -->
 			<div class="input-section">
 				<div class="editor-header">
-					<span>Paste your JSON</span>
-					<button type="button" class="btn btn-primary btn-sm" onclick={parseJson}>
+					<span>Paste JSON, or upload a JSON / CSV file</span>
+					<div class="editor-header-actions">
+						<button type="button" class="btn btn-secondary btn-sm" onclick={triggerFileUpload}>
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+								<polyline points="17 8 12 3 7 8"/>
+								<line x1="12" y1="3" x2="12" y2="15"/>
+							</svg>
+							Upload File
+						</button>
+						<button type="button" class="btn btn-primary btn-sm" onclick={parseJson}>
 						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 							<polygon points="5 3 19 12 5 21 5 3"/>
 						</svg>
 						View as Grid
-					</button>
+						</button>
+					</div>
 				</div>
 				<textarea
 					class="json-input"
@@ -761,12 +991,12 @@
 						{@const columns = getVisibleColumns(allColumns)}
 						{@const filteredRows = filterRows(effectiveData)}
 						<div class="table-wrapper">
-							<table class="data-table">
+							<table class="data-table" class:col-resizing={resizing}>
 								<thead>
 									<tr class="header-row">
 										<th class="row-num">#</th>
 										{#each columns as col}
-											<th>
+											<th class="resizable-th" style={colStyle(col)}>
 												<div class="th-content">
 													{#if col.includes('.')}
 														<span class="th-label" title={col}>
@@ -787,6 +1017,14 @@
 														</svg>
 													</button>
 												</div>
+												<!-- svelte-ignore a11y_no_static_element_interactions -->
+												<span
+													class="resize-handle"
+													class:resizing={resizing?.col === col}
+													onmousedown={(e) => startResize(e, col)}
+													ondblclick={() => resetColumnWidth(col)}
+													title="Drag to resize • double-click to reset"
+												></span>
 											</th>
 										{/each}
 									</tr>
@@ -798,7 +1036,7 @@
 												</svg>
 											</th>
 											{#each columns as col}
-												<th>
+												<th style={colStyle(col)}>
 													<input
 														type="text"
 														class="column-filter"
@@ -836,7 +1074,7 @@
 											</td>
 											{#each columns as col}
 												{@const cellValue = row[col]}
-												<td class="cell-{getValueType(cellValue)}">
+												<td class="cell-{getValueType(cellValue)}" style={colStyle(col)}>
 													{#if isExpandable(cellValue)}
 														<button
 															type="button"
@@ -952,11 +1190,16 @@
 					<line x1="3" y1="9" x2="21" y2="9"/>
 					<line x1="9" y1="21" x2="9" y2="9"/>
 				</svg>
-				<h3>No JSON loaded</h3>
-				<p>Paste JSON or load a sample to view as grid</p>
-				<button type="button" class="btn btn-primary" onclick={loadSample}>
-					Load Sample Data
-				</button>
+				<h3>No data loaded</h3>
+				<p>Paste JSON, upload a JSON / CSV file, or load a sample to view as grid</p>
+				<div class="empty-actions">
+					<button type="button" class="btn btn-primary" onclick={triggerFileUpload}>
+						Upload JSON / CSV
+					</button>
+					<button type="button" class="btn btn-secondary" onclick={loadSample}>
+						Load Sample Data
+					</button>
+				</div>
 			</div>
 		{/if}
 	</div>
@@ -978,6 +1221,7 @@
 
 	.tab-list {
 		display: flex;
+		align-items: center;
 		gap: 0.25rem;
 		flex: 1;
 		overflow-x: auto;
@@ -1065,6 +1309,7 @@
 		color: var(--color-text-muted);
 		cursor: pointer;
 		margin-left: 0.25rem;
+		flex-shrink: 0;
 		transition: all 0.15s ease;
 	}
 
@@ -1125,6 +1370,18 @@
 		background: var(--color-bg);
 		border-bottom: 1px solid var(--color-border);
 		font-weight: 500;
+	}
+
+	.editor-header-actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.empty-actions {
+		display: flex;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+		justify-content: center;
 	}
 
 	.json-input {
@@ -1441,6 +1698,52 @@
 		position: sticky;
 		top: 0;
 		z-index: 2;
+	}
+
+	/* Constrain cell content so resized columns actually shrink */
+	.data-table td {
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	/* Column resize */
+	.resizable-th {
+		position: relative;
+	}
+
+	.resize-handle {
+		position: absolute;
+		top: 0;
+		right: -3px;
+		width: 7px;
+		height: 100%;
+		cursor: col-resize;
+		z-index: 3;
+		user-select: none;
+		touch-action: none;
+	}
+
+	.resize-handle::after {
+		content: '';
+		position: absolute;
+		top: 20%;
+		right: 3px;
+		width: 1px;
+		height: 60%;
+		background: var(--color-border);
+		transition: background 0.15s ease;
+	}
+
+	.resize-handle:hover::after,
+	.resize-handle.resizing::after {
+		background: var(--color-primary);
+		width: 2px;
+	}
+
+	/* Disable text selection while dragging a handle */
+	.data-table.col-resizing {
+		user-select: none;
+		cursor: col-resize;
 	}
 
 	.header-row th {

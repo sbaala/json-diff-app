@@ -1,0 +1,494 @@
+<script lang="ts">
+	import { onMount, tick } from 'svelte';
+	import Handsontable from 'handsontable';
+	import 'handsontable/dist/handsontable.full.min.css';
+	import '$lib/spreadsheet.css';
+	import { spreadsheetStore } from '$lib/stores/spreadsheet.store';
+	import { spreadsheetStorageService } from '$lib/services/spreadsheet-storage.service';
+	import { spreadsheetService } from '$lib/services/spreadsheet.service';
+	import SheetTabs from './SheetTabs.svelte';
+	import SpreadsheetToolbar from './SpreadsheetToolbar.svelte';
+	import FileUploadZone from './FileUploadZone.svelte';
+	import ExportDialog from './ExportDialog.svelte';
+
+	let containerElement: HTMLDivElement = $state() as any;
+	let handsontable: Handsontable | null = $state(null);
+	let showUploadZone = $state(true);
+	let showExportDialog = $state(false);
+	let isInitializing = $state(false);
+
+	const config = spreadsheetService.getDefaultConfig();
+
+	let spreadsheetState = $state({ workbook: null as any, activeSheetId: null as string | null });
+	spreadsheetStore.subscribe((state) => {
+		spreadsheetState.workbook = state.workbook;
+		spreadsheetState.activeSheetId = state.activeSheetId;
+	});
+
+	onMount(() => {
+		// Initialize empty workbook if none exists
+		if (!spreadsheetState.workbook) {
+			spreadsheetStore.initWorkbook();
+		}
+	});
+
+	function initializeHandsontable() {
+		if (isInitializing || !containerElement || !spreadsheetState.workbook || !spreadsheetState.activeSheetId) {
+			console.log('⚠️  Early return - conditions not met:', {
+				isInitializing,
+				hasContainer: !!containerElement,
+				hasWorkbook: !!spreadsheetState.workbook,
+				hasActiveSheetId: !!spreadsheetState.activeSheetId
+			});
+			return;
+		}
+
+		isInitializing = true;
+
+		// Destroy existing instance
+		if (handsontable) {
+			handsontable.destroy();
+		}
+
+		const activeSheet = spreadsheetState.workbook.sheets.find(
+			(s: any) => s.sheetId === spreadsheetState.activeSheetId
+		);
+
+		if (!activeSheet) {
+			console.error('❌ Active sheet not found:', spreadsheetState.activeSheetId);
+			isInitializing = false;  // Reset flag!
+			return;
+		}
+
+		const currentWorkbook = spreadsheetState.workbook;
+		const currentSheetId = spreadsheetState.activeSheetId;
+
+		console.log('📊 Initializing Handsontable with sheet:', {
+			sheetId: activeSheet.sheetId,
+			sheetName: activeSheet.sheetName,
+			data: activeSheet.data,
+			dataIsArray: Array.isArray(activeSheet.data),
+			dataRows: Array.isArray(activeSheet.data) ? activeSheet.data.length : 'N/A',
+			dataType: typeof activeSheet.data,
+			firstRow: Array.isArray(activeSheet.data) && activeSheet.data.length > 0 ? activeSheet.data[0] : 'EMPTY',
+			secondRow: Array.isArray(activeSheet.data) && activeSheet.data.length > 1 ? activeSheet.data[1] : 'N/A',
+			lastRow: Array.isArray(activeSheet.data) && activeSheet.data.length > 0 ? activeSheet.data[activeSheet.data.length - 1] : 'N/A'
+		});
+
+		// Validate data
+		if (!Array.isArray(activeSheet.data)) {
+			console.error('❌ Sheet data is not an array:', typeof activeSheet.data);
+			isInitializing = false;
+			return;
+		}
+
+		try {
+			// Custom renderer to display cell content with formatting
+			const textRenderer = (instance: any, td: any, row: any, col: any, prop: any, value: any) => {
+				td.innerHTML = '';
+				const text = document.createTextNode(String(value ?? ''));
+				td.appendChild(text);
+
+				// Get cell metadata for formatting
+				const meta = instance.getCellMeta(row, col);
+				const format = meta?.format || {};
+
+				// Apply formatting styles
+				if (format.bold) {
+					td.style.fontWeight = 'bold';
+				}
+				if (format.italic) {
+					td.style.fontStyle = 'italic';
+				}
+				if (format.color) {
+					td.style.color = format.color;
+				}
+				if (format.backgroundColor) {
+					td.style.backgroundColor = format.backgroundColor;
+				}
+
+				return td;
+			};
+
+			const htConfig = {
+				...config,
+				colHeaders: true,
+				rowHeaders: true,
+				stretchH: 'all',
+				cells(row: any, col: any) {
+					return {
+						renderer: textRenderer
+					};
+				},
+				afterChange(changes: any) {
+					if (changes && currentWorkbook && currentSheetId) {
+						const data = handsontable!.getData() as unknown[][];
+						spreadsheetStore.updateSheetData(currentSheetId, data);
+						spreadsheetStorageService.autoSave(currentWorkbook);
+					}
+				},
+				afterCreateRow() {
+					if (currentWorkbook) {
+						spreadsheetStorageService.autoSave(currentWorkbook);
+					}
+				},
+				afterRemoveRow() {
+					if (currentWorkbook) {
+						spreadsheetStorageService.autoSave(currentWorkbook);
+					}
+				},
+				afterCreateCol() {
+					if (currentWorkbook) {
+						spreadsheetStorageService.autoSave(currentWorkbook);
+					}
+				},
+				afterRemoveCol() {
+					if (currentWorkbook) {
+						spreadsheetStorageService.autoSave(currentWorkbook);
+					}
+				},
+				afterPaste() {
+					if (currentWorkbook) {
+						const data = handsontable!.getData() as unknown[][];
+						spreadsheetStore.updateSheetData(currentSheetId, data);
+						spreadsheetStorageService.autoSave(currentWorkbook);
+					}
+				}
+			};
+
+			handsontable = new Handsontable(containerElement, htConfig);
+
+			// Validate Handsontable instance created
+			if (!handsontable) {
+				throw new Error('Handsontable instance not created');
+			}
+
+			// Load data using the standard loadData method
+			console.log('📥 Loading data into Handsontable...');
+			handsontable.loadData(activeSheet.data);
+
+			// Validate data was loaded
+			const loadedData = handsontable.getData();
+			console.log('✓ Data loaded into Handsontable:');
+			console.log('  - Total rows:', loadedData.length);
+			console.log('  - First row:', loadedData[0]);
+			console.log('  - First cell value:', handsontable.getDataAtCell(0, 0));
+			console.log('  - Sample values:');
+			for (let i = 0; i < Math.min(3, loadedData.length); i++) {
+				console.log(`    Row ${i}:`, loadedData[i]);
+			}
+
+			// Force complete re-render with multiple methods
+			console.log('🔄 Forcing Handsontable render...');
+			handsontable.render();
+			handsontable.updateSettings({});  // Force re-render
+
+			// Additional render after a brief delay to ensure DOM is updated
+			setTimeout(() => {
+				if (handsontable) {
+					handsontable.render();
+					console.log('✓ Final render complete');
+
+					// Debug: Check rendered cells in DOM
+					const cells = containerElement.querySelectorAll('td');
+					console.log('📍 Rendered cells count:', cells.length);
+					if (cells.length > 0) {
+						for (let i = 0; i < Math.min(3, cells.length); i++) {
+							const cell = cells[i];
+							console.log(`📍 Cell ${i}: HTML="${cell.innerHTML}" Text="${cell.textContent}"`);
+						}
+					}
+				}
+			}, 50);
+
+			console.log('✓ Handsontable initialization complete');
+		} catch (error) {
+			console.error('❌ Error creating Handsontable:', error);
+			isInitializing = false;
+			throw error;
+		}
+
+		isInitializing = false;
+	}
+
+	function handleAutoSave() {
+		if (spreadsheetState.workbook) {
+			spreadsheetStorageService.autoSave(spreadsheetState.workbook);
+		}
+	}
+
+	function handleFileSelect(event: CustomEvent<{ sheets: any[]; name: string }>) {
+		const { sheets, name } = event.detail;
+
+		console.log('handleFileSelect called with:', { sheetCount: sheets.length, workbookName: name });
+
+		if (sheets.length === 0) {
+			console.error('No sheets to load');
+			return;
+		}
+
+		// Log sheet details
+		sheets.forEach((sheet, idx) => {
+			console.log(`Sheet ${idx}:`, {
+				name: sheet.sheetName,
+				rows: sheet.data.length,
+				cols: sheet.data[0]?.length || 0
+			});
+		});
+
+		// Generate workbook ID
+		const workbookId = crypto.randomUUID?.() || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+			const r = (Math.random() * 16) | 0;
+			const v = c === 'x' ? r : (r & 0x3) | 0x8;
+			return v.toString(16);
+		});
+
+		// Create workbook object
+		const workbook = {
+			id: workbookId,
+			name,
+			sheets,
+			lastModified: new Date().toISOString()
+		};
+
+		console.log('Workbook created:', {
+			activeSheetId: sheets[0]?.sheetId,
+			sheetCount: sheets.length
+		});
+
+		// Import sheets into store (creates workbook and sets active sheet)
+		spreadsheetStore.importSheets(sheets, name);
+
+		// Save to persistent storage immediately
+		spreadsheetStorageService.saveWorkbook(workbook);
+
+		// Hide upload overlay and initialize after DOM updates
+		showUploadZone = false;
+
+		// Use tick() to wait for DOM to fully update (including bind:this)
+		tick().then(() => {
+			console.log('📊 DOM updated, checking for container element...');
+			console.log('  - containerElement:', !!containerElement);
+			console.log('  - spreadsheetState.workbook:', !!spreadsheetState.workbook);
+			console.log('  - spreadsheetState.activeSheetId:', !!spreadsheetState.activeSheetId);
+
+			if (!containerElement) {
+				console.error('❌ Container element not bound! Waiting additional tick...');
+				// Try again in next tick
+				return tick().then(() => {
+					if (containerElement && spreadsheetState.workbook && spreadsheetState.activeSheetId) {
+						initializeHandsontable();
+					}
+				});
+			}
+
+			if (containerElement && spreadsheetState.workbook && spreadsheetState.activeSheetId) {
+				initializeHandsontable();
+			} else {
+				console.warn('⚠️  Cannot initialize - missing requirements');
+			}
+		});
+	}
+
+	function handleSheetChange(event: CustomEvent<string>) {
+		const sheetId = event.detail;
+		spreadsheetStore.setActiveSheet(sheetId);
+		initializeHandsontable();
+	}
+
+	function handleUndo() {
+		handsontable?.undo();
+	}
+
+	function handleRedo() {
+		handsontable?.redo();
+	}
+
+	function handleFormat(event: CustomEvent<any>) {
+		const format = event.detail;
+		if (!handsontable) return;
+
+		const selected = handsontable.getSelected();
+		if (!selected || selected.length === 0) {
+			console.warn('⚠️  No cells selected for formatting');
+			return;
+		}
+
+		console.log('🎨 Applying format:', format, 'to selected cells');
+
+		// Apply formatting to all selected cells
+		const [startRow, startCol, endRow, endCol] = selected[0];
+		const start = Math.min(startRow, endRow);
+		const end = Math.max(startRow, endRow);
+		const colStart = Math.min(startCol, endCol);
+		const colEnd = Math.max(startCol, endCol);
+
+		for (let row = start; row <= end; row++) {
+			for (let col = colStart; col <= colEnd; col++) {
+				// Get existing format or create new one
+				const meta = handsontable.getCellMeta(row, col);
+				const currentFormat = meta?.format || {};
+
+				// Merge with new format
+				const newFormat = { ...currentFormat, ...format };
+				handsontable.setCellMeta(row, col, 'format', newFormat);
+
+				console.log(`  Cell [${row},${col}]: Applied format`, newFormat);
+			}
+		}
+
+		// Force re-render to show formatting
+		handsontable.render();
+		console.log('✓ Formatting applied and rendered');
+
+		// Save changes
+		handleAutoSave();
+	}
+
+	function handleExport(event: CustomEvent<'xlsx' | 'csv' | 'json'>) {
+		const format = event.detail;
+		if (!spreadsheetState.workbook || !spreadsheetState.activeSheetId || !handsontable) return;
+
+		const data = handsontable.getData();
+		const sheet = spreadsheetState.workbook.sheets.find(
+			(s: any) => s.sheetId === spreadsheetState.activeSheetId
+		);
+		if (!sheet) return;
+
+		let content: string;
+		let filename: string;
+		let mimeType: string;
+
+		if (format === 'csv') {
+			content = spreadsheetService.dataToCSV(data);
+			filename = `${sheet.sheetName}.csv`;
+			mimeType = 'text/csv;charset=utf-8;';
+		} else if (format === 'json') {
+			const json = spreadsheetService.dataToJSON(data);
+			content = JSON.stringify(json, null, 2);
+			filename = `${sheet.sheetName}.json`;
+			mimeType = 'application/json;charset=utf-8;';
+		} else {
+			// For XLSX, we'd need a library like xlsx or exceljs
+			// For now, we'll just export as CSV
+			console.warn('XLSX export not yet implemented, exporting as CSV');
+			content = spreadsheetService.dataToCSV(data);
+			filename = `${sheet.sheetName}.csv`;
+			mimeType = 'text/csv;charset=utf-8;';
+		}
+
+		const blob = new Blob([content], { type: mimeType });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = filename;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+	}
+
+	// Safety effect: if for some reason we have a workbook but Handsontable isn't initialized,
+	// initialize it. This handles edge cases like programmatic sheet switching.
+	$effect.pre(() => {
+		if (
+			!isInitializing &&
+			spreadsheetState.workbook &&
+			spreadsheetState.activeSheetId &&
+			containerElement &&
+			!showUploadZone &&
+			!handsontable
+		) {
+			console.log('🔄 Safety initialization triggered');
+			initializeHandsontable();
+		}
+	});
+</script>
+
+<div class="spreadsheet-editor">
+	<SpreadsheetToolbar
+		handsontableRef={handsontable}
+		on:undo={handleUndo}
+		on:redo={handleRedo}
+		on:export={handleExport}
+		on:format={handleFormat}
+	/>
+
+	{#if spreadsheetState.workbook}
+		<SheetTabs
+			sheets={spreadsheetState.workbook.sheets}
+			activeSheetId={spreadsheetState.activeSheetId}
+			on:sheetChange={handleSheetChange}
+			on:addSheet={() => spreadsheetStore.addSheet()}
+			on:deleteSheet={(e) => spreadsheetStore.deleteSheet(e.detail)}
+			on:renameSheet={(e) => spreadsheetStore.renameSheet(e.detail.sheetId, e.detail.newName)}
+		/>
+	{/if}
+
+	<div class="content-wrapper">
+		{#if spreadsheetState.workbook && spreadsheetState.activeSheetId}
+			<div class="handsontable-wrapper">
+				<div bind:this={containerElement} class="handsontable-container"></div>
+			</div>
+		{/if}
+
+		{#if showUploadZone}
+			<div class="upload-overlay">
+				<FileUploadZone on:fileSelect={handleFileSelect} />
+			</div>
+		{/if}
+	</div>
+</div>
+
+<style>
+	.spreadsheet-editor {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		min-height: 0;
+		gap: 0;
+		background-color: var(--color-bg);
+		color: var(--color-text);
+	}
+
+	.content-wrapper {
+		flex: 1;
+		position: relative;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+	}
+
+	.handsontable-wrapper {
+		flex: 1;
+		overflow: hidden;
+		background-color: var(--color-surface);
+		width: 100%;
+		height: 100%;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.handsontable-container {
+		width: 100%;
+		height: 100%;
+		min-height: 0;
+		flex: 1;
+		overflow: auto;
+	}
+
+	.upload-overlay {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background-color: rgba(0, 0, 0, 0.1);
+		z-index: 10;
+	}
+</style>

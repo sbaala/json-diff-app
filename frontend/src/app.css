@@ -29,8 +29,14 @@
 	--transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
 	--transition-slow: 320ms cubic-bezier(0.4, 0, 0.2, 1);
 
-	/* Elevation / layering */
-	--z-header: 100;
+	/* Elevation / layering.
+	   Header sits at 250 so the sticky site nav stays above the Handsontable
+	   grid overlays on the /spreadsheet page (its frozen header/corner clones
+	   and resizers reach z-index ~210). It remains below modals (300) and
+	   Handsontable's own transient popups (context menu 1060, date picker 9999),
+	   which must still appear above the header. The theme dropdown is a child of
+	   the header, so its lower z-index (200) is unaffected. */
+	--z-header: 250;
 	--z-dropdown: 200;
 	--z-modal: 300;
 
@@ -493,4 +499,41 @@ a {
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.001ms !important;
 	}
+}
+
+/* ============================================================
+   Chart series tokens (VinMi dataviz)
+   Categorical palette in FIXED slot order — validated for
+   colorblind-safe adjacency + >=3:1 contrast per surface
+   (light slots 3/4/5 rely on labels/legend per the relief rule).
+   Dark themes get the dark-stepped set of the same eight hues.
+   ============================================================ */
+:root,
+[data-theme='midnight'],
+[data-theme='slate'],
+[data-theme='ocean'] {
+	--chart-1: #3987e5; /* blue    */
+	--chart-2: #008300; /* green   */
+	--chart-3: #d55181; /* magenta */
+	--chart-4: #c98500; /* yellow  */
+	--chart-5: #199e70; /* aqua    */
+	--chart-6: #d95926; /* orange  */
+	--chart-7: #9085e9; /* violet  */
+	--chart-8: #e66767; /* red     */
+	--chart-grid: rgba(255, 255, 255, 0.08);
+	--chart-axis: rgba(255, 255, 255, 0.22);
+}
+
+[data-theme='daylight'],
+[data-theme='sandstone'] {
+	--chart-1: #2a78d6;
+	--chart-2: #008300;
+	--chart-3: #e87ba4;
+	--chart-4: #eda100;
+	--chart-5: #1baf7a;
+	--chart-6: #eb6834;
+	--chart-7: #4a3aa7;
+	--chart-8: #e34948;
+	--chart-grid: rgba(16, 23, 40, 0.08);
+	--chart-axis: rgba(16, 23, 40, 0.25);
 }
