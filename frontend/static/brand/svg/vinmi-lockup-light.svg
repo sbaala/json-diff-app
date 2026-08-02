@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="320" viewBox="0 0 1120 320" role="img" aria-label="VinMi - Building Intelligent Enterprise Solutions">
+  <title>VinMi</title>
+  <rect width="1120" height="320" fill="#FFFFFF"/>
+  <defs>
+    <linearGradient id="vinmi-ink" x1="89" y1="105" x2="423" y2="406" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6366F1"/>
+      <stop offset="0.72" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="vinmi-tile" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#16203C"/>
+      <stop offset="1" stop-color="#0B1020"/>
+    </linearGradient>
+    <radialGradient id="vinmi-glow" cx="0.5" cy="0.30" r="0.80">
+      <stop offset="0" stop-color="#6366F1" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#6366F1" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <defs>
+    <linearGradient id="vinmi-word" x1="0" y1="0" x2="824" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6366F1"/>
+      <stop offset="0.72" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(72 48) scale(0.4375)">
+    <rect width="512" height="512" rx="112" fill="url(#vinmi-tile)"/>
+    <rect width="512" height="512" rx="112" fill="url(#vinmi-glow)"/>
+  <g fill="none" stroke="url(#vinmi-ink)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M112 128 L112 338" stroke-width="46"/>
+    <path d="M400 128 L400 338" stroke-width="46"/>
+    <path d="M112 128 L256 374 L400 128" stroke-width="46"/>
+  </g>
+  <circle cx="256" cy="374" r="32" fill="#FFFFFF"/>
+  </g>
+  <g transform="translate(344 68) scale(0.46117)">
+    <g fill="none" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+      <g stroke="url(#vinmi-word)">
+        <path d="M23 40 L123 240 L223 40"/>
+        <path d="M513 40 L513 240"/>
+        <path d="M743 40 L743 240"/>
+        <path d="M513 40 L628 268 L743 40"/>
+      </g>
+      <g stroke="#0F172A">
+        <path d="M273 100 L273 240"/>
+        <path d="M331 240 L331 160 A60 60 0 0 1 451 160 L451 240"/>
+        <path d="M801 100 L801 240"/>
+      </g>
+    </g>
+    <circle cx="273" cy="56" r="18" fill="#6366F1"/>
+    <circle cx="801" cy="56" r="18" fill="#6366F1"/>
+    <circle cx="628" cy="268" r="24" fill="#FFFFFF"/>
+  </g>
+  <text x="346" y="242" font-family="Avenir Next, Helvetica Neue, Segoe UI, sans-serif" font-size="30" font-weight="500" letter-spacing="1.4" fill="#475569">Building Intelligent Enterprise Solutions</text>
+</svg>

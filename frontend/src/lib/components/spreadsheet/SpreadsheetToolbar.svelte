@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BrandMark from '../BrandMark.svelte';
 	import { createEventDispatcher } from 'svelte';
 
 	export let handsontableRef: any = null;
@@ -189,6 +190,11 @@
 </script>
 
 <div class="toolbar">
+	<div class="toolbar-section toolbar-brand" title="VinMi Sheets">
+		<BrandMark size={24} variant="tile" title="" />
+		<span class="toolbar-brand-name">Sheets</span>
+	</div>
+
 	<div class="toolbar-section">
 		<button
 			class="toolbar-btn"
@@ -320,6 +326,21 @@
 		background-color: var(--color-surface);
 		border-bottom: 1px solid var(--color-border);
 		flex-wrap: wrap;
+	}
+
+	.toolbar-brand {
+		gap: 8px;
+		padding-right: 4px;
+	}
+
+	.toolbar-brand-name {
+		font-size: 0.85rem;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+		background: var(--gradient-primary);
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
 	}
 
 	.toolbar-section {

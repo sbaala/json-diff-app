@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { BrandBadge } from '$lib/components';
 	let jsonInput = $state('');
 	let formattedOutput = $state('');
 	let error = $state<string | null>(null);
@@ -126,8 +127,11 @@
 
 <div class="container">
 	<div class="page-header">
-		<h1>JSON Formatter</h1>
-		<p>Beautify, minify, sort and transform your JSON data</p>
+		<BrandBadge />
+		<div class="page-header-copy">
+			<h1>JSON Formatter</h1>
+			<p>Beautify, minify, sort and transform your JSON data</p>
+		</div>
 	</div>
 
 	<div class="format-layout">
@@ -223,6 +227,9 @@
 
 <style>
 	.page-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
 		margin-bottom: 0.75rem;
 	}
 

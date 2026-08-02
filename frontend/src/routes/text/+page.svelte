@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { BrandBadge } from '$lib/components';
 	import { onMount, tick } from 'svelte';
 
 	// Constants for large file handling
@@ -316,6 +317,7 @@ One more new line.`;
 
 <div class="container">
 	<div class="page-header">
+		<BrandBadge />
 		<div class="header-info">
 			<h2>Text Comparison</h2>
 			<p>Side-by-side text diff view</p>
@@ -600,11 +602,10 @@ One more new line.`;
 <style>
 	.page-header {
 		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
+		align-items: center;
 		margin-bottom: 0.75rem;
 		flex-wrap: wrap;
-		gap: 1rem;
+		gap: 0.75rem;
 	}
 
 	.header-info h2 {
@@ -617,6 +618,7 @@ One more new line.`;
 	}
 
 	.header-actions {
+		margin-left: auto;
 		display: flex;
 		gap: 0.5rem;
 		flex-wrap: wrap;

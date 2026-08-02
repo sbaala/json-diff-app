@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { BrandBadge } from '$lib/components';
 	import { onMount } from 'svelte';
 
 	interface GraphNode {
@@ -258,8 +259,11 @@
 
 <div class="container">
 	<div class="page-header">
-		<h1>JSON Graph View</h1>
-		<p>Visualize JSON structure as an interactive graph for debugging</p>
+		<BrandBadge />
+		<div class="page-header-copy">
+			<h1>JSON Graph View</h1>
+			<p>Visualize JSON structure as an interactive graph for debugging</p>
+		</div>
 	</div>
 
 	<div class="graph-layout">
@@ -445,6 +449,9 @@
 
 <style>
 	.page-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
 		margin-bottom: 0.75rem;
 	}
 

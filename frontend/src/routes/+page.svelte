@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { BrandMark, BrandLockup } from '$lib/components';
 	const CONTACT_EMAIL = 'tamizhezhutthu@gmail.com';
 
 	const services = [
@@ -52,6 +53,9 @@
 <div class="home">
 	<!-- ---------------------------------------------------------------- Hero -->
 	<section class="hero container">
+		<span class="hero-mark" aria-hidden="true">
+			<BrandMark size={104} variant="tile" title="" />
+		</span>
 		<span class="eyebrow">VinMi</span>
 		<h1 class="hero-title">
 			Building <span class="grad">Intelligent</span><br />Enterprise Solutions
@@ -201,6 +205,7 @@
 	<section class="container section">
 		<div class="card contact">
 			<div class="contact-copy">
+				<span class="contact-lockup"><BrandLockup size="sm" /></span>
 				<h2>Let's build something intelligent</h2>
 				<p>
 					Have a product, platform, or automation challenge? We'd love to hear about it.
@@ -233,6 +238,22 @@
 		padding: 4rem 1.5rem 2.5rem;
 		background: var(--gradient-subtle);
 		border-radius: var(--radius-lg);
+	}
+
+	.hero-mark {
+		display: grid;
+		place-items: center;
+		width: fit-content;
+		margin: 0 auto 1.4rem;
+		border-radius: 24px;
+		overflow: hidden;
+		box-shadow: var(--shadow-glow);
+		line-height: 0;
+	}
+
+	.contact-lockup {
+		display: block;
+		margin-bottom: 0.85rem;
 	}
 
 	.eyebrow {

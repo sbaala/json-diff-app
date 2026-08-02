@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="VinMi">
+  <title>VinMi</title>
+  <g fill="none" stroke="#0F172A" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M112 128 L112 338" stroke-width="46"/>
+    <path d="M400 128 L400 338" stroke-width="46"/>
+    <path d="M112 128 L256 374 L400 128" stroke-width="46"/>
+  </g>
+  <circle cx="256" cy="374" r="32" fill="#0F172A"/>
+</svg>

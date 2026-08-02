@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="824" height="320" viewBox="0 0 824 320" role="img" aria-label="VinMi">
+  <title>VinMi</title>
+  <g fill="none" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="#0F172A">
+      <path d="M23 40 L123 240 L223 40"/>
+      <path d="M513 40 L513 240"/>
+      <path d="M743 40 L743 240"/>
+      <path d="M513 40 L628 268 L743 40"/>
+    </g>
+    <g stroke="#0F172A">
+      <path d="M273 100 L273 240"/>
+      <path d="M331 240 L331 160 A60 60 0 0 1 451 160 L451 240"/>
+      <path d="M801 100 L801 240"/>
+    </g>
+  </g>
+  <circle cx="273" cy="56" r="18" fill="#0F172A"/>
+  <circle cx="801" cy="56" r="18" fill="#0F172A"/>
+  <circle cx="628" cy="268" r="24" fill="#0F172A"/>
+</svg>

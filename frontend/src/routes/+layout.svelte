@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { theme, themes } from '$lib/stores/theme';
 	import type { Theme } from '$lib/stores/theme';
+	import { BrandMark, BrandWordmark } from '$lib/components';
 	import { onMount } from 'svelte';
 
 	let { children } = $props();
@@ -70,24 +71,10 @@
 		<div class="container header-content">
 			<a href="/" class="logo" aria-label="VinMi home">
 				<span class="logo-mark" aria-hidden="true">
-					<svg width="26" height="26" viewBox="0 0 32 32" fill="none">
-						<path
-							d="M4 6l8 20 4-11 4 11 8-20"
-							stroke="url(#vinmi-grad)"
-							stroke-width="3"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						/>
-						<defs>
-							<linearGradient id="vinmi-grad" x1="4" y1="6" x2="28" y2="26" gradientUnits="userSpaceOnUse">
-								<stop stop-color="var(--color-primary)" />
-								<stop offset="1" stop-color="var(--color-secondary)" />
-							</linearGradient>
-						</defs>
-					</svg>
+					<BrandMark size={42} variant="tile" title="" />
 				</span>
 				<span class="logo-copy">
-					<span class="logo-name">VinMi</span>
+					<BrandWordmark height={22} title="VinMi" />
 					<span class="logo-tagline">Building Intelligent Enterprise Solutions</span>
 				</span>
 			</a>
@@ -191,8 +178,11 @@
 	<footer class="footer">
 		<div class="container footer-content">
 			<div class="footer-brand">
-				<span class="footer-name">VinMi</span>
-				<span class="footer-tagline">Building Intelligent Enterprise Solutions</span>
+				<BrandMark size={34} variant="tile" title="" />
+				<span class="footer-brand-copy">
+					<BrandWordmark height={19} title="VinMi" />
+					<span class="footer-tagline">Building Intelligent Enterprise Solutions</span>
+				</span>
 			</div>
 			<p class="footer-meta">
 				<a class="footer-link" href="mailto:tamizhezhutthu@gmail.com">tamizhezhutthu@gmail.com</a>
@@ -260,30 +250,23 @@
 		flex-shrink: 0;
 	}
 
+	/* The mark ships its own rounded tile, so the wrapper only supplies the
+	   clip + glow that ties it to the surrounding chrome. */
 	.logo-mark {
 		display: grid;
 		place-items: center;
-		width: 42px;
-		height: 42px;
 		border-radius: var(--radius-sm);
-		background: var(--color-primary-soft);
-		border: 1px solid var(--color-border);
+		overflow: hidden;
+		box-shadow: var(--shadow-glow);
+		line-height: 0;
 	}
 
 	.logo-copy {
 		display: flex;
 		flex-direction: column;
+		gap: 0.2rem;
 		line-height: 1.15;
-	}
-
-	.logo-name {
-		font-size: 1.3rem;
-		font-weight: 800;
-		letter-spacing: -0.02em;
-		background: var(--gradient-primary);
-		-webkit-background-clip: text;
-		background-clip: text;
-		color: transparent;
+		color: var(--color-text);
 	}
 
 	.logo-tagline {
@@ -508,18 +491,16 @@
 
 	.footer-brand {
 		display: flex;
-		flex-direction: column;
+		align-items: center;
+		gap: 0.6rem;
 		line-height: 1.2;
+		color: var(--color-text);
 	}
 
-	.footer-name {
-		font-size: 1.05rem;
-		font-weight: 800;
-		letter-spacing: -0.01em;
-		background: var(--gradient-primary);
-		-webkit-background-clip: text;
-		background-clip: text;
-		color: transparent;
+	.footer-brand-copy {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
 	}
 
 	.footer-tagline {

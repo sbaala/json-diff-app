@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { CategoryTabs, ToolGrid, ToolSearch } from '$lib/components/tools';
+	import { BrandBadge } from '$lib/components';
 	import { TOOLS, getToolsByCategory, searchTools, TOOL_CATEGORIES } from '$lib/tools/registry';
 	import { loadToolComponent, hasToolImplementation } from '$lib/tools/loader';
 	import type { ToolCategory, ToolMetadata } from '$lib/types';
@@ -60,6 +61,7 @@
 
 <div class="dashboard-container">
 	<div class="dashboard-header">
+		<BrandBadge size={34} />
 		<div class="header-content">
 			<h1 class="dashboard-title">Developer Tools</h1>
 			<p class="dashboard-subtitle">{TOOLS.length} utilities for JSON, text, dates, cryptography, and API development</p>
@@ -134,7 +136,7 @@
 
 	.dashboard-header {
 		display: flex;
-		align-items: baseline;
+		align-items: center;
 		gap: var(--spacing-md);
 		flex-wrap: wrap;
 		padding: var(--spacing-sm) var(--spacing-lg);

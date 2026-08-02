@@ -1,0 +1,17 @@
+{
+  "name": "VinMi — Building Intelligent Enterprise Solutions",
+  "short_name": "VinMi",
+  "description": "VinMi Enterprise JSON Toolkit — format, view, compare, and transform JSON in a professional multi-theme workspace.",
+  "icons": [
+    { "src": "/brand/png/vinmi-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/brand/png/vinmi-icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/brand/png/vinmi-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/brand/png/vinmi-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/brand/svg/vinmi-icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "theme_color": "#0B1020",
+  "background_color": "#0B1020",
+  "display": "standalone"
+}

@@ -2,14 +2,30 @@
 <html lang="en" data-theme="midnight">
 	<head>
 		<meta charset="utf-8" />
+		<!-- VinMi icon kit (source of truth: /vinmi-brand, copied to static/brand) -->
+		<link rel="icon" href="%sveltekit.assets%/favicon.ico" sizes="any" />
 		<link rel="icon" type="image/svg+xml" href="%sveltekit.assets%/favicon.svg" />
+		<link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
+		<link rel="mask-icon" href="%sveltekit.assets%/brand/svg/vinmi-glyph-mono-dark.svg" color="#6366f1" />
+		<link rel="manifest" href="%sveltekit.assets%/site.webmanifest" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="theme-color" content="#0b1020" />
+		<meta name="apple-mobile-web-app-title" content="VinMi" />
 		<title>VinMi — Building Intelligent Enterprise Solutions</title>
 		<meta
 			name="description"
 			content="VinMi Enterprise JSON Toolkit — format, view, compare, and transform JSON with a professional multi-theme workspace."
 		/>
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="VinMi" />
+		<meta property="og:title" content="VinMi — Building Intelligent Enterprise Solutions" />
+		<meta
+			property="og:description"
+			content="VinMi Enterprise JSON Toolkit — format, view, compare, and transform JSON with a professional multi-theme workspace."
+		/>
+		<meta property="og:image" content="%sveltekit.assets%/brand/png/vinmi-og-1200x630.png" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:image" content="%sveltekit.assets%/brand/png/vinmi-og-1200x630.png" />
 		<script>
 			// Apply the saved theme before first paint to avoid a flash of the
 			// default theme. Mirrors the normalization in $lib/stores/theme.
