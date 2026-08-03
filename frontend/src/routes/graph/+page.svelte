@@ -44,7 +44,7 @@
 	function parseAndBuildGraph() {
 		error = null;
 		graphData = null;
-		selectedNode = null;
+		hoveredNode = null;
 
 		if (!jsonInput.trim()) {
 			error = 'Please enter JSON to visualize';
