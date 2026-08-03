@@ -24,7 +24,7 @@
 	let dragStart = $state({ x: 0, y: 0 });
 	let svgElement: SVGSVGElement | null = null;
 	let isMaximized = $state(false);
-	let orientation = $state<'vertical' | 'horizontal'>('vertical');
+	let orientation = $state<'vertical' | 'horizontal'>('horizontal');
 
 	const NODE_WIDTH = 150;
 	const NODE_HEIGHT = 40;
