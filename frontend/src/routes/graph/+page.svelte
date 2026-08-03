@@ -17,6 +17,7 @@
 	let graphData = $state<GraphNode | null>(null);
 	let error = $state<string | null>(null);
 	let selectedNode = $state<GraphNode | null>(null);
+	let hoveredNode = $state<GraphNode | null>(null);
 	let scale = $state(1);
 	let panX = $state(0);
 	let panY = $state(0);
@@ -403,56 +404,60 @@
 
 							<!-- Nodes -->
 							{#each allNodes as node}
-								<g
-									class="node-group"
-									class:selected={selectedNode?.id === node.id}
-									transform="translate({node.x}, {node.y})"
-									onclick={() => selectNode(node)}
-									role="button"
-									tabindex="0"
-								>
-									<!-- Node card -->
-									<rect
-										class="node-bg"
-										width={NODE_WIDTH}
-										height={NODE_HEIGHT}
-										rx="6"
-										fill={getNodeColor(node.type)}
-										opacity="0.15"
-										stroke={getNodeColor(node.type)}
-										stroke-width="1.5"
-									/>
-
-									<!-- Type icon -->
-									<circle cx="8" cy={NODE_HEIGHT / 2} r="4" fill={getNodeColor(node.type)} />
-
-									<!-- Label -->
-									<text
-										class="node-label"
-										x="16"
-										y={NODE_HEIGHT / 2 + 1}
-										fill="var(--color-text)"
-										font-size="11"
-										font-weight="500"
-										dominant-baseline="middle"
+								<g class="node-group" transform="translate({node.x}, {node.y})">
+									<!-- Node card with click -->
+									<g
+										class="node-card"
+										class:selected={selectedNode?.id === node.id}
+										class:hovered={hoveredNode?.id === node.id}
+										onmouseenter={() => (hoveredNode = node)}
+										onmouseleave={() => (hoveredNode = null)}
+										onclick={() => selectNode(node)}
+										role="button"
+										tabindex="0"
 									>
-										{node.label.length > 14 ? node.label.slice(0, 14) + '…' : node.label}
-									</text>
+										<rect
+											class="node-bg"
+											width={NODE_WIDTH}
+											height={NODE_HEIGHT}
+											rx="6"
+											fill={getNodeColor(node.type)}
+											opacity="0.15"
+											stroke={getNodeColor(node.type)}
+											stroke-width="1.5"
+										/>
 
-									<!-- Children count badge -->
-									{#if node.children.length > 0 && node.expanded}
+										<!-- Type icon -->
+										<circle cx="8" cy={NODE_HEIGHT / 2} r="4" fill={getNodeColor(node.type)} />
+
+										<!-- Label -->
 										<text
-											class="node-count"
-											x={NODE_WIDTH - 8}
+											class="node-label"
+											x="16"
 											y={NODE_HEIGHT / 2 + 1}
-											fill="var(--color-text-muted)"
-											font-size="9"
-											text-anchor="end"
+											fill="var(--color-text)"
+											font-size="11"
+											font-weight="500"
 											dominant-baseline="middle"
 										>
-											{node.children.length}
+											{node.label.length > 14 ? node.label.slice(0, 14) + '…' : node.label}
 										</text>
-									{/if}
+
+										<!-- Children count badge -->
+										{#if node.children.length > 0 && node.expanded}
+											<text
+												class="node-count"
+												x={NODE_WIDTH - 8}
+												y={NODE_HEIGHT / 2 + 1}
+												fill="var(--color-text-muted)"
+												font-size="9"
+												text-anchor="end"
+												dominant-baseline="middle"
+											>
+												{node.children.length}
+											</text>
+										{/if}
+									</g>
 
 									<!-- Toggle button -->
 									{#if node.children.length > 0}
@@ -473,6 +478,85 @@
 											>
 												{node.expanded ? '−' : '+'}
 											</text>
+										</g>
+									{/if}
+
+									<!-- Hover tooltip -->
+									{#if hoveredNode?.id === node.id}
+										<g class="hover-tooltip" transform="translate(0, {NODE_HEIGHT + 8})">
+											<rect
+												width="180"
+												height="auto"
+												rx="6"
+												fill="var(--color-surface)"
+												stroke="var(--color-border)"
+												stroke-width="1"
+												opacity="0.95"
+											/>
+											<text
+												x="8"
+												y="20"
+												fill="var(--color-text-muted)"
+												font-size="9"
+												font-weight="600"
+												text-transform="uppercase"
+											>
+												Type
+											</text>
+											<text
+												x="8"
+												y="34"
+												fill={getNodeColor(node.type)}
+												font-size="11"
+												font-weight="600"
+											>
+												{node.type}
+											</text>
+
+											{#if node.value}
+												<text
+													x="8"
+													y="52"
+													fill="var(--color-text-muted)"
+													font-size="9"
+													font-weight="600"
+													text-transform="uppercase"
+												>
+													Value
+												</text>
+												<text
+													x="8"
+													y="66"
+													fill="var(--color-text)"
+													font-size="10"
+													font-family="monospace"
+													font-weight="400"
+												>
+													{node.value.length > 20 ? node.value.slice(0, 20) + '…' : node.value}
+												</text>
+											{/if}
+
+											{#if node.children.length > 0}
+												<text
+													x="8"
+													y={node.value ? 84 : 52}
+													fill="var(--color-text-muted)"
+													font-size="9"
+													font-weight="600"
+													text-transform="uppercase"
+												>
+													Children
+												</text>
+												<text
+													x="8"
+													y={node.value ? 98 : 66}
+													fill="var(--color-primary)"
+													font-size="11"
+													font-weight="600"
+												>
+													{node.children.length} item{node.children.length !== 1 ? 's' : ''}
+												</text>
+											{/if}
 										</g>
 									{/if}
 								</g>
@@ -706,45 +790,99 @@
 	}
 
 	.node-group {
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.node-card {
 		cursor: pointer;
-		transition: all 0.2s ease;
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
-	.node-group:hover .node-bg {
-		opacity: 0.25;
-		filter: brightness(1.15);
-	}
-
-	.node-group.selected .node-bg {
+	.node-card:hover .node-bg {
 		opacity: 0.3;
+		filter: brightness(1.2) saturate(1.1);
+		stroke-width: 2;
+	}
+
+	.node-card:hover circle:first-child {
+		filter: drop-shadow(0 0 4px currentColor);
+		opacity: 1;
+	}
+
+	.node-card.selected .node-bg {
+		opacity: 0.35;
 		stroke-width: 2.5;
+		filter: drop-shadow(0 0 8px currentColor) brightness(1.15);
+	}
+
+	.node-card.selected circle:first-child {
 		filter: drop-shadow(0 0 6px currentColor);
+		opacity: 1;
 	}
 
 	.node-label {
 		pointer-events: none;
 		user-select: none;
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.node-card:hover .node-label {
+		font-weight: 600;
 	}
 
 	.node-count {
 		pointer-events: none;
 		user-select: none;
 		font-weight: 600;
+		transition: opacity 0.2s ease;
+	}
+
+	.node-card:hover .node-count {
+		opacity: 1;
+		filter: drop-shadow(0 0 3px currentColor);
 	}
 
 	.toggle-btn {
 		cursor: pointer;
-		transition: all 0.15s ease;
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
 	.toggle-btn:hover circle {
 		opacity: 1;
-		filter: brightness(1.2);
+		filter: brightness(1.25) drop-shadow(0 0 4px currentColor);
+	}
+
+	.toggle-btn:hover text {
+		font-weight: 900;
 	}
 
 	.toggle-btn circle {
-		transition: all 0.15s ease;
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 		opacity: 0.8;
+	}
+
+	.toggle-btn text {
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.hover-tooltip {
+		pointer-events: none;
+		animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.hover-tooltip rect {
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+	}
+
+	@keyframes slideUp {
+		from {
+			opacity: 0;
+			transform: translateY(4px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 
 	.empty-state {
