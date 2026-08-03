@@ -23,6 +23,8 @@
 	let isDragging = $state(false);
 	let dragStart = $state({ x: 0, y: 0 });
 	let svgElement: SVGSVGElement | null = null;
+	let isMaximized = $state(false);
+	let orientation = $state<'vertical' | 'horizontal'>('vertical');
 
 	const NODE_WIDTH = 150;
 	const NODE_HEIGHT = 40;
@@ -52,7 +54,7 @@
 	function buildGraph(data: unknown, key: string, depth: number): GraphNode {
 		const id = `${key}-${depth}-${Math.random().toString(36).substr(2, 9)}`;
 		const type = getType(data);
-		
+
 		let children: GraphNode[] = [];
 		let value: string | undefined;
 
@@ -70,7 +72,7 @@
 			type,
 			value,
 			x: 0,
-			y: depth * LEVEL_HEIGHT,
+			y: 0,
 			children,
 			expanded: depth < 3
 		};
@@ -88,27 +90,40 @@
 		return String(data);
 	}
 
-	function layoutGraph(node: GraphNode, minX = 0): number {
+	function layoutGraph(node: GraphNode, minPos = 0, depth = 0): number {
 		if (!node.expanded || node.children.length === 0) {
-			node.x = minX;
+			if (orientation === 'vertical') {
+				node.x = minPos;
+				node.y = depth * LEVEL_HEIGHT;
+			} else {
+				node.x = depth * LEVEL_HEIGHT;
+				node.y = minPos;
+			}
 			return NODE_WIDTH + NODE_GAP;
 		}
 
-		let currentX = minX;
-		let totalWidth = 0;
+		let currentPos = minPos;
+		let totalSize = 0;
 
 		for (const child of node.children) {
-			const childWidth = layoutGraph(child, currentX);
-			currentX += childWidth;
-			totalWidth += childWidth;
+			const childSize = layoutGraph(child, currentPos, depth + 1);
+			currentPos += childSize;
+			totalSize += childSize;
 		}
 
-		// Center parent above children
+		// Center parent above/beside children
 		const firstChild = node.children[0];
 		const lastChild = node.children[node.children.length - 1];
-		node.x = (firstChild.x + lastChild.x + NODE_WIDTH) / 2 - NODE_WIDTH / 2;
 
-		return totalWidth;
+		if (orientation === 'vertical') {
+			node.y = depth * LEVEL_HEIGHT;
+			node.x = (firstChild.x + lastChild.x + NODE_WIDTH) / 2 - NODE_WIDTH / 2;
+		} else {
+			node.x = depth * LEVEL_HEIGHT;
+			node.y = (firstChild.y + lastChild.y + NODE_HEIGHT) / 2 - NODE_HEIGHT / 2;
+		}
+
+		return totalSize;
 	}
 
 	function centerGraph() {
@@ -158,6 +173,18 @@
 	function resetView() {
 		scale = 1;
 		centerGraph();
+	}
+
+	function toggleOrientation() {
+		orientation = orientation === 'vertical' ? 'horizontal' : 'vertical';
+		if (graphData) {
+			layoutGraph(graphData);
+			resetView();
+		}
+	}
+
+	function toggleMaximize() {
+		isMaximized = !isMaximized;
 	}
 
 	function expandAll() {
@@ -257,51 +284,91 @@
 
 <svelte:window onmouseup={handleMouseUp} onmousemove={handleMouseMove} />
 
-<div class="container">
-	<div class="page-header">
-		<BrandBadge />
-		<div class="page-header-copy">
-			<h1>JSON Graph View</h1>
-			<p>Visualize JSON structure as an interactive graph for debugging</p>
+<div class="container" class:maximized={isMaximized}>
+	{#if !isMaximized}
+		<div class="page-header">
+			<BrandBadge />
+			<div class="page-header-copy">
+				<h1>JSON Graph View</h1>
+				<p>Visualize JSON structure as an interactive graph for debugging</p>
+			</div>
 		</div>
-	</div>
+	{/if}
 
-	<div class="graph-layout">
-		<div class="input-panel card">
-			<div class="panel-header">
-				<h2>Input JSON</h2>
-				<div class="header-actions">
-					<button class="action-btn" onclick={loadSample}>Load Sample</button>
-					<button class="action-btn" onclick={clearAll}>Clear</button>
+	<div class="graph-layout" class:maximized={isMaximized} class:has-sidebar={selectedNode !== null}>
+		{#if !isMaximized}
+			<div class="input-panel card">
+				<div class="panel-header">
+					<h2>Input JSON</h2>
+					<div class="header-actions">
+						<button class="action-btn" onclick={loadSample}>Load Sample</button>
+						<button class="action-btn" onclick={clearAll}>Clear</button>
+					</div>
+				</div>
+				<textarea
+					class="json-input"
+					bind:value={jsonInput}
+					placeholder="Paste JSON to visualize as a graph..."
+					spellcheck="false"
+				></textarea>
+				<div class="panel-footer">
+					<button class="btn btn-primary" onclick={parseAndBuildGraph}>
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<circle cx="18" cy="5" r="3"/>
+							<circle cx="6" cy="12" r="3"/>
+							<circle cx="18" cy="19" r="3"/>
+							<path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/>
+						</svg>
+						Generate Graph
+					</button>
 				</div>
 			</div>
-			<textarea
-				class="json-input"
-				bind:value={jsonInput}
-				placeholder="Paste JSON to visualize as a graph..."
-				spellcheck="false"
-			></textarea>
-			<div class="panel-footer">
-				<button class="btn btn-primary" onclick={parseAndBuildGraph}>
-					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<circle cx="18" cy="5" r="3"/>
-						<circle cx="6" cy="12" r="3"/>
-						<circle cx="18" cy="19" r="3"/>
-						<path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/>
-					</svg>
-					Generate Graph
-				</button>
-			</div>
-		</div>
+		{/if}
 
-		<div class="graph-panel card">
+		<div class="graph-panel card" class:maximized={isMaximized}>
 			<div class="panel-header">
 				<h2>Graph View</h2>
 				<div class="header-actions">
 					{#if graphData}
+						<button
+							class="action-btn"
+							title="Toggle Orientation"
+							onclick={toggleOrientation}
+						>
+							{#if orientation === 'vertical'}
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<line x1="8" y1="3" x2="8" y2="21"></line>
+									<line x1="16" y1="3" x2="16" y2="21"></line>
+									<polyline points="12 8 18 14 12 20"></polyline>
+								</svg>
+								Horizontal
+							{:else}
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<line x1="3" y1="8" x2="21" y2="8"></line>
+									<line x1="3" y1="16" x2="21" y2="16"></line>
+									<polyline points="8 12 14 18 20 12"></polyline>
+								</svg>
+								Vertical
+							{/if}
+						</button>
 						<button class="action-btn" onclick={expandAll}>Expand All</button>
 						<button class="action-btn" onclick={collapseAll}>Collapse All</button>
-						<button class="action-btn" onclick={resetView}>Reset View</button>
+						<button class="action-btn" onclick={resetView}>Reset</button>
+						<button
+							class="action-btn maximize-btn"
+							title={isMaximized ? 'Minimize' : 'Maximize'}
+							onclick={toggleMaximize}
+						>
+							{#if isMaximized}
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<path d="M8 3v6H2M16 3v6h6M2 16v6h6m12 0v6h-6"/>
+								</svg>
+							{:else}
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+								</svg>
+							{/if}
+						</button>
 					{/if}
 					<span class="zoom-level">{Math.round(scale * 100)}%</span>
 				</div>
@@ -329,16 +396,29 @@
 						<g transform="translate({panX}, {panY}) scale({scale})">
 							<!-- Edges -->
 							{#each allEdges as edge}
-								<path
-									class="edge"
-									d="M {edge.from.x + NODE_WIDTH / 2} {edge.from.y + NODE_HEIGHT}
-									   C {edge.from.x + NODE_WIDTH / 2} {edge.from.y + NODE_HEIGHT + 30},
-									     {edge.to.x + NODE_WIDTH / 2} {edge.to.y - 30},
-									     {edge.to.x + NODE_WIDTH / 2} {edge.to.y}"
-									fill="none"
-									stroke="var(--color-border)"
-									stroke-width="2"
-								/>
+								{#if orientation === 'vertical'}
+									<path
+										class="edge"
+										d="M {edge.from.x + NODE_WIDTH / 2} {edge.from.y + NODE_HEIGHT}
+										   C {edge.from.x + NODE_WIDTH / 2} {edge.from.y + NODE_HEIGHT + 30},
+										     {edge.to.x + NODE_WIDTH / 2} {edge.to.y - 30},
+										     {edge.to.x + NODE_WIDTH / 2} {edge.to.y}"
+										fill="none"
+										stroke="var(--color-border)"
+										stroke-width="2"
+									/>
+								{:else}
+									<path
+										class="edge"
+										d="M {edge.from.x + NODE_WIDTH} {edge.from.y + NODE_HEIGHT / 2}
+										   C {edge.from.x + NODE_WIDTH + 30} {edge.from.y + NODE_HEIGHT / 2},
+										     {edge.to.x - 30} {edge.to.y + NODE_HEIGHT / 2},
+										     {edge.to.x} {edge.to.y + NODE_HEIGHT / 2}"
+										fill="none"
+										stroke="var(--color-border)"
+										stroke-width="2"
+									/>
+								{/if}
 							{/each}
 
 							<!-- Nodes -->
@@ -379,26 +459,47 @@
 										{node.type}{node.value ? `: ${node.value.slice(0, 10)}` : ''}
 										{node.children.length > 0 ? ` (${node.children.length})` : ''}
 									</text>
-									
+
 									{#if node.children.length > 0}
-										<g
-											class="toggle-btn"
-											transform="translate({NODE_WIDTH / 2 - 8}, {NODE_HEIGHT - 4})"
-										onclick={(e) => { e.stopPropagation(); toggleNode(node); }}
-											role="button"
-											tabindex="0"
-										>
-											<circle r="8" fill="var(--color-bg)" stroke="var(--color-border)" />
-											<text
-												y="4"
-												text-anchor="middle"
-												fill="var(--color-text)"
-												font-size="12"
-												font-weight="bold"
+										{#if orientation === 'vertical'}
+											<g
+												class="toggle-btn"
+												transform="translate({NODE_WIDTH / 2 - 8}, {NODE_HEIGHT - 4})"
+												onclick={(e) => { e.stopPropagation(); toggleNode(node); }}
+												role="button"
+												tabindex="0"
 											>
-												{node.expanded ? '−' : '+'}
-											</text>
-										</g>
+												<circle r="8" fill="var(--color-bg)" stroke="var(--color-border)" stroke-width="1.5" />
+												<text
+													y="4"
+													text-anchor="middle"
+													fill="var(--color-text)"
+													font-size="12"
+													font-weight="bold"
+												>
+													{node.expanded ? '−' : '+'}
+												</text>
+											</g>
+										{:else}
+											<g
+												class="toggle-btn"
+												transform="translate({NODE_WIDTH - 4}, {NODE_HEIGHT / 2 - 8})"
+												onclick={(e) => { e.stopPropagation(); toggleNode(node); }}
+												role="button"
+												tabindex="0"
+											>
+												<circle r="8" fill="var(--color-bg)" stroke="var(--color-border)" stroke-width="1.5" />
+												<text
+													y="4"
+													text-anchor="middle"
+													fill="var(--color-text)"
+													font-size="12"
+													font-weight="bold"
+												>
+													{node.expanded ? '−' : '+'}
+												</text>
+											</g>
+										{/if}
 									{/if}
 								</g>
 							{/each}
@@ -417,37 +518,63 @@
 					</div>
 				{/if}
 			</div>
-
-			{#if selectedNode}
-				<div class="node-details">
-					<h3>Node Details</h3>
-					<div class="detail-row">
-						<span class="detail-label">Key:</span>
-						<span class="detail-value">{selectedNode.label}</span>
-					</div>
-					<div class="detail-row">
-						<span class="detail-label">Type:</span>
-						<span class="detail-value type-badge" style="color: {getNodeColor(selectedNode.type)}">{selectedNode.type}</span>
-					</div>
-					{#if selectedNode.value}
-						<div class="detail-row">
-							<span class="detail-label">Value:</span>
-							<span class="detail-value">{selectedNode.value}</span>
-						</div>
-					{/if}
-					{#if selectedNode.children.length > 0}
-						<div class="detail-row">
-							<span class="detail-label">Children:</span>
-							<span class="detail-value">{selectedNode.children.length}</span>
-						</div>
-					{/if}
-				</div>
-			{/if}
 		</div>
+
+		{#if selectedNode}
+			<div class="node-sidebar">
+				<div class="sidebar-header">
+					<h3>Node Details</h3>
+					<button
+						class="close-btn"
+						onclick={() => (selectedNode = null)}
+						title="Close"
+					>
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<line x1="18" y1="6" x2="6" y2="18"></line>
+							<line x1="6" y1="6" x2="18" y2="18"></line>
+						</svg>
+					</button>
+				</div>
+				<div class="sidebar-content">
+					<div class="detail-section">
+						<div class="detail-row">
+							<span class="detail-label">Key</span>
+							<span class="detail-value">{selectedNode.label}</span>
+						</div>
+						<div class="detail-row">
+							<span class="detail-label">Type</span>
+							<span class="detail-value type-badge" style="color: {getNodeColor(selectedNode.type)}">{selectedNode.type}</span>
+						</div>
+						{#if selectedNode.value}
+							<div class="detail-row">
+								<span class="detail-label">Value</span>
+								<span class="detail-value monospace">{selectedNode.value}</span>
+							</div>
+						{/if}
+						{#if selectedNode.children.length > 0}
+							<div class="detail-row">
+								<span class="detail-label">Children</span>
+								<span class="detail-value">{selectedNode.children.length}</span>
+							</div>
+						{/if}
+					</div>
+				</div>
+			</div>
+		{/if}
 	</div>
 </div>
 
 <style>
+	.container {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+	}
+
+	.container.maximized {
+		height: 100vh;
+	}
+
 	.page-header {
 		display: flex;
 		align-items: center;
@@ -474,6 +601,21 @@
 		gap: 1rem;
 		height: calc(100vh - 220px);
 		min-height: 500px;
+		flex: 1;
+	}
+
+	.graph-layout.maximized {
+		height: 100vh;
+		grid-template-columns: 1fr;
+		gap: 0;
+	}
+
+	.graph-layout.has-sidebar {
+		grid-template-columns: 350px 1fr 300px;
+	}
+
+	.graph-layout.maximized.has-sidebar {
+		grid-template-columns: 1fr 300px;
 	}
 
 	.input-panel,
@@ -481,6 +623,10 @@
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
+	}
+
+	.graph-panel.maximized {
+		border-radius: 0;
 	}
 
 	.panel-header {
@@ -617,37 +763,108 @@
 		margin-bottom: 0.5rem;
 	}
 
-	.node-details {
-		padding: 1rem;
-		border-top: 1px solid var(--color-border);
+	.node-sidebar {
+		display: flex;
+		flex-direction: column;
 		background: var(--color-surface);
+		border-left: 1px solid var(--color-border);
+		border-radius: 8px;
+		overflow: hidden;
 	}
 
-	.node-details h3 {
-		font-size: 0.875rem;
-		margin-bottom: 0.75rem;
+	.sidebar-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1rem;
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.sidebar-header h3 {
+		font-size: 0.95rem;
+		font-weight: 600;
+		margin: 0;
+	}
+
+	.close-btn {
+		background: transparent;
+		border: none;
 		color: var(--color-text-muted);
+		cursor: pointer;
+		padding: 0.25rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 4px;
+		transition: all 0.15s ease;
+	}
+
+	.close-btn:hover {
+		background: var(--color-bg);
+		color: var(--color-text);
+	}
+
+	.sidebar-content {
+		flex: 1;
+		overflow-y: auto;
+		padding: 1rem;
+	}
+
+	.detail-section {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
 	}
 
 	.detail-row {
 		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-bottom: 0.5rem;
+		flex-direction: column;
+		gap: 0.375rem;
 		font-size: 0.875rem;
 	}
 
 	.detail-label {
 		color: var(--color-text-muted);
-		min-width: 60px;
+		font-weight: 500;
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
 	}
 
 	.detail-value {
+		color: var(--color-text);
+		word-break: break-all;
+		padding: 0.5rem;
+		background: var(--color-bg);
+		border-radius: 6px;
+		border: 1px solid var(--color-border);
+	}
+
+	.detail-value.monospace {
 		font-family: var(--font-mono);
+		font-size: 0.8rem;
 	}
 
 	.type-badge {
 		font-weight: 600;
+		text-transform: capitalize;
+	}
+
+	@media (max-width: 1200px) {
+		.graph-layout.has-sidebar {
+			grid-template-columns: 350px 1fr;
+		}
+
+		.node-sidebar {
+			position: fixed;
+			right: 0;
+			top: 0;
+			bottom: 0;
+			width: 300px;
+			border-radius: 0;
+			border-left: 1px solid var(--color-border);
+			z-index: 10;
+		}
 	}
 
 	@media (max-width: 900px) {
@@ -656,12 +873,28 @@
 			height: auto;
 		}
 
+		.graph-layout.has-sidebar {
+			grid-template-columns: 1fr;
+		}
+
 		.input-panel {
 			min-height: 200px;
 		}
 
 		.graph-panel {
 			min-height: 500px;
+		}
+
+		.node-sidebar {
+			position: fixed;
+			right: 0;
+			top: 0;
+			bottom: 0;
+			width: 100%;
+			max-width: 300px;
+			border-radius: 0;
+			border-left: 1px solid var(--color-border);
+			z-index: 10;
 		}
 	}
 </style>
