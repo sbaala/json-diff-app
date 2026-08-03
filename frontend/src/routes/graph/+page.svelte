@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { BrandBadge } from '$lib/components';
-	import { onMount } from 'svelte';
 
 	interface GraphNode {
 		id: string;
@@ -11,6 +10,7 @@
 		y: number;
 		children: GraphNode[];
 		expanded: boolean;
+		depth: number;
 	}
 
 	let jsonInput = $state('');
@@ -24,12 +24,11 @@
 	let dragStart = $state({ x: 0, y: 0 });
 	let svgElement: SVGSVGElement | null = null;
 	let isMaximized = $state(false);
-	let orientation = $state<'vertical' | 'horizontal'>('horizontal');
 
-	const NODE_WIDTH = 150;
-	const NODE_HEIGHT = 40;
-	const LEVEL_HEIGHT = 80;
-	const NODE_GAP = 20;
+	const NODE_WIDTH = 120;
+	const NODE_HEIGHT = 32;
+	const LEVEL_WIDTH = 160;
+	const NODE_GAP = 8;
 
 	function parseAndBuildGraph() {
 		error = null;
@@ -74,7 +73,8 @@
 			x: 0,
 			y: 0,
 			children,
-			expanded: depth < 3
+			expanded: depth < 4,
+			depth
 		};
 	}
 
@@ -90,40 +90,29 @@
 		return String(data);
 	}
 
-	function layoutGraph(node: GraphNode, minPos = 0, depth = 0): number {
+	function layoutGraph(node: GraphNode, minY = 0): number {
+		node.x = node.depth * LEVEL_WIDTH;
+
 		if (!node.expanded || node.children.length === 0) {
-			if (orientation === 'vertical') {
-				node.x = minPos;
-				node.y = depth * LEVEL_HEIGHT;
-			} else {
-				node.x = depth * LEVEL_HEIGHT;
-				node.y = minPos;
-			}
-			return NODE_WIDTH + NODE_GAP;
+			node.y = minY;
+			return NODE_HEIGHT + NODE_GAP;
 		}
 
-		let currentPos = minPos;
-		let totalSize = 0;
+		let currentY = minY;
+		let totalHeight = 0;
 
 		for (const child of node.children) {
-			const childSize = layoutGraph(child, currentPos, depth + 1);
-			currentPos += childSize;
-			totalSize += childSize;
+			const childHeight = layoutGraph(child, currentY);
+			currentY += childHeight;
+			totalHeight += childHeight;
 		}
 
-		// Center parent above/beside children
+		// Center parent with children
 		const firstChild = node.children[0];
 		const lastChild = node.children[node.children.length - 1];
+		node.y = (firstChild.y + lastChild.y + NODE_HEIGHT) / 2 - NODE_HEIGHT / 2;
 
-		if (orientation === 'vertical') {
-			node.y = depth * LEVEL_HEIGHT;
-			node.x = (firstChild.x + lastChild.x + NODE_WIDTH) / 2 - NODE_WIDTH / 2;
-		} else {
-			node.x = depth * LEVEL_HEIGHT;
-			node.y = (firstChild.y + lastChild.y + NODE_HEIGHT) / 2 - NODE_HEIGHT / 2;
-		}
-
-		return totalSize;
+		return totalHeight;
 	}
 
 	function centerGraph() {
@@ -173,14 +162,6 @@
 	function resetView() {
 		scale = 1;
 		centerGraph();
-	}
-
-	function toggleOrientation() {
-		orientation = orientation === 'vertical' ? 'horizontal' : 'vertical';
-		if (graphData) {
-			layoutGraph(graphData);
-			resetView();
-		}
 	}
 
 	function toggleMaximize() {
@@ -243,13 +224,25 @@
 
 	function getNodeColor(type: string): string {
 		switch (type) {
-			case 'object': return 'var(--color-primary)';
-			case 'array': return 'var(--color-secondary)';
-			case 'string': return 'var(--color-success)';
+			case 'object': return '#6366f1';
+			case 'array': return '#8b5cf6';
+			case 'string': return '#10b981';
 			case 'number': return '#f59e0b';
 			case 'boolean': return '#ec4899';
-			case 'null': return 'var(--color-error)';
-			default: return 'var(--color-text-muted)';
+			case 'null': return '#6b7280';
+			default: return '#6b7280';
+		}
+	}
+
+	function getTypeIcon(type: string): string {
+		switch (type) {
+			case 'object': return '{}';
+			case 'array': return '[]';
+			case 'string': return '"';
+			case 'number': return '#';
+			case 'boolean': return '✓';
+			case 'null': return '∅';
+			default: return '?';
 		}
 	}
 
@@ -327,33 +320,27 @@
 
 		<div class="graph-panel card" class:maximized={isMaximized}>
 			<div class="panel-header">
-				<h2>Graph View</h2>
+				<h2>JSON Graph</h2>
 				<div class="header-actions">
 					{#if graphData}
-						<button
-							class="action-btn"
-							title="Toggle Orientation"
-							onclick={toggleOrientation}
-						>
-							{#if orientation === 'vertical'}
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<line x1="8" y1="3" x2="8" y2="21"></line>
-									<line x1="16" y1="3" x2="16" y2="21"></line>
-									<polyline points="12 8 18 14 12 20"></polyline>
-								</svg>
-								Horizontal
-							{:else}
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<line x1="3" y1="8" x2="21" y2="8"></line>
-									<line x1="3" y1="16" x2="21" y2="16"></line>
-									<polyline points="8 12 14 18 20 12"></polyline>
-								</svg>
-								Vertical
-							{/if}
+						<button class="action-btn" onclick={expandAll} title="Expand all nodes">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M12 5v14M5 12h14"/>
+							</svg>
+							Expand
 						</button>
-						<button class="action-btn" onclick={expandAll}>Expand All</button>
-						<button class="action-btn" onclick={collapseAll}>Collapse All</button>
-						<button class="action-btn" onclick={resetView}>Reset</button>
+						<button class="action-btn" onclick={collapseAll} title="Collapse all nodes">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M5 12h14"/>
+							</svg>
+							Collapse
+						</button>
+						<button class="action-btn" onclick={resetView} title="Reset view">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+							</svg>
+							Reset
+						</button>
 						<button
 							class="action-btn maximize-btn"
 							title={isMaximized ? 'Minimize' : 'Maximize'}
@@ -393,113 +380,100 @@
 						onmousedown={handleMouseDown}
 						style="cursor: {isDragging ? 'grabbing' : 'grab'}"
 					>
+						<defs>
+							<marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+								<polygon points="0 0, 10 3, 0 6" fill="var(--color-border)" opacity="0.5" />
+							</marker>
+						</defs>
 						<g transform="translate({panX}, {panY}) scale({scale})">
 							<!-- Edges -->
 							{#each allEdges as edge}
-								{#if orientation === 'vertical'}
-									<path
-										class="edge"
-										d="M {edge.from.x + NODE_WIDTH / 2} {edge.from.y + NODE_HEIGHT}
-										   C {edge.from.x + NODE_WIDTH / 2} {edge.from.y + NODE_HEIGHT + 30},
-										     {edge.to.x + NODE_WIDTH / 2} {edge.to.y - 30},
-										     {edge.to.x + NODE_WIDTH / 2} {edge.to.y}"
-										fill="none"
-										stroke="var(--color-border)"
-										stroke-width="2"
-									/>
-								{:else}
-									<path
-										class="edge"
-										d="M {edge.from.x + NODE_WIDTH} {edge.from.y + NODE_HEIGHT / 2}
-										   C {edge.from.x + NODE_WIDTH + 30} {edge.from.y + NODE_HEIGHT / 2},
-										     {edge.to.x - 30} {edge.to.y + NODE_HEIGHT / 2},
-										     {edge.to.x} {edge.to.y + NODE_HEIGHT / 2}"
-										fill="none"
-										stroke="var(--color-border)"
-										stroke-width="2"
-									/>
-								{/if}
+								<path
+									class="edge"
+									d="M {edge.from.x + NODE_WIDTH} {edge.from.y + NODE_HEIGHT / 2}
+									   C {edge.from.x + NODE_WIDTH + 40} {edge.from.y + NODE_HEIGHT / 2},
+									     {edge.to.x - 40} {edge.to.y + NODE_HEIGHT / 2},
+									     {edge.to.x} {edge.to.y + NODE_HEIGHT / 2}"
+									fill="none"
+									stroke="var(--color-border)"
+									stroke-width="1.5"
+									opacity="0.6"
+								/>
 							{/each}
 
 							<!-- Nodes -->
 							{#each allNodes as node}
 								<g
-									class="node"
+									class="node-group"
 									class:selected={selectedNode?.id === node.id}
 									transform="translate({node.x}, {node.y})"
 									onclick={() => selectNode(node)}
 									role="button"
 									tabindex="0"
 								>
+									<!-- Node card -->
 									<rect
+										class="node-bg"
 										width={NODE_WIDTH}
 										height={NODE_HEIGHT}
-										rx="8"
-										fill="var(--color-surface)"
+										rx="6"
+										fill={getNodeColor(node.type)}
+										opacity="0.15"
 										stroke={getNodeColor(node.type)}
-										stroke-width="2"
+										stroke-width="1.5"
 									/>
+
+									<!-- Type icon -->
+									<circle cx="8" cy={NODE_HEIGHT / 2} r="4" fill={getNodeColor(node.type)} />
+
+									<!-- Label -->
 									<text
-										x={NODE_WIDTH / 2}
-										y="16"
-										text-anchor="middle"
+										class="node-label"
+										x="16"
+										y={NODE_HEIGHT / 2 + 1}
 										fill="var(--color-text)"
 										font-size="11"
-										font-weight="600"
+										font-weight="500"
+										dominant-baseline="middle"
 									>
-										{node.label.length > 12 ? node.label.slice(0, 12) + '...' : node.label}
-									</text>
-									<text
-										x={NODE_WIDTH / 2}
-										y="30"
-										text-anchor="middle"
-										fill={getNodeColor(node.type)}
-										font-size="9"
-									>
-										{node.type}{node.value ? `: ${node.value.slice(0, 10)}` : ''}
-										{node.children.length > 0 ? ` (${node.children.length})` : ''}
+										{node.label.length > 14 ? node.label.slice(0, 14) + '…' : node.label}
 									</text>
 
+									<!-- Children count badge -->
+									{#if node.children.length > 0 && node.expanded}
+										<text
+											class="node-count"
+											x={NODE_WIDTH - 8}
+											y={NODE_HEIGHT / 2 + 1}
+											fill="var(--color-text-muted)"
+											font-size="9"
+											text-anchor="end"
+											dominant-baseline="middle"
+										>
+											{node.children.length}
+										</text>
+									{/if}
+
+									<!-- Toggle button -->
 									{#if node.children.length > 0}
-										{#if orientation === 'vertical'}
-											<g
-												class="toggle-btn"
-												transform="translate({NODE_WIDTH / 2 - 8}, {NODE_HEIGHT - 4})"
-												onclick={(e) => { e.stopPropagation(); toggleNode(node); }}
-												role="button"
-												tabindex="0"
+										<g
+											class="toggle-btn"
+											transform="translate({NODE_WIDTH - 6}, {NODE_HEIGHT / 2 - 6})"
+											onclick={(e) => { e.stopPropagation(); toggleNode(node); }}
+											role="button"
+											tabindex="0"
+										>
+											<circle r="5" fill="var(--color-bg)" stroke={getNodeColor(node.type)} stroke-width="1" />
+											<text
+												y="1.5"
+												text-anchor="middle"
+												fill={getNodeColor(node.type)}
+												font-size="10"
+												font-weight="bold"
 											>
-												<circle r="8" fill="var(--color-bg)" stroke="var(--color-border)" stroke-width="1.5" />
-												<text
-													y="4"
-													text-anchor="middle"
-													fill="var(--color-text)"
-													font-size="12"
-													font-weight="bold"
-												>
-													{node.expanded ? '−' : '+'}
-												</text>
-											</g>
-										{:else}
-											<g
-												class="toggle-btn"
-												transform="translate({NODE_WIDTH - 4}, {NODE_HEIGHT / 2 - 8})"
-												onclick={(e) => { e.stopPropagation(); toggleNode(node); }}
-												role="button"
-												tabindex="0"
-											>
-												<circle r="8" fill="var(--color-bg)" stroke="var(--color-border)" stroke-width="1.5" />
-												<text
-													y="4"
-													text-anchor="middle"
-													fill="var(--color-text)"
-													font-size="12"
-													font-weight="bold"
-												>
-													{node.expanded ? '−' : '+'}
-												</text>
-											</g>
-										{/if}
+												{node.expanded ? '−' : '+'}
+											</text>
+										</g>
 									{/if}
 								</g>
 							{/each}
@@ -653,14 +627,20 @@
 		border: 1px solid var(--color-border);
 		color: var(--color-text-muted);
 		padding: 0.375rem 0.75rem;
-		border-radius: 6px;
+		border-radius: 5px;
 		font-size: 0.75rem;
-		transition: all 0.15s ease;
+		transition: all 0.2s ease;
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		cursor: pointer;
 	}
 
 	.action-btn:hover {
-		background: var(--color-bg);
+		background: var(--color-primary);
+		background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.05));
 		color: var(--color-text);
+		border-color: var(--color-primary);
 	}
 
 	.zoom-level {
@@ -712,33 +692,59 @@
 		flex: 1;
 		position: relative;
 		overflow: hidden;
-		background: var(--color-bg);
+		background: linear-gradient(135deg, var(--color-bg) 0%, color-mix(in srgb, var(--color-surface) 20%, var(--color-bg) 80%) 100%);
 	}
 
 	.graph-svg {
 		width: 100%;
 		height: 100%;
+		background: transparent;
 	}
 
-	.node {
+	.edge {
+		pointer-events: none;
+	}
+
+	.node-group {
 		cursor: pointer;
+		transition: all 0.2s ease;
 	}
 
-	.node:hover rect {
-		filter: brightness(1.1);
+	.node-group:hover .node-bg {
+		opacity: 0.25;
+		filter: brightness(1.15);
 	}
 
-	.node.selected rect {
-		stroke-width: 3;
-		filter: drop-shadow(0 0 8px currentColor);
+	.node-group.selected .node-bg {
+		opacity: 0.3;
+		stroke-width: 2.5;
+		filter: drop-shadow(0 0 6px currentColor);
+	}
+
+	.node-label {
+		pointer-events: none;
+		user-select: none;
+	}
+
+	.node-count {
+		pointer-events: none;
+		user-select: none;
+		font-weight: 600;
 	}
 
 	.toggle-btn {
 		cursor: pointer;
+		transition: all 0.15s ease;
 	}
 
 	.toggle-btn:hover circle {
-		fill: var(--color-surface);
+		opacity: 1;
+		filter: brightness(1.2);
+	}
+
+	.toggle-btn circle {
+		transition: all 0.15s ease;
+		opacity: 0.8;
 	}
 
 	.empty-state {
@@ -770,20 +776,26 @@
 		border-left: 1px solid var(--color-border);
 		border-radius: 8px;
 		overflow: hidden;
+		box-shadow: -2px 0 12px rgba(0, 0, 0, 0.1);
 	}
 
 	.sidebar-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 1rem;
+		padding: 0.875rem 1rem;
 		border-bottom: 1px solid var(--color-border);
+		background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(139, 92, 246, 0.02));
 	}
 
 	.sidebar-header h3 {
-		font-size: 0.95rem;
+		font-size: 0.9rem;
 		font-weight: 600;
 		margin: 0;
+		background: linear-gradient(135deg, #6366f1, #8b5cf6);
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
 	}
 
 	.close-btn {
@@ -791,17 +803,17 @@
 		border: none;
 		color: var(--color-text-muted);
 		cursor: pointer;
-		padding: 0.25rem;
+		padding: 0.375rem;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: 4px;
-		transition: all 0.15s ease;
+		border-radius: 5px;
+		transition: all 0.2s ease;
 	}
 
 	.close-btn:hover {
-		background: var(--color-bg);
-		color: var(--color-text);
+		background: rgba(99, 102, 241, 0.1);
+		color: var(--color-primary);
 	}
 
 	.sidebar-content {
@@ -810,10 +822,27 @@
 		padding: 1rem;
 	}
 
+	.sidebar-content::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	.sidebar-content::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.sidebar-content::-webkit-scrollbar-thumb {
+		background: var(--color-border);
+		border-radius: 3px;
+	}
+
+	.sidebar-content::-webkit-scrollbar-thumb:hover {
+		background: var(--color-text-muted);
+	}
+
 	.detail-section {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 0.875rem;
 	}
 
 	.detail-row {
@@ -825,29 +854,33 @@
 
 	.detail-label {
 		color: var(--color-text-muted);
-		font-weight: 500;
-		font-size: 0.75rem;
+		font-weight: 600;
+		font-size: 0.7rem;
 		text-transform: uppercase;
-		letter-spacing: 0.5px;
+		letter-spacing: 0.6px;
 	}
 
 	.detail-value {
 		color: var(--color-text);
 		word-break: break-all;
-		padding: 0.5rem;
-		background: var(--color-bg);
-		border-radius: 6px;
-		border: 1px solid var(--color-border);
+		padding: 0.5rem 0.625rem;
+		background: rgba(99, 102, 241, 0.08);
+		border-radius: 5px;
+		border: 1px solid rgba(99, 102, 241, 0.2);
+		font-size: 0.85rem;
+		line-height: 1.4;
 	}
 
 	.detail-value.monospace {
 		font-family: var(--font-mono);
-		font-size: 0.8rem;
+		font-size: 0.78rem;
+		word-break: break-word;
 	}
 
 	.type-badge {
-		font-weight: 600;
+		font-weight: 700;
 		text-transform: capitalize;
+		letter-spacing: 0.3px;
 	}
 
 	@media (max-width: 1200px) {
