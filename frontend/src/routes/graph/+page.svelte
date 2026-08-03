@@ -447,7 +447,12 @@
 										class:hovered={hoveredNode?.id === node.id}
 										onmouseenter={() => (hoveredNode = node)}
 										onmouseleave={() => (hoveredNode = null)}
-										onclick={() => selectNode(node)}
+										onclick={() => {
+											selectNode(node);
+											if (node.children.length > 0) {
+												toggleNode(node);
+											}
+										}}
 										role="button"
 										tabindex="0"
 									>
@@ -498,18 +503,26 @@
 									{#if node.children.length > 0}
 										<g
 											class="toggle-btn"
-											transform="translate({NODE_WIDTH - 6}, {NODE_HEIGHT / 2 - 6})"
-											onclick={(e) => { e.stopPropagation(); toggleNode(node); }}
+											transform="translate({NODE_WIDTH - 8}, {NODE_HEIGHT / 2 - 7})"
 											role="button"
 											tabindex="0"
 										>
-											<circle r="5" fill="var(--color-bg)" stroke={getNodeColor(node.type)} stroke-width="1" />
+											<rect
+												width="14"
+												height="14"
+												rx="3"
+												fill={getNodeColor(node.type)}
+												opacity="0.2"
+												stroke={getNodeColor(node.type)}
+												stroke-width="1.5"
+											/>
 											<text
-												y="1.5"
+												x="7"
+												y="9"
 												text-anchor="middle"
 												fill={getNodeColor(node.type)}
-												font-size="10"
-												font-weight="bold"
+												font-size="11"
+												font-weight="900"
 											>
 												{node.expanded ? '−' : '+'}
 											</text>
@@ -757,25 +770,40 @@
 	}
 
 	.node-card:hover .node-bg {
-		opacity: 0.3;
-		filter: brightness(1.2) saturate(1.1);
+		opacity: 0.25;
+		filter: brightness(1.15) saturate(1.2);
 		stroke-width: 2;
 	}
 
 	.node-card:hover circle:first-child {
 		filter: drop-shadow(0 0 4px currentColor);
 		opacity: 1;
+		r: 5;
 	}
 
 	.node-card.selected .node-bg {
-		opacity: 0.35;
+		opacity: 0.3;
 		stroke-width: 2.5;
-		filter: drop-shadow(0 0 8px currentColor) brightness(1.15);
+		filter: drop-shadow(0 0 10px currentColor);
 	}
 
 	.node-card.selected circle:first-child {
 		filter: drop-shadow(0 0 6px currentColor);
 		opacity: 1;
+		r: 5.5;
+	}
+
+	/* Light theme specific styles */
+	@media (prefers-color-scheme: light) {
+		.node-card:hover .node-bg {
+			opacity: 0.18;
+			filter: brightness(0.95) saturate(1.3);
+		}
+
+		.node-card.selected .node-bg {
+			opacity: 0.22;
+			filter: brightness(0.92);
+		}
 	}
 
 	.node-label {
@@ -805,38 +833,58 @@
 		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
-	.toggle-btn:hover circle {
-		opacity: 1;
-		filter: brightness(1.25) drop-shadow(0 0 4px currentColor);
+	.toggle-btn rect {
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.toggle-btn:hover rect {
+		opacity: 0.35;
+		filter: brightness(1.2) drop-shadow(0 0 4px currentColor);
+		stroke-width: 2;
 	}
 
 	.toggle-btn:hover text {
-		font-weight: 900;
-	}
-
-	.toggle-btn circle {
-		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-		opacity: 0.8;
+		filter: drop-shadow(0 0 2px currentColor);
 	}
 
 	.toggle-btn text {
 		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+		user-select: none;
+		pointer-events: none;
+	}
+
+	/* Light theme toggle button */
+	@media (prefers-color-scheme: light) {
+		.toggle-btn rect {
+			opacity: 0.15;
+		}
+
+		.toggle-btn:hover rect {
+			opacity: 0.25;
+			filter: brightness(0.9) drop-shadow(0 0 3px currentColor);
+		}
 	}
 
 	.node-tooltip {
 		position: fixed;
 		background: var(--color-surface);
-		border: 1px solid var(--color-border);
+		border: 1.5px solid var(--color-border);
 		border-radius: 8px;
-		padding: 0.75rem;
-		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+		padding: 0.875rem;
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 		z-index: 100;
 		pointer-events: none;
 		animation: tooltipSlideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-		min-width: 180px;
-		max-width: 280px;
-		backdrop-filter: blur(8px);
-		background: rgba(var(--color-surface-rgb, 20, 22, 38), 0.95);
+		min-width: 200px;
+		max-width: 300px;
+		backdrop-filter: blur(12px);
+	}
+
+	@media (prefers-color-scheme: light) {
+		.node-tooltip {
+			box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+			border-color: var(--color-border);
+		}
 	}
 
 	.tooltip-section {
