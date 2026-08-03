@@ -18,6 +18,8 @@
 	let error = $state<string | null>(null);
 	let selectedNode = $state<GraphNode | null>(null);
 	let hoveredNode = $state<GraphNode | null>(null);
+	let tooltipX = $state(0);
+	let tooltipY = $state(0);
 	let scale = $state(1);
 	let panX = $state(0);
 	let panY = $state(0);
@@ -154,6 +156,9 @@
 			panX = e.clientX - dragStart.x;
 			panY = e.clientY - dragStart.y;
 		}
+		// Update tooltip position
+		tooltipX = e.clientX + 12;
+		tooltipY = e.clientY + 12;
 	}
 
 	function handleMouseUp() {
@@ -372,7 +377,37 @@
 				</div>
 			{/if}
 
-			<div class="graph-container">
+			<div class="graph-container" onmousemove={handleMouseMove}>
+				<!-- Hover tooltip (HTML overlay) -->
+				{#if hoveredNode}
+					<div class="node-tooltip" style="left: {tooltipX}px; top: {tooltipY}px;">
+						<div class="tooltip-section">
+							<div class="tooltip-label">Type</div>
+							<div class="tooltip-value" style="color: {getNodeColor(hoveredNode.type)}">
+								{hoveredNode.type}
+							</div>
+						</div>
+
+						{#if hoveredNode.value}
+							<div class="tooltip-section">
+								<div class="tooltip-label">Value</div>
+								<div class="tooltip-value monospace">
+									{hoveredNode.value}
+								</div>
+							</div>
+						{/if}
+
+						{#if hoveredNode.children.length > 0}
+							<div class="tooltip-section">
+								<div class="tooltip-label">Children</div>
+								<div class="tooltip-value">
+									{hoveredNode.children.length} item{hoveredNode.children.length !== 1 ? 's' : ''}
+								</div>
+							</div>
+						{/if}
+					</div>
+				{/if}
+
 				{#if graphData}
 					<svg
 						bind:this={svgElement}
@@ -481,84 +516,7 @@
 										</g>
 									{/if}
 
-									<!-- Hover tooltip -->
-									{#if hoveredNode?.id === node.id}
-										<g class="hover-tooltip" transform="translate(0, {NODE_HEIGHT + 8})">
-											<rect
-												width="180"
-												height="auto"
-												rx="6"
-												fill="var(--color-surface)"
-												stroke="var(--color-border)"
-												stroke-width="1"
-												opacity="0.95"
-											/>
-											<text
-												x="8"
-												y="20"
-												fill="var(--color-text-muted)"
-												font-size="9"
-												font-weight="600"
-												text-transform="uppercase"
-											>
-												Type
-											</text>
-											<text
-												x="8"
-												y="34"
-												fill={getNodeColor(node.type)}
-												font-size="11"
-												font-weight="600"
-											>
-												{node.type}
-											</text>
-
-											{#if node.value}
-												<text
-													x="8"
-													y="52"
-													fill="var(--color-text-muted)"
-													font-size="9"
-													font-weight="600"
-													text-transform="uppercase"
-												>
-													Value
-												</text>
-												<text
-													x="8"
-													y="66"
-													fill="var(--color-text)"
-													font-size="10"
-													font-family="monospace"
-													font-weight="400"
-												>
-													{node.value.length > 20 ? node.value.slice(0, 20) + '…' : node.value}
-												</text>
-											{/if}
-
-											{#if node.children.length > 0}
-												<text
-													x="8"
-													y={node.value ? 84 : 52}
-													fill="var(--color-text-muted)"
-													font-size="9"
-													font-weight="600"
-													text-transform="uppercase"
-												>
-													Children
-												</text>
-												<text
-													x="8"
-													y={node.value ? 98 : 66}
-													fill="var(--color-primary)"
-													font-size="11"
-													font-weight="600"
-												>
-													{node.children.length} item{node.children.length !== 1 ? 's' : ''}
-												</text>
-											{/if}
-										</g>
-									{/if}
+									<!-- Hover tooltip (HTML-based for better rendering) -->
 								</g>
 							{/each}
 						</g>
@@ -865,23 +823,65 @@
 		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
-	.hover-tooltip {
+	.node-tooltip {
+		position: fixed;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		padding: 0.75rem;
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+		z-index: 100;
 		pointer-events: none;
-		animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+		animation: tooltipSlideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+		min-width: 180px;
+		max-width: 280px;
+		backdrop-filter: blur(8px);
+		background: rgba(var(--color-surface-rgb, 20, 22, 38), 0.95);
 	}
 
-	.hover-tooltip rect {
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+	.tooltip-section {
+		margin-bottom: 0.75rem;
 	}
 
-	@keyframes slideUp {
+	.tooltip-section:last-child {
+		margin-bottom: 0;
+	}
+
+	.tooltip-label {
+		font-size: 0.7rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		color: var(--color-text-muted);
+		margin-bottom: 0.375rem;
+	}
+
+	.tooltip-value {
+		font-size: 0.85rem;
+		font-weight: 500;
+		color: var(--color-text);
+		line-height: 1.4;
+		word-break: break-all;
+	}
+
+	.tooltip-value.monospace {
+		font-family: var(--font-mono);
+		font-size: 0.8rem;
+		background: rgba(99, 102, 241, 0.08);
+		padding: 0.375rem 0.5rem;
+		border-radius: 4px;
+		border: 1px solid rgba(99, 102, 241, 0.2);
+		word-break: break-word;
+	}
+
+	@keyframes tooltipSlideIn {
 		from {
 			opacity: 0;
-			transform: translateY(4px);
+			transform: translateY(-4px) scale(0.95);
 		}
 		to {
 			opacity: 1;
-			transform: translateY(0);
+			transform: translateY(0) scale(1);
 		}
 	}
 
