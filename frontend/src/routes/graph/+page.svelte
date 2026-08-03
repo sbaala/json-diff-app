@@ -16,7 +16,6 @@
 	let jsonInput = $state('');
 	let graphData = $state<GraphNode | null>(null);
 	let error = $state<string | null>(null);
-	let selectedNode = $state<GraphNode | null>(null);
 	let hoveredNode = $state<GraphNode | null>(null);
 	let tooltipX = $state(0);
 	let tooltipY = $state(0);
@@ -134,7 +133,7 @@
 	}
 
 	function selectNode(node: GraphNode) {
-		selectedNode = node;
+		// Just for future reference if needed, node details not shown
 	}
 
 	function handleWheel(e: WheelEvent) {
@@ -294,7 +293,7 @@
 		</div>
 	{/if}
 
-	<div class="graph-layout" class:maximized={isMaximized} class:has-sidebar={selectedNode !== null}>
+	<div class="graph-layout" class:maximized={isMaximized}>
 		{#if !isMaximized}
 			<div class="input-panel card">
 				<div class="panel-header">
@@ -443,7 +442,6 @@
 									<!-- Node card with click -->
 									<g
 										class="node-card"
-										class:selected={selectedNode?.id === node.id}
 										class:hovered={hoveredNode?.id === node.id}
 										onmouseenter={() => (hoveredNode = node)}
 										onmouseleave={() => (hoveredNode = null)}
@@ -549,47 +547,6 @@
 			</div>
 		</div>
 
-		{#if selectedNode}
-			<div class="node-sidebar">
-				<div class="sidebar-header">
-					<h3>Node Details</h3>
-					<button
-						class="close-btn"
-						onclick={() => (selectedNode = null)}
-						title="Close"
-					>
-						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<line x1="18" y1="6" x2="6" y2="18"></line>
-							<line x1="6" y1="6" x2="18" y2="18"></line>
-						</svg>
-					</button>
-				</div>
-				<div class="sidebar-content">
-					<div class="detail-section">
-						<div class="detail-row">
-							<span class="detail-label">Key</span>
-							<span class="detail-value">{selectedNode.label}</span>
-						</div>
-						<div class="detail-row">
-							<span class="detail-label">Type</span>
-							<span class="detail-value type-badge" style="color: {getNodeColor(selectedNode.type)}">{selectedNode.type}</span>
-						</div>
-						{#if selectedNode.value}
-							<div class="detail-row">
-								<span class="detail-label">Value</span>
-								<span class="detail-value monospace">{selectedNode.value}</span>
-							</div>
-						{/if}
-						{#if selectedNode.children.length > 0}
-							<div class="detail-row">
-								<span class="detail-label">Children</span>
-								<span class="detail-value">{selectedNode.children.length}</span>
-							</div>
-						{/if}
-					</div>
-				</div>
-			</div>
-		{/if}
 	</div>
 </div>
 
@@ -639,13 +596,6 @@
 		gap: 0;
 	}
 
-	.graph-layout.has-sidebar {
-		grid-template-columns: 350px 1fr 300px;
-	}
-
-	.graph-layout.maximized.has-sidebar {
-		grid-template-columns: 1fr 300px;
-	}
 
 	.input-panel,
 	.graph-panel {
@@ -781,28 +731,11 @@
 		r: 5;
 	}
 
-	.node-card.selected .node-bg {
-		opacity: 0.3;
-		stroke-width: 2.5;
-		filter: drop-shadow(0 0 10px currentColor);
-	}
-
-	.node-card.selected circle:first-child {
-		filter: drop-shadow(0 0 6px currentColor);
-		opacity: 1;
-		r: 5.5;
-	}
-
 	/* Light theme specific styles */
 	@media (prefers-color-scheme: light) {
 		.node-card:hover .node-bg {
 			opacity: 0.18;
 			filter: brightness(0.95) saturate(1.3);
-		}
-
-		.node-card.selected .node-bg {
-			opacity: 0.22;
-			filter: brightness(0.92);
 		}
 	}
 
@@ -955,145 +888,11 @@
 		margin-bottom: 0.5rem;
 	}
 
-	.node-sidebar {
-		display: flex;
-		flex-direction: column;
-		background: var(--color-surface);
-		border-left: 1px solid var(--color-border);
-		border-radius: 8px;
-		overflow: hidden;
-		box-shadow: -2px 0 12px rgba(0, 0, 0, 0.1);
-	}
-
-	.sidebar-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.875rem 1rem;
-		border-bottom: 1px solid var(--color-border);
-		background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(139, 92, 246, 0.02));
-	}
-
-	.sidebar-header h3 {
-		font-size: 0.9rem;
-		font-weight: 600;
-		margin: 0;
-		background: linear-gradient(135deg, #6366f1, #8b5cf6);
-		-webkit-background-clip: text;
-		background-clip: text;
-		color: transparent;
-	}
-
-	.close-btn {
-		background: transparent;
-		border: none;
-		color: var(--color-text-muted);
-		cursor: pointer;
-		padding: 0.375rem;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: 5px;
-		transition: all 0.2s ease;
-	}
-
-	.close-btn:hover {
-		background: rgba(99, 102, 241, 0.1);
-		color: var(--color-primary);
-	}
-
-	.sidebar-content {
-		flex: 1;
-		overflow-y: auto;
-		padding: 1rem;
-	}
-
-	.sidebar-content::-webkit-scrollbar {
-		width: 6px;
-	}
-
-	.sidebar-content::-webkit-scrollbar-track {
-		background: transparent;
-	}
-
-	.sidebar-content::-webkit-scrollbar-thumb {
-		background: var(--color-border);
-		border-radius: 3px;
-	}
-
-	.sidebar-content::-webkit-scrollbar-thumb:hover {
-		background: var(--color-text-muted);
-	}
-
-	.detail-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.875rem;
-	}
-
-	.detail-row {
-		display: flex;
-		flex-direction: column;
-		gap: 0.375rem;
-		font-size: 0.875rem;
-	}
-
-	.detail-label {
-		color: var(--color-text-muted);
-		font-weight: 600;
-		font-size: 0.7rem;
-		text-transform: uppercase;
-		letter-spacing: 0.6px;
-	}
-
-	.detail-value {
-		color: var(--color-text);
-		word-break: break-all;
-		padding: 0.5rem 0.625rem;
-		background: rgba(99, 102, 241, 0.08);
-		border-radius: 5px;
-		border: 1px solid rgba(99, 102, 241, 0.2);
-		font-size: 0.85rem;
-		line-height: 1.4;
-	}
-
-	.detail-value.monospace {
-		font-family: var(--font-mono);
-		font-size: 0.78rem;
-		word-break: break-word;
-	}
-
-	.type-badge {
-		font-weight: 700;
-		text-transform: capitalize;
-		letter-spacing: 0.3px;
-	}
-
-	@media (max-width: 1200px) {
-		.graph-layout.has-sidebar {
-			grid-template-columns: 350px 1fr;
-		}
-
-		.node-sidebar {
-			position: fixed;
-			right: 0;
-			top: 0;
-			bottom: 0;
-			width: 300px;
-			border-radius: 0;
-			border-left: 1px solid var(--color-border);
-			z-index: 10;
-		}
-	}
 
 	@media (max-width: 900px) {
 		.graph-layout {
 			grid-template-columns: 1fr;
 			height: auto;
-		}
-
-		.graph-layout.has-sidebar {
-			grid-template-columns: 1fr;
 		}
 
 		.input-panel {
@@ -1102,18 +901,6 @@
 
 		.graph-panel {
 			min-height: 500px;
-		}
-
-		.node-sidebar {
-			position: fixed;
-			right: 0;
-			top: 0;
-			bottom: 0;
-			width: 100%;
-			max-width: 300px;
-			border-radius: 0;
-			border-left: 1px solid var(--color-border);
-			z-index: 10;
 		}
 	}
 </style>
