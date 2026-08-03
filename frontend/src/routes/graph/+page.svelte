@@ -19,6 +19,15 @@
 	let hoveredNode = $state<GraphNode | null>(null);
 	let tooltipX = $state(0);
 	let tooltipY = $state(0);
+	let copiedToClipboard = $state(false);
+
+	function copyToClipboard(text: string) {
+		navigator.clipboard.writeText(text);
+		copiedToClipboard = true;
+		setTimeout(() => {
+			copiedToClipboard = false;
+		}, 2000);
+	}
 	let scale = $state(1);
 	let panX = $state(0);
 	let panY = $state(0);
@@ -128,6 +137,10 @@
 		node.expanded = !node.expanded;
 		if (graphData) {
 			layoutGraph(graphData);
+			// If toggling root node, center the view
+			if (node === graphData) {
+				centerGraph();
+			}
 		}
 		graphData = graphData; // Trigger reactivity
 	}
@@ -389,9 +402,29 @@
 
 						{#if hoveredNode.value}
 							<div class="tooltip-section">
-								<div class="tooltip-label">Value</div>
-								<div class="tooltip-value monospace">
-									{hoveredNode.value}
+								<div class="tooltip-row">
+									<div>
+										<div class="tooltip-label">Value</div>
+										<div class="tooltip-value monospace">
+											{hoveredNode.value}
+										</div>
+									</div>
+									<button
+										class="copy-btn"
+										onclick={() => copyToClipboard(hoveredNode.value || '')}
+										title="Copy value"
+									>
+										{#if copiedToClipboard}
+											<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+												<polyline points="20 6 9 17 4 12"></polyline>
+											</svg>
+										{:else}
+											<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+												<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+												<rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+											</svg>
+										{/if}
+									</button>
 								</div>
 							</div>
 						{/if}
@@ -828,6 +861,17 @@
 		margin-bottom: 0;
 	}
 
+	.tooltip-row {
+		display: flex;
+		gap: 0.5rem;
+		align-items: flex-start;
+	}
+
+	.tooltip-row > div {
+		flex: 1;
+		min-width: 0;
+	}
+
 	.tooltip-label {
 		font-size: 0.7rem;
 		font-weight: 700;
@@ -853,6 +897,31 @@
 		border-radius: 4px;
 		border: 1px solid rgba(99, 102, 241, 0.2);
 		word-break: break-word;
+	}
+
+	.copy-btn {
+		background: transparent;
+		border: 1px solid rgba(99, 102, 241, 0.3);
+		color: var(--color-text-muted);
+		cursor: pointer;
+		padding: 0.375rem 0.5rem;
+		border-radius: 4px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.2s ease;
+		flex-shrink: 0;
+		margin-top: 1.2rem;
+	}
+
+	.copy-btn:hover {
+		background: rgba(99, 102, 241, 0.15);
+		border-color: var(--color-primary);
+		color: var(--color-primary);
+	}
+
+	.copy-btn:active {
+		transform: scale(0.95);
 	}
 
 	@keyframes tooltipSlideIn {
