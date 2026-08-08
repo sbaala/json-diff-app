@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { BrandMark, BrandLockup } from '$lib/components';
-	const CONTACT_EMAIL = 'tamizhezhutthu@gmail.com';
+	const CONTACT_EMAIL = 'vinmi.tech@gmail.com';
 
 	const services = [
 		{
