@@ -494,6 +494,343 @@
 		img.src = svg64;
 	}
 
+	function escapeHtml(s: string): string {
+		return s
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;');
+	}
+
+	// Serialise the current diagram to SVG markup for the standalone export.
+	// Nodes/edges carry their flow ids as data attributes so the exported page's
+	// script can reproduce the editor's click-to-highlight behaviour without
+	// re-implementing the layout.
+	function buildDiagramSvgMarkup(): string {
+		const { nodes, edges } = activeTab.diagram;
+		const parts: string[] = [];
+
+		for (const edge of edges) {
+			const pts = getEdgePoints(edge.from, edge.to);
+			if (!pts) continue;
+			parts.push(
+				`<g class="edge-group" data-flow="${escapeHtml(edge.flow)}">` +
+					`<path class="edge" d="${pts.path}" fill="none" marker-end="url(#arrowhead)" />` +
+					(edge.label
+						? `<text class="edge-label" x="${(pts.x1 + pts.x2) / 2}" y="${(pts.y1 + pts.y2) / 2 - 8}" ` +
+							`text-anchor="middle" font-size="12" font-weight="600">${escapeHtml(edge.label)}</text>`
+						: '') +
+					`</g>`
+			);
+		}
+
+		for (const node of nodes) {
+			const c = getNodeColor(node.type);
+			const body =
+				node.type === 'decision'
+					? `<polygon class="node-body" points="0,${-node.h * 0.7} ${node.w / 2},0 0,${node.h * 0.7} ${-node.w / 2},0" ` +
+						`fill="${c.fill}" stroke="${c.stroke}" stroke-width="1.5" />`
+					: `<rect class="node-body" x="${-node.w / 2}" y="${-node.h / 2}" width="${node.w}" height="${node.h}" rx="8" ` +
+						`fill="${c.fill}" stroke="${c.stroke}" stroke-width="1.5" />`;
+			parts.push(
+				`<g class="node" data-node-id="${escapeHtml(node.id)}" data-flows="${escapeHtml(node.flows.join(' '))}" ` +
+					`transform="translate(${node.x}, ${node.y})" tabindex="0" role="button">` +
+					body +
+					`<text class="node-label" text-anchor="middle" y="0" dominant-baseline="middle" fill="${c.stroke}" ` +
+					`font-weight="500" font-size="13" pointer-events="none">${escapeHtml(node.label)}</text>` +
+					`</g>`
+			);
+		}
+
+		return parts.join('\n');
+	}
+
+	// Export the diagram as a single self-contained .html file: inline SVG,
+	// inline CSS with the current theme's colours resolved, and a small vanilla
+	// script for click-to-highlight, zoom and pan. No network requests, so it
+	// works offline and can be emailed or embedded in an iframe as-is.
+	function exportHTML() {
+		const { nodes, edges } = activeTab.diagram;
+		if (nodes.length === 0) return;
+
+		const cs = svgElement ? getComputedStyle(svgElement) : null;
+		const v = (name: string, fallback: string) =>
+			(cs?.getPropertyValue(name).trim() || fallback);
+		const bg = v('--color-bg', '#0f172a');
+		const surface = v('--color-surface', '#1a2646');
+		const border = v('--color-border', '#334155');
+		const primary = v('--color-primary', '#3b82f6');
+		const text = v('--color-text', '#e2e8f0');
+		const muted = v('--color-text-muted', '#94a3b8');
+
+		const pad = 60;
+		const minX = Math.min(...nodes.map(n => n.x - n.w / 2)) - pad;
+		const maxX = Math.max(...nodes.map(n => n.x + n.w / 2)) + pad;
+		const minY = Math.min(...nodes.map(n => n.y - n.h * 0.7)) - pad;
+		const maxY = Math.max(...nodes.map(n => n.y + n.h * 0.7)) + pad;
+		const width = Math.max(1, maxX - minX);
+		const height = Math.max(1, maxY - minY);
+		const cx = minX + width / 2;
+		const cy = minY + height / 2;
+
+		const flowCount = new Set(edges.map(e => e.flow)).size;
+		const title = activeTab.name;
+
+		// Node/edge lookup for the exported page's info panel. Keys match the
+		// data attributes emitted by buildDiagramSvgMarkup.
+		const nodeMeta = Object.fromEntries(
+			nodes.map(n => [
+				n.id,
+				{
+					label: n.label,
+					type: n.type,
+					flows: n.flows,
+					inCount: edges.filter(e => e.to === n.id).length,
+					outCount: edges.filter(e => e.from === n.id).length
+				}
+			])
+		);
+		// A closing script tag inside the JSON would end the exported page's
+		// inline script early, so escape every `<` as a unicode sequence.
+		const metaJson = JSON.stringify(nodeMeta).replace(/</g, '\\u003c');
+
+		const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Flow: ${escapeHtml(title)}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: ${bg};
+    color: ${text};
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 0.75rem 1.25rem;
+    background: ${surface};
+    border-bottom: 1px solid ${border};
+    flex-shrink: 0;
+  }
+  h1 { font-size: 1.05rem; font-weight: 600; }
+  .sub { font-size: 0.75rem; color: ${muted}; margin-top: 0.15rem; }
+  .controls { display: flex; align-items: center; gap: 0.5rem; }
+  button {
+    background: ${bg}; border: 1px solid ${border}; color: ${text};
+    padding: 0.4rem 0.7rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer;
+  }
+  button:hover { background: ${primary}; border-color: ${primary}; color: #fff; }
+  .zoom { font-size: 0.8rem; color: ${muted}; min-width: 48px; text-align: center; }
+  main { flex: 1; display: flex; min-height: 0; }
+  aside {
+    width: 260px; flex-shrink: 0; padding: 1rem;
+    background: ${surface}; border-right: 1px solid ${border};
+    overflow-y: auto; font-size: 0.85rem;
+  }
+  aside h2 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: ${muted}; margin-bottom: 0.6rem; }
+  .stat-row { display: flex; justify-content: space-between; padding: 0.3rem 0; border-bottom: 1px solid ${border}; }
+  .stat-row span:last-child { color: ${primary}; font-weight: 600; }
+  .panel { margin-top: 1.25rem; }
+  .hint { color: ${muted}; font-size: 0.78rem; line-height: 1.5; }
+  .legend { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .canvas-wrap { flex: 1; min-width: 0; position: relative; }
+  svg { width: 100%; height: 100%; display: block; cursor: grab; }
+  svg.dragging { cursor: grabbing; }
+  .node { cursor: pointer; transition: opacity 0.25s ease; }
+  .node-body { filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15)); transition: all 0.2s ease; }
+  .node.selected .node-body { stroke-width: 3; }
+  .node.faded, .edge-group.faded { opacity: 0.15; }
+  .edge { stroke: ${border}; stroke-width: 1.5; fill: none; stroke-dasharray: 6 6; animation: dash 0.8s linear infinite; }
+  .edge-group.highlighted .edge { stroke: ${primary}; stroke-width: 2.5; }
+  .edge-label { fill: ${muted}; }
+  .edge-group.highlighted .edge-label { fill: ${primary}; }
+  .edge-group { transition: opacity 0.25s ease; }
+  @keyframes dash { to { stroke-dashoffset: -16; } }
+  @media (prefers-reduced-motion: reduce) { .edge { animation: none; } }
+  @media (max-width: 720px) { aside { display: none; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>${escapeHtml(title)}</h1>
+    <div class="sub">Interactive flow diagram &middot; works offline</div>
+  </div>
+  <div class="controls">
+    <span class="zoom" id="zoom-level">100%</span>
+    <button id="btn-out" title="Zoom out">&minus;</button>
+    <button id="btn-in" title="Zoom in">+</button>
+    <button id="btn-reset" title="Reset view">Reset</button>
+  </div>
+</header>
+<main>
+  <aside>
+    <h2>Diagram</h2>
+    <div class="stat-row"><span>Flows</span><span>${flowCount}</span></div>
+    <div class="stat-row"><span>Nodes</span><span>${nodes.length}</span></div>
+    <div class="stat-row"><span>Connections</span><span>${edges.length}</span></div>
+
+    <div class="panel">
+      <h2>Selection</h2>
+      <div id="selection"><p class="hint">Click any node to highlight the flows that pass through it.</p></div>
+    </div>
+
+    <div class="panel">
+      <h2>Legend</h2>
+      <div class="legend"><span class="swatch" style="background:#D6F5E6;border:1px solid #0E9F6E"></span> Start</div>
+      <div class="legend"><span class="swatch" style="background:#E6F1FB;border:1px solid #185FA5"></span> Process</div>
+      <div class="legend"><span class="swatch" style="background:#FEF0D8;border:1px solid #B7791F"></span> Decision</div>
+      <div class="legend"><span class="swatch" style="background:#FDE0E0;border:1px solid #C0392B"></span> End</div>
+    </div>
+
+    <div class="panel">
+      <h2>Controls</h2>
+      <p class="hint">Scroll to zoom &middot; drag to pan &middot; click a node to filter.</p>
+    </div>
+  </aside>
+
+  <div class="canvas-wrap">
+    <svg id="flow-svg" viewBox="${minX} ${minY} ${width} ${height}" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse">
+          <path d="M1 1L7 4L1 7" fill="none" stroke="${border}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </marker>
+      </defs>
+      <g id="viewport">
+${buildDiagramSvgMarkup()}
+      </g>
+    </svg>
+  </div>
+</main>
+<script>
+(function () {
+  var META = ${metaJson};
+  var svg = document.getElementById('flow-svg');
+  var viewport = document.getElementById('viewport');
+  var zoomLabel = document.getElementById('zoom-level');
+  var selectionPanel = document.getElementById('selection');
+  var nodeEls = Array.prototype.slice.call(svg.querySelectorAll('.node'));
+  var edgeEls = Array.prototype.slice.call(svg.querySelectorAll('.edge-group'));
+  var CX = ${cx}, CY = ${cy};
+  var state = { selected: null, scale: 1, panX: 0, panY: 0, dragging: false, startX: 0, startY: 0 };
+
+  function applyTransform() {
+    viewport.setAttribute('transform',
+      'translate(' + state.panX + ' ' + state.panY + ') ' +
+      'translate(' + CX + ' ' + CY + ') scale(' + state.scale + ') ' +
+      'translate(' + (-CX) + ' ' + (-CY) + ')');
+    zoomLabel.textContent = Math.round(state.scale * 100) + '%';
+  }
+
+  function escapeText(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function render() {
+    var meta = state.selected ? META[state.selected] : null;
+    var flows = meta ? meta.flows : null;
+
+    nodeEls.forEach(function (el) {
+      var on = !flows || (el.getAttribute('data-flows') || '').split(' ').some(function (f) {
+        return flows.indexOf(f) !== -1;
+      });
+      el.classList.toggle('faded', !!flows && !on);
+      el.classList.toggle('selected', el.getAttribute('data-node-id') === state.selected);
+    });
+
+    edgeEls.forEach(function (el) {
+      var on = !flows || flows.indexOf(el.getAttribute('data-flow')) !== -1;
+      el.classList.toggle('highlighted', !!flows && on);
+      el.classList.toggle('faded', !!flows && !on);
+    });
+
+    if (!meta) {
+      selectionPanel.innerHTML = '<p class="hint">Click any node to highlight the flows that pass through it.</p>';
+    } else {
+      selectionPanel.innerHTML =
+        '<div class="stat-row"><span>Node</span><span>' + escapeText(meta.label) + '</span></div>' +
+        '<div class="stat-row"><span>Type</span><span>' + escapeText(meta.type) + '</span></div>' +
+        '<div class="stat-row"><span>Flows</span><span>' + meta.flows.length + '</span></div>' +
+        '<div class="stat-row"><span>Incoming</span><span>' + meta.inCount + '</span></div>' +
+        '<div class="stat-row"><span>Outgoing</span><span>' + meta.outCount + '</span></div>';
+    }
+  }
+
+  nodeEls.forEach(function (el) {
+    el.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var id = el.getAttribute('data-node-id');
+      state.selected = state.selected === id ? null : id;
+      render();
+    });
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+    });
+  });
+
+  svg.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    state.scale = Math.max(0.2, Math.min(4, state.scale * (e.deltaY > 0 ? 0.9 : 1.1)));
+    applyTransform();
+  }, { passive: false });
+
+  svg.addEventListener('mousedown', function (e) {
+    if (e.button !== 0) return;
+    state.dragging = true;
+    state.startX = e.clientX - state.panX;
+    state.startY = e.clientY - state.panY;
+    svg.classList.add('dragging');
+  });
+
+  window.addEventListener('mousemove', function (e) {
+    if (!state.dragging) return;
+    state.panX = e.clientX - state.startX;
+    state.panY = e.clientY - state.startY;
+    applyTransform();
+  });
+
+  window.addEventListener('mouseup', function () {
+    state.dragging = false;
+    svg.classList.remove('dragging');
+  });
+
+  svg.addEventListener('click', function (e) {
+    if (e.target === svg) { state.selected = null; render(); }
+  });
+
+  document.getElementById('btn-in').addEventListener('click', function () {
+    state.scale = Math.min(4, state.scale * 1.2); applyTransform();
+  });
+  document.getElementById('btn-out').addEventListener('click', function () {
+    state.scale = Math.max(0.2, state.scale / 1.2); applyTransform();
+  });
+  document.getElementById('btn-reset').addEventListener('click', function () {
+    state.scale = 1; state.panX = 0; state.panY = 0; state.selected = null;
+    applyTransform(); render();
+  });
+
+  applyTransform();
+  render();
+})();
+<\/script>
+</body>
+</html>`;
+
+		const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+		const url = URL.createObjectURL(blob);
+		downloadFile(url, `${fileBaseName()}.html`);
+		URL.revokeObjectURL(url);
+	}
+
 	function toggleCanvasMaximize() {
 		canvasMaximized = !canvasMaximized;
 		requestAnimationFrame(() => centerGraph());
@@ -563,6 +900,7 @@
 			<button class="icon-btn" onclick={resetView} title="Reset zoom & pan">↺</button>
 			<button class="icon-btn" onclick={toggleCanvasMaximize} title="Maximize diagram">⛶</button>
 			<button class="icon-btn" onclick={exportImage} title="Export as PNG image">🖼</button>
+			<button class="icon-btn" onclick={exportHTML} title="Export as interactive HTML (works offline)">📄</button>
 			<button class="icon-btn" onclick={exportDiagram} title="Export as JSON">⬇</button>
 		</div>
 	</header>
@@ -707,6 +1045,7 @@
 					<span class="zoom-level">{Math.round(activeTab.scale * 100)}%</span>
 					<button class="icon-btn" onclick={resetView} title="Reset zoom & pan">↺</button>
 					<button class="icon-btn" onclick={exportImage} title="Export as PNG image">🖼</button>
+					<button class="icon-btn" onclick={exportHTML} title="Export as interactive HTML (works offline)">📄</button>
 					<button class="icon-btn" onclick={exportDiagram} title="Export as JSON">⬇</button>
 					<button class="icon-btn minimize-btn" onclick={toggleCanvasMaximize} title="Minimize diagram">⤡ Minimize</button>
 				</div>
