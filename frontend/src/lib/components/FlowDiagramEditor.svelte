@@ -46,14 +46,67 @@
 	const ROW_HEIGHT = 100;
 
 	const DEFAULT_ENGLISH =
-		'Request in - Validate - Manual review - Done\nRequest in - Auto-approve - Done\nRequest in - Validate - Reject - Done';
+		'Claim submitted - Verify eligibility - [\n  Assessment required - Assign adjuster - Review claim - Approve claim\n  Pre-approved category - Expedited review - Approve claim\n  Missing documents - Request info - Receive docs - Review claim - Approve claim\n] - Process payment - Send confirmation';
 
 	function nodeWidth(label: string): number {
 		return Math.max(90, Math.min(200, label.length * 8 + 40));
 	}
 
+	// Parse a string like "step1 - step2 → step3" into an array of step labels
+	function parseSteps(line: string): string[] {
+		return line
+			.split(/\s*(?:->|—>|➔|➜|→|>)\s*|\s+-\s+/)
+			.map(p => p.trim())
+			.filter(p => p && p !== '[' && p !== ']');
+	}
+
+	// Expand bracket notation: "A - B - [C, D, E] - F" → ["A - B - C - F", "A - B - D - F", "A - B - E - F"]
+	function expandBrackets(text: string): string[] {
+		// Check if there are any brackets in the text
+		if (!text.includes('[')) {
+			return [text];
+		}
+
+		const bracketRegex = /([^\[\]]*)\[\s*([\s\S]*?)\s*\]([^\[\]]*)/;
+		const match = text.match(bracketRegex);
+
+		if (!match) {
+			return [text];
+		}
+
+		let prefix = match[1].trim();
+		const branchesText = match[2];
+		let suffix = match[3].trim();
+
+		// Remove trailing " - " from prefix if present
+		prefix = prefix.replace(/\s*-\s*$/, '');
+		// Remove leading " - " from suffix if present
+		suffix = suffix.replace(/^\s*-\s*/, '');
+
+		// Split branches by newline or by finding top-level commas not in nested brackets
+		const branches = branchesText
+			.split('\n')
+			.map(b => b.trim())
+			.filter(b => b)
+			.map(branch => {
+				// Recursively expand nested brackets in each branch
+				const expanded = expandBrackets(branch);
+				return expanded.map(exp => {
+					// Concatenate: prefix + branch + suffix, removing empty parts
+					const parts = [prefix, exp, suffix].filter(p => p);
+					return parts.join(' - ');
+				});
+			})
+			.flat();
+
+		// Recursively expand any remaining brackets in the results
+		return branches.flatMap(b => expandBrackets(b));
+	}
+
 	function parseEnglish(text: string): FlowDiagram {
-		const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+		// First, expand all bracket notation into individual flows
+		const expandedFlows = expandBrackets(text).filter(f => f.trim());
+
 		const nodeMap = new Map<string, FlowNode>();
 		const edges: FlowEdge[] = [];
 		let nodeId = 0;
@@ -71,19 +124,20 @@
 			return id;
 		};
 
-		lines.forEach((line, lineIndex) => {
+		// Process each expanded flow
+		expandedFlows.forEach((flowText, flowIndex) => {
 			// Accept arrows (→, ->, —>, ➔, ➜) or a spaced hyphen ( - ) as step
 			// separators. The spaced-hyphen rule preserves hyphenated words
 			// like "Auto-approve" and "Request-in".
-			const parts = line
+			const parts = flowText
 				.split(/\s*(?:->|—>|➔|➜|→|>)\s*|\s+-\s+/)
 				.map(p => p.trim())
-				.filter(p => p);
+				.filter(p => p && p !== '[' && p !== ']');
 			if (parts.length < 2) return;
-			const flowId = `f${lineIndex + 1}`;
+			const flowId = `f${flowIndex + 1}`;
 
-			// Create every node on this line first, collecting ids in order, so
-			// that edges can reference targets that appear later in the line.
+			// Create every node on this flow first, collecting ids in order, so
+			// that edges can reference targets that appear later in the flow.
 			const ids = parts.map((label, i) => {
 				let type: 'start' | 'end' | 'process' | 'decision' | 'data' = 'process';
 				if (i === 0) type = 'start';
@@ -561,16 +615,16 @@
 
 				{#if activeTab.inputMode === 'english'}
 					<div class="input-section">
-						<label for="flow-english-input">Describe your flows (one per line):</label>
+						<label for="flow-english-input">Describe your flows:</label>
 						<textarea
 							id="flow-english-input"
 							class="text-input"
 							bind:value={activeTab.englishInput}
-							placeholder="Request in - Validate - Manual review - Done&#10;Request in - Auto-approve - Done&#10;Request in - Reject - Done"
+							placeholder="Claim submitted - Verify eligibility - [&#10;  Assessment required - Assign adjuster - Approve&#10;  Pre-approved - Expedited review - Approve&#10;  Missing docs - Request info - Approve&#10;] - Process payment - Done"
 							spellcheck="false"
 						></textarea>
 						<div class="help-text">
-							Connect steps with <strong>-&gt;</strong>, <strong>→</strong>, or a spaced <strong>-</strong> (one flow per line). First step is start (green), last is end (red), others are process (blue). Add a <strong>?</strong> to a label to make it a decision diamond.
+							<strong>Steps:</strong> Connect with <strong>→</strong>, <strong>-&gt;</strong>, or <strong>-</strong> | <strong>Branches:</strong> Use <strong>[ ]</strong> for alternatives (one per line) | <strong>Decision:</strong> Add <strong>?</strong> to any label | Start nodes are green, end nodes are red, decisions are diamonds.
 						</div>
 					</div>
 				{:else}
