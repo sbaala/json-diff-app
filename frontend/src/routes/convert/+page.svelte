@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { BrandBadge } from '$lib/components';
 	// Mode: json-to-format or values-to-json
 	let mode = $state<'json-to-format' | 'values-to-json'>('json-to-format');
 
@@ -253,8 +254,11 @@
 
 <div class="container">
 	<div class="page-header">
-		<h1>JSON Converter</h1>
-		<p>Convert JSON to XML, CSV, or YAML — or convert values to quoted JSON</p>
+		<BrandBadge />
+		<div class="page-header-copy">
+			<h1>JSON Converter</h1>
+			<p>Convert JSON to XML, CSV, or YAML — or convert values to quoted JSON</p>
+		</div>
 	</div>
 
 	<!-- Mode switcher -->
@@ -443,6 +447,9 @@
 
 <style>
 	.page-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
 		margin-bottom: 0.75rem;
 	}
 

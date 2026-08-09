@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BrandMark from './BrandMark.svelte';
 	import { onMount } from 'svelte';
 
 	interface FlowNode {
@@ -495,6 +496,9 @@
 					▶
 				{/if}
 			</button>
+			<span class="header-mark" aria-hidden="true">
+				<BrandMark size={32} variant="tile" title="" />
+			</span>
 			<div class="header-title">
 				<h1>Flow Diagram Builder</h1>
 				<p>Design workflows with drag-and-drop</p>
@@ -885,6 +889,14 @@
 
 	.sidebar-toggle:hover {
 		color: var(--color-primary);
+	}
+
+	.header-mark {
+		display: grid;
+		place-items: center;
+		border-radius: 8px;
+		overflow: hidden;
+		line-height: 0;
 	}
 
 	.header-title h1 {

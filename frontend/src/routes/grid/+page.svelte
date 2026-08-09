@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { BrandBadge } from '$lib/components';
 	import { tick } from 'svelte';
 
 	// Tab interface
@@ -672,6 +673,7 @@
 
 <div class="container">
 	<div class="page-header">
+		<BrandBadge />
 		<div class="header-info">
 			<h2>JSON Grid Viewer</h2>
 			<p>View JSON data in table format with column filters</p>
@@ -1321,11 +1323,10 @@
 
 	.page-header {
 		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
+		align-items: center;
 		margin-bottom: 0.75rem;
 		flex-wrap: wrap;
-		gap: 1rem;
+		gap: 0.75rem;
 	}
 
 	.header-info h2 {
@@ -1338,6 +1339,7 @@
 	}
 
 	.header-actions {
+		margin-left: auto;
 		display: flex;
 		gap: 0.5rem;
 		flex-wrap: wrap;

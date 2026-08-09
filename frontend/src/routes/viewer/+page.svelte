@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { BrandBadge } from '$lib/components';
 	import JsonTreeNode from '$lib/components/JsonTreeNode.svelte';
 
 	let jsonInput = $state('');
@@ -139,8 +140,11 @@
 
 <div class="container">
 	<div class="page-header">
-		<h1>JSON Viewer</h1>
-		<p>Explore and navigate JSON data with an interactive tree view</p>
+		<BrandBadge />
+		<div class="page-header-copy">
+			<h1>JSON Viewer</h1>
+			<p>Explore and navigate JSON data with an interactive tree view</p>
+		</div>
 	</div>
 
 	<div class="viewer-layout">
@@ -269,6 +273,9 @@
 
 <style>
 	.page-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
 		margin-bottom: 0.75rem;
 	}
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { BrandBadge } from '$lib/components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import {
@@ -199,8 +200,11 @@
 
 <div class="container">
 	<div class="page-header">
-		<h1>JSON Visualizer</h1>
-		<p>Paste JSON — intelligent chart suggestions from your data's shape, basic to advanced</p>
+		<BrandBadge />
+		<div class="page-header-copy">
+			<h1>JSON Visualizer</h1>
+			<p>Paste JSON — intelligent chart suggestions from your data's shape, basic to advanced</p>
+		</div>
 	</div>
 
 	<div class="viz-layout">
@@ -413,6 +417,9 @@
 
 <style>
 	.page-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
 		margin-bottom: 0.75rem;
 	}
 

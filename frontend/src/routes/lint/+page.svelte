@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { BrandBadge } from '$lib/components';
 	interface LintIssue {
 		line: number;
 		column: number;
@@ -273,8 +274,11 @@
 
 <div class="container">
 	<div class="page-header">
-		<h1>JSON Lint & Fix</h1>
-		<p>Validate JSON and automatically fix common errors</p>
+		<BrandBadge />
+		<div class="page-header-copy">
+			<h1>JSON Lint & Fix</h1>
+			<p>Validate JSON and automatically fix common errors</p>
+		</div>
 	</div>
 
 	<div class="lint-layout">
@@ -374,6 +378,9 @@
 
 <style>
 	.page-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
 		margin-bottom: 0.75rem;
 	}
 

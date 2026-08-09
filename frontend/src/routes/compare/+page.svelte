@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { BrandBadge } from '$lib/components';
 	import { JsonEditor, SideBySideDiff, StatsPanel } from '$lib/components';
 	import { compareJson, getStatistics } from '$lib/api';
 	import { computeInlineDiff, type InlineDiffResult } from '$lib/utils/jsonDiff';
@@ -291,6 +292,7 @@
 
 <div class="container">
 	<div class="page-header">
+		<BrandBadge />
 		<div class="header-info">
 			<h2>Compare JSON</h2>
 			<p>
@@ -449,11 +451,10 @@
 <style>
 	.page-header {
 		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
+		align-items: center;
 		margin-bottom: 0.75rem;
 		flex-wrap: wrap;
-		gap: 1rem;
+		gap: 0.75rem;
 	}
 
 	.header-info h2 {
@@ -487,6 +488,7 @@
 	}
 
 	.header-actions {
+		margin-left: auto;
 		display: flex;
 		gap: 0.5rem;
 		flex-wrap: wrap;
