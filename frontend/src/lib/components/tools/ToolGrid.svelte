@@ -16,6 +16,7 @@
 		const iconMap: Record<string, string> = {
 			sparkles: '✨',
 			'check-circle': '✓',
+			database: '🗄️',
 			tree: '🌳',
 			diff: '≠',
 			'arrow-right-left': '↔',

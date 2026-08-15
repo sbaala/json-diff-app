@@ -39,7 +39,7 @@ export const TOOL_CATEGORIES: Record<ToolCategory, CategoryInfo> = {
 };
 
 export const TOOLS: ToolMetadata[] = [
-	// JSON & API Tools (15 tools)
+	// JSON & API Tools (16 tools)
 	{
 		id: 'json-formatter',
 		name: 'JSON Formatter',
@@ -97,6 +97,15 @@ export const TOOLS: ToolMetadata[] = [
 		category: 'json-api',
 		icon: 'arrow-right-left',
 		keywords: ['convert', 'csv', 'spreadsheet', 'table']
+	},
+	{
+		id: 'sql-insert-to-json',
+		name: 'SQL INSERT → JSON',
+		description: 'Convert single or multiple SQL INSERT statements into JSON or CSV',
+		category: 'json-api',
+		icon: 'database',
+		keywords: ['sql', 'insert', 'values', 'dump', 'table', 'csv', 'mysql', 'postgres'],
+		featured: true
 	},
 	{
 		id: 'jsonpath-extractor',

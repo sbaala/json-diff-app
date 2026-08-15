@@ -1,42 +1,81 @@
 <script lang="ts">
 	import { BrandBadge } from '$lib/components';
-	let jsonInput = $state('');
-	let formattedOutput = $state('');
-	let error = $state<string | null>(null);
-	let indentSize = $state(2);
-	let copySuccess = $state(false);
+	import TabBar from '$lib/components/TabBar.svelte';
+	import { createTabManager, type Tab } from '$lib/stores/tabManager';
+
+	interface FormatTabState {
+		jsonInput: string;
+		formattedOutput: string;
+		error: string | null;
+		indentSize: number;
+		copySuccess: boolean;
+	}
+
+	const defaultTabState: FormatTabState = {
+		jsonInput: '',
+		formattedOutput: '',
+		error: null,
+		indentSize: 2,
+		copySuccess: false
+	};
+
+	const tabManager = createTabManager(defaultTabState, 'Format 1');
+	let tabState = $state<{ tabs: Tab<FormatTabState>[]; activeTabId: string }>({ tabs: [], activeTabId: '' });
+
+	$effect.pre(() => {
+		const unsubscribe = tabManager.subscribe((state) => {
+			tabState = state;
+		});
+		return unsubscribe;
+	});
+
+	let tabs = $derived(tabState.tabs);
+	let activeTabId = $derived(tabState.activeTabId);
+	let activeTab = $derived(tabs.find((t) => t.id === activeTabId));
+
+	// Create proxies for reactive state
+	let jsonInput = $derived(activeTab?.state.jsonInput ?? '');
+	let formattedOutput = $derived(activeTab?.state.formattedOutput ?? '');
+	let error = $derived(activeTab?.state.error ?? null);
+	let indentSize = $derived(activeTab?.state.indentSize ?? 2);
+	let copySuccess = $derived(activeTab?.state.copySuccess ?? false);
+
+	function updateActiveTab(newState: Partial<FormatTabState>) {
+		if (!activeTab) return;
+		tabManager.updateTabState(activeTab.id, { ...activeTab.state, ...newState });
+	}
 
 	function formatJson() {
-		error = null;
+		updateActiveTab({ error: null });
 		try {
 			const parsed = JSON.parse(jsonInput);
-			formattedOutput = JSON.stringify(parsed, null, indentSize);
+			updateActiveTab({ formattedOutput: JSON.stringify(parsed, null, indentSize) });
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Invalid JSON';
-			formattedOutput = '';
+			const errorMsg = e instanceof Error ? e.message : 'Invalid JSON';
+			updateActiveTab({ error: errorMsg, formattedOutput: '' });
 		}
 	}
 
 	function minifyJson() {
-		error = null;
+		updateActiveTab({ error: null });
 		try {
 			const parsed = JSON.parse(jsonInput);
-			formattedOutput = JSON.stringify(parsed);
+			updateActiveTab({ formattedOutput: JSON.stringify(parsed) });
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Invalid JSON';
-			formattedOutput = '';
+			const errorMsg = e instanceof Error ? e.message : 'Invalid JSON';
+			updateActiveTab({ error: errorMsg, formattedOutput: '' });
 		}
 	}
 
 	function sortKeys() {
-		error = null;
+		updateActiveTab({ error: null });
 		try {
 			const parsed = JSON.parse(jsonInput);
 			const sorted = sortObjectKeys(parsed);
-			formattedOutput = JSON.stringify(sorted, null, indentSize);
+			updateActiveTab({ formattedOutput: JSON.stringify(sorted, null, indentSize) });
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Invalid JSON';
-			formattedOutput = '';
+			const errorMsg = e instanceof Error ? e.message : 'Invalid JSON';
+			updateActiveTab({ error: errorMsg, formattedOutput: '' });
 		}
 	}
 
@@ -56,49 +95,47 @@
 	}
 
 	function escapeJson() {
-		error = null;
+		updateActiveTab({ error: null });
 		try {
 			const escaped = JSON.stringify(jsonInput);
-			formattedOutput = escaped;
+			updateActiveTab({ formattedOutput: escaped });
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Error escaping JSON';
-			formattedOutput = '';
+			const errorMsg = e instanceof Error ? e.message : 'Error escaping JSON';
+			updateActiveTab({ error: errorMsg, formattedOutput: '' });
 		}
 	}
 
 	function unescapeJson() {
-		error = null;
+		updateActiveTab({ error: null });
 		try {
 			const unescaped = JSON.parse(jsonInput);
 			if (typeof unescaped === 'string') {
-				formattedOutput = unescaped;
+				updateActiveTab({ formattedOutput: unescaped });
 			} else {
-				formattedOutput = JSON.stringify(unescaped, null, indentSize);
+				updateActiveTab({ formattedOutput: JSON.stringify(unescaped, null, indentSize) });
 			}
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Invalid escaped JSON';
-			formattedOutput = '';
+			const errorMsg = e instanceof Error ? e.message : 'Invalid escaped JSON';
+			updateActiveTab({ error: errorMsg, formattedOutput: '' });
 		}
 	}
 
 	async function copyToClipboard() {
 		try {
 			await navigator.clipboard.writeText(formattedOutput);
-			copySuccess = true;
-			setTimeout(() => (copySuccess = false), 2000);
+			updateActiveTab({ copySuccess: true });
+			setTimeout(() => updateActiveTab({ copySuccess: false }), 2000);
 		} catch {
-			error = 'Failed to copy to clipboard';
+			updateActiveTab({ error: 'Failed to copy to clipboard' });
 		}
 	}
 
 	function clearAll() {
-		jsonInput = '';
-		formattedOutput = '';
-		error = null;
+		updateActiveTab({ jsonInput: '', formattedOutput: '', error: null });
 	}
 
 	function loadSample() {
-		jsonInput = JSON.stringify(
+		const sampleJson = JSON.stringify(
 			{
 				name: 'Freebies JSON Tools',
 				version: '1.0.0',
@@ -116,9 +153,38 @@
 			null,
 			2
 		);
+		updateActiveTab({ jsonInput: sampleJson });
 	}
 
-	let lineCount = $derived(formattedOutput.split('\n').length);
+	function handleInputChange(newValue: string) {
+		updateActiveTab({ jsonInput: newValue });
+	}
+
+	function handleOutputChange(newValue: string) {
+		updateActiveTab({ formattedOutput: newValue });
+	}
+
+	function handleIndentChange(newValue: number) {
+		updateActiveTab({ indentSize: newValue });
+	}
+
+	function handleAddTab() {
+		tabManager.addTab(defaultTabState, `Format ${tabs.length + 1}`);
+	}
+
+	function handleSelectTab(id: string) {
+		tabManager.setActiveTab(id);
+	}
+
+	function handleRemoveTab(id: string) {
+		tabManager.removeTab(id);
+	}
+
+	function handleRenameTab(id: string, newName: string) {
+		tabManager.renameTab(id, newName);
+	}
+
+	let lineCount = $derived(formattedOutput?.split('\n').length ?? 1);
 </script>
 
 <svelte:head>
@@ -134,6 +200,17 @@
 		</div>
 	</div>
 
+	{#if tabs && tabs.length > 0}
+		<TabBar
+			{tabs}
+			activeTabId={activeTabId || ''}
+			onSelectTab={handleSelectTab}
+			onAddTab={handleAddTab}
+			onRemoveTab={handleRemoveTab}
+			onRenameTab={handleRenameTab}
+		/>
+	{/if}
+
 	<div class="format-layout">
 		<div class="input-section card">
 			<div class="section-header">
@@ -145,7 +222,9 @@
 			</div>
 			<textarea
 				class="json-input"
-				bind:value={jsonInput}
+				value={jsonInput}
+				onchange={(e) => handleInputChange(e.currentTarget.value)}
+				oninput={(e) => handleInputChange(e.currentTarget.value)}
 				placeholder={`Paste your JSON here...\n\nExample:\n{\n  "key": "value"\n}`}
 				spellcheck="false"
 			></textarea>
@@ -156,7 +235,11 @@
 				<h3>Format Options</h3>
 				<div class="indent-control">
 					<label for="indent">Indent Size:</label>
-					<select id="indent" bind:value={indentSize}>
+					<select
+						id="indent"
+						value={indentSize}
+						onchange={(e) => handleIndentChange(Number(e.currentTarget.value))}
+					>
 						<option value={2}>2 spaces</option>
 						<option value={4}>4 spaces</option>
 						<option value={1}>1 space</option>
@@ -250,7 +333,7 @@
 		display: grid;
 		grid-template-columns: 1fr auto 1fr;
 		gap: 1rem;
-		height: calc(100vh - 220px);
+		height: calc(100vh - 280px);
 		min-height: 500px;
 	}
 

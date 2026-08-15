@@ -1,6 +1,6 @@
 # VinMi — Building Intelligent Enterprise Solutions
 
-A professional full-stack application bundling a suite of JSON & text utilities plus a **65-tool developer dashboard** with a multi-theme design system. Part of the VinMi platform for intelligent enterprise solutions.
+A professional full-stack application bundling a suite of JSON & text utilities plus a **66-tool developer dashboard** with a multi-theme design system. Part of the VinMi platform for intelligent enterprise solutions.
 
 ## Features
 
@@ -9,23 +9,24 @@ A professional full-stack application bundling a suite of JSON & text utilities 
 | Page | Route | Description |
 |------|-------|-------------|
 | **Home** | `/` | VinMi landing page — brand overview, service offerings, toolkit index, and contact |
-| **Tools Dashboard** | `/tools` | 65 client-side developer tools across 5 categories (see below) |
+| **Tools Dashboard** | `/tools` | 66 client-side developer tools across 5 categories (see below) |
 | **Format** | `/format` | Beautify, minify, sort keys, escape/unescape JSON |
 | **Viewer** | `/viewer` | Interactive tree view with search, stats, expand/collapse |
 | **Grid** | `/grid` | Spreadsheet-style table for JSON arrays — per-column filters, column show/hide, CSV export |
 | **JSON Diff** | `/compare` | Side-by-side tree diff with color-coded additions, removals, modifications |
 | **Text Diff** | `/text` | Line-by-line text comparison with unified/split view |
 | **Convert** | `/convert` | JSON ↔ YAML / CSV / XML / TOML conversion |
+| **SQL Inserts** | `/sql` | Single or multiple SQL `INSERT` statements → JSON or a browsable table, with CSV export |
 | **Lint** | `/lint` | JSON schema validation and linting |
 | **Graph** | `/graph` | Visual graph/tree rendering of JSON structure |
 
 ### Tools Dashboard (`/tools`)
 
-A searchable, categorized dashboard of **65 developer tools** that run **100% client-side** — no data ever leaves the browser. Tools are declared in a registry and lazy-loaded on demand.
+A searchable, categorized dashboard of **66 developer tools** that run **100% client-side** — no data ever leaves the browser. Tools are declared in a registry and lazy-loaded on demand.
 
 | Category | Count | Highlights |
 |----------|-------|------------|
-| **JSON & API** | 15 | Formatter, validator, tree viewer, comparator, JSON ↔ YAML/XML/CSV, JSONPath, jq playground, schema generator/validator, GraphQL formatter, Swagger validator, OpenAPI viewer, mock generator |
+| **JSON & API** | 16 | Formatter, validator, tree viewer, comparator, JSON ↔ YAML/XML/CSV, SQL INSERT → JSON, JSONPath, jq playground, schema generator/validator, GraphQL formatter, Swagger validator, OpenAPI viewer, mock generator |
 | **Text Utilities** | 13 | Case converter, base64/HTML/Unicode encoders, JSON escape, text diff, line sorter, whitespace cleaner, regex tester, word counter |
 | **Date & Time** | 9 | Timezone converter, cron parser & builder, business-day calculator, ISO 8601, relative time, timestamp generator |
 | **JWT & Security** | 14 | JWT validator (HMAC verify), OAuth URL builder, ULID generator, password hasher (PBKDF2), AES-256-GCM encrypt/decrypt, self-contained QR code generator |

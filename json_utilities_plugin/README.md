@@ -4,7 +4,7 @@
 
 # VinMi JSON Utilities — VS Code Extension
 
-Brings the VinMi toolkit's 11 full pages and 70 single-purpose tools (JSON,
+Brings the VinMi toolkit's 12 full pages and 66 single-purpose tools (JSON,
 text, date, JWT/security, API) into VS Code, seeded from whatever you have
 open in the editor.
 
@@ -28,7 +28,7 @@ src/          extension host (Node)   — commands, panel, editor bridge
   protocol.ts    host ↔ webview message types
 webview/      webview (browser)       — Svelte 5 UI
   App.svelte     dashboard shell + page/tool host
-  pages.ts       catalog of the 11 full pages
+  pages.ts       catalog of the 12 full pages
   toolBridge.ts  seeds input / reads output across any tool or page layout
 media/        VinMi brand assets      — marketplace icon, editor-tab icon
 ```
@@ -49,7 +49,7 @@ Command Palette entries, all under the **VinMi** category:
 
 | Command | Opens |
 | --- | --- |
-| `VinMi: Run a Tool…` (`Cmd/Ctrl+Alt+J`) | Quick pick over all 11 pages + 70 tools |
+| `VinMi: Run a Tool…` (`Cmd/Ctrl+Alt+J`) | Quick pick over all 12 pages + 66 tools |
 | `VinMi: Open Tools Dashboard` | The dashboard, tool/page catalog |
 | `VinMi: Format JSON` | Formatter page |
 | `VinMi: View JSON Tree` | Tree Viewer page |
@@ -57,6 +57,7 @@ Command Palette entries, all under the **VinMi** category:
 | `VinMi: Compare JSON with…` | Offline JSON Comparator tool (prompts for the second file) |
 | `VinMi: Text Diff` | Text Diff page |
 | `VinMi: Convert JSON to YAML / CSV / XML` | Convert page |
+| `VinMi: Convert SQL INSERTs to JSON` | SQL Inserts page |
 | `VinMi: Lint JSON` | Lint page |
 | `VinMi: Render Structure Graph` | Graph page |
 | `VinMi: Visualize as Charts` | Charts page |
@@ -64,8 +65,9 @@ Command Palette entries, all under the **VinMi** category:
 | `VinMi: Open Spreadsheet` | Spreadsheet page |
 | `VinMi: Validate JSON` | JSON Validator tool |
 
-Also under **VinMi Tools** in the editor right-click menu, and (for Compare)
-the Explorer right-click menu on `.json` files.
+Also under **VinMi Tools** in the editor right-click menu — where the SQL
+entry appears for `.sql` files — and (for Compare) the Explorer right-click
+menu on `.json` files.
 
 > **JSON Diff page vs. Compare command:** the `/compare` **page** (opened from
 > the dashboard) calls the VinMi API and needs a connection. The `VinMi:

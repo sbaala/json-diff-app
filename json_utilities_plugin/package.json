@@ -77,6 +77,11 @@
 				"category": "VinMi"
 			},
 			{
+				"command": "vinmiTools.sql",
+				"title": "Convert SQL INSERTs to JSON",
+				"category": "VinMi"
+			},
+			{
 				"command": "vinmiTools.grid",
 				"title": "Open Grid",
 				"category": "VinMi"
@@ -133,6 +138,11 @@
 					"command": "vinmiTools.compare",
 					"when": "resourceLangId == json || resourceLangId == jsonc",
 					"group": "1_tools@4"
+				},
+				{
+					"command": "vinmiTools.sql",
+					"when": "resourceLangId == sql",
+					"group": "1_tools@5"
 				}
 			],
 			"explorer/context": [

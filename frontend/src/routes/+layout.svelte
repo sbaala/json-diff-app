@@ -19,6 +19,7 @@
 		{ href: '/compare', label: 'JSON Diff' },
 		{ href: '/text', label: 'Text Diff' },
 		{ href: '/convert', label: 'Convert' },
+		{ href: '/sql', label: 'SQL', flash: true },
 		{ href: '/lint', label: 'Lint' },
 		{ href: '/graph', label: 'Graph' },
 		{ href: '/spreadsheet', label: 'Sheets', flash: true },

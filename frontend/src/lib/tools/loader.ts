@@ -9,6 +9,7 @@ const toolMap: Record<string, () => Promise<{ default: any }>> = {
 	'json-to-yaml': () => import('./json-tools/JSONToYaml.svelte'),
 	'json-to-xml': () => import('./json-tools/JSONToXml.svelte'),
 	'json-to-csv': () => import('./json-tools/JSONToCsv.svelte'),
+	'sql-insert-to-json': () => import('./json-tools/SQLInsertToJSON.svelte'),
 	'jsonpath-extractor': () => import('./json-tools/JSONPathExtractor.svelte'),
 	'jq-playground': () => import('./json-tools/JQPlayground.svelte'),
 	'json-schema-generator': () => import('./json-tools/JSONSchemaGenerator.svelte'),

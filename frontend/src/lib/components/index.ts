@@ -6,6 +6,7 @@ export { default as StatsPanel } from './StatsPanel.svelte';
 export { default as InlineDiffViewer } from './InlineDiffViewer.svelte';
 export { default as SideBySideDiff } from './SideBySideDiff.svelte';
 export { default as FlowDiagramEditor } from './FlowDiagramEditor.svelte';
+export { default as TabBar } from './TabBar.svelte';
 
 // VinMi brand primitives — see `vinmi-brand/README.md` for the usage rules.
 export { default as BrandMark } from './BrandMark.svelte';

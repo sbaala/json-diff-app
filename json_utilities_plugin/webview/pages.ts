@@ -58,6 +58,12 @@ export const PAGES: PageMetadata[] = [
 		load: () => import('../../frontend/src/routes/convert/+page.svelte')
 	},
 	{
+		id: 'sql',
+		name: 'SQL Inserts',
+		description: 'INSERT statements → JSON or table',
+		load: () => import('../../frontend/src/routes/sql/+page.svelte')
+	},
+	{
 		id: 'lint',
 		name: 'Lint',
 		description: 'Validate and lint schemas',

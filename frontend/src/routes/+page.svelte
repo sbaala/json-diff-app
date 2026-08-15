@@ -30,6 +30,7 @@
 		{ href: '/compare', label: 'JSON Diff', desc: 'Side-by-side structural diff' },
 		{ href: '/text', label: 'Text Diff', desc: 'Line-by-line comparison' },
 		{ href: '/convert', label: 'Convert', desc: 'JSON ↔ YAML / CSV / XML' },
+		{ href: '/sql', label: 'SQL Inserts', desc: 'INSERT statements → JSON or table' },
 		{ href: '/lint', label: 'Lint', desc: 'Validate & lint schemas' },
 		{ href: '/graph', label: 'Graph', desc: 'Visual structure rendering' },
 		{ href: '/visualize', label: 'Charts', desc: 'Intelligent data visualization' }

@@ -1,19 +1,59 @@
 <script lang="ts">
 	import { BrandBadge } from '$lib/components';
+	import TabBar from '$lib/components/TabBar.svelte';
 	import JsonTreeNode from '$lib/components/JsonTreeNode.svelte';
+	import { createTabManager } from '$lib/stores/tabManager';
 
-	let jsonInput = $state('');
-	let parsedData = $state<unknown>(null);
-	let error = $state<string | null>(null);
-	let searchTerm = $state('');
-	let expandAll = $state(false);
-	let viewMode = $state<'tree' | 'raw'>('tree');
-	let stats = $state<{ keys: number; depth: number; size: string } | null>(null);
+	interface ViewerTabState {
+		jsonInput: string;
+		parsedData: unknown;
+		error: string | null;
+		searchTerm: string;
+		expandAll: boolean;
+		viewMode: 'tree' | 'raw';
+		stats: { keys: number; depth: number; size: string } | null;
+	}
+
+	const defaultTabState: ViewerTabState = {
+		jsonInput: '',
+		parsedData: null,
+		error: null,
+		searchTerm: '',
+		expandAll: false,
+		viewMode: 'tree',
+		stats: null
+	};
+
+	const tabManager = createTabManager(defaultTabState, 'Viewer 1');
+	let tabState = $state<{ tabs: any[]; activeTabId: string }>({ tabs: [], activeTabId: '' });
+
+	$effect.pre(() => {
+		const unsubscribe = tabManager.subscribe((state) => {
+			tabState = state;
+		});
+		return unsubscribe;
+	});
+
+	let tabs = $derived(tabState.tabs);
+	let activeTabId = $derived(tabState.activeTabId);
+	let activeTab = $derived(tabs.find((t) => t.id === activeTabId));
+
+	// Create proxies for reactive state
+	let jsonInput = $derived(activeTab?.state.jsonInput ?? '');
+	let parsedData = $derived(activeTab?.state.parsedData ?? null);
+	let error = $derived(activeTab?.state.error ?? null);
+	let searchTerm = $derived(activeTab?.state.searchTerm ?? '');
+	let expandAll = $derived(activeTab?.state.expandAll ?? false);
+	let viewMode = $derived(activeTab?.state.viewMode ?? 'tree' as const);
+	let stats = $derived(activeTab?.state.stats ?? null);
+
+	function updateActiveTab(newState: Partial<ViewerTabState>) {
+		if (!activeTab) return;
+		tabManager.updateTabState(activeTab.id, { ...activeTab.state, ...newState });
+	}
 
 	function parseJson() {
-		error = null;
-		parsedData = null;
-		stats = null;
+		updateActiveTab({ error: null, parsedData: null, stats: null });
 
 		if (!jsonInput.trim()) {
 			return;
@@ -21,10 +61,11 @@
 
 		try {
 			const parsed = JSON.parse(jsonInput);
-			parsedData = parsed;
-			stats = calculateStats(parsed);
+			const calculatedStats = calculateStats(parsed);
+			updateActiveTab({ parsedData: parsed, stats: calculatedStats });
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Invalid JSON';
+			const errorMsg = e instanceof Error ? e.message : 'Invalid JSON';
+			updateActiveTab({ error: errorMsg });
 		}
 	}
 
@@ -53,15 +94,17 @@
 	}
 
 	function clearAll() {
-		jsonInput = '';
-		parsedData = null;
-		error = null;
-		stats = null;
-		searchTerm = '';
+		updateActiveTab({
+			jsonInput: '',
+			parsedData: null,
+			error: null,
+			stats: null,
+			searchTerm: ''
+		});
 	}
 
 	function loadSample() {
-		jsonInput = JSON.stringify(
+		const sampleJson = JSON.stringify(
 			{
 				company: 'Freebies Inc.',
 				founded: 2024,
@@ -107,19 +150,54 @@
 			null,
 			2
 		);
-		parseJson();
+		updateActiveTab({ jsonInput: sampleJson });
+		// Parse after updating state
+		setTimeout(() => {
+			const parsed = JSON.parse(sampleJson);
+			const calculatedStats = calculateStats(parsed);
+			updateActiveTab({ parsedData: parsed, stats: calculatedStats });
+		}, 0);
 	}
 
 	function handlePaste(e: ClipboardEvent) {
 		const text = e.clipboardData?.getData('text');
 		if (text) {
+			updateActiveTab({ jsonInput: text });
 			// Auto-parse after paste
 			setTimeout(parseJson, 0);
 		}
 	}
 
 	function toggleExpandAll() {
-		expandAll = !expandAll;
+		updateActiveTab({ expandAll: !expandAll });
+	}
+
+	function handleInputChange(newValue: string) {
+		updateActiveTab({ jsonInput: newValue });
+	}
+
+	function handleSearchChange(newValue: string) {
+		updateActiveTab({ searchTerm: newValue });
+	}
+
+	function handleViewModeChange(newMode: 'tree' | 'raw') {
+		updateActiveTab({ viewMode: newMode });
+	}
+
+	function handleAddTab() {
+		tabManager.addTab(defaultTabState, `Viewer ${tabs.length + 1}`);
+	}
+
+	function handleSelectTab(id: string) {
+		tabManager.setActiveTab(id);
+	}
+
+	function handleRemoveTab(id: string) {
+		tabManager.removeTab(id);
+	}
+
+	function handleRenameTab(id: string, newName: string) {
+		tabManager.renameTab(id, newName);
 	}
 
 	async function downloadJson() {
@@ -147,6 +225,17 @@
 		</div>
 	</div>
 
+	{#if tabs && tabs.length > 0}
+		<TabBar
+			{tabs}
+			activeTabId={activeTabId || ''}
+			onSelectTab={handleSelectTab}
+			onAddTab={handleAddTab}
+			onRemoveTab={handleRemoveTab}
+			onRenameTab={handleRenameTab}
+		/>
+	{/if}
+
 	<div class="viewer-layout">
 		<div class="input-panel card">
 			<div class="panel-header">
@@ -158,7 +247,9 @@
 			</div>
 			<textarea
 				class="json-input"
-				bind:value={jsonInput}
+				value={jsonInput}
+				onchange={(e) => handleInputChange(e.currentTarget.value)}
+				oninput={(e) => handleInputChange(e.currentTarget.value)}
 				onpaste={handlePaste}
 				placeholder={`Paste or type your JSON here...\n\nClick "Load Sample" to see an example.`}
 				spellcheck="false"
@@ -186,7 +277,9 @@
 							</svg>
 							<input
 								type="text"
-								bind:value={searchTerm}
+								value={searchTerm}
+								onchange={(e) => handleSearchChange(e.currentTarget.value)}
+								oninput={(e) => handleSearchChange(e.currentTarget.value)}
 								placeholder="Search keys/values..."
 							/>
 						</div>
@@ -194,14 +287,14 @@
 							<button
 								class="toggle-btn"
 								class:active={viewMode === 'tree'}
-								onclick={() => (viewMode = 'tree')}
+								onclick={() => handleViewModeChange('tree')}
 							>
 								Tree
 							</button>
 							<button
 								class="toggle-btn"
 								class:active={viewMode === 'raw'}
-								onclick={() => (viewMode = 'raw')}
+								onclick={() => handleViewModeChange('raw')}
 							>
 								Raw
 							</button>
@@ -296,7 +389,7 @@
 		display: grid;
 		grid-template-columns: 400px 1fr;
 		gap: 1rem;
-		height: calc(100vh - 220px);
+		height: calc(100vh - 280px);
 		min-height: 500px;
 	}
 
