@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		// esbuild does the bundling and emits CJS for VS Code, so the type
+		// program uses bundler resolution — that lets it read the reused
+		// frontend registry, which ships as ESM.
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"target": "ES2022",
+		"lib": ["ES2022"],
+		"outDir": "dist",
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"skipLibCheck": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"baseUrl": ".",
+		"paths": {
+			"$lib/*": ["../frontend/src/lib/*"]
+		}
+	},
+	"include": ["src/**/*.ts"]
+}

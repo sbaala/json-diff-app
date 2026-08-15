@@ -1,0 +1,4 @@
+node_modules/
+dist/
+*.vsix
+.vite-cache-local/

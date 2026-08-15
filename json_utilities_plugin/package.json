@@ -1,0 +1,210 @@
+{
+	"name": "vinmi-json-utilities",
+	"displayName": "VinMi JSON Utilities",
+	"description": "70+ JSON, text, date, security and API tools from the VinMi toolkit, inside VS Code.",
+	"version": "0.1.0",
+	"publisher": "Vinmi-Json-Utilities",
+	"license": "MIT",
+	"icon": "media/icon.png",
+	"galleryBanner": {
+		"color": "#0b1020",
+		"theme": "dark"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/sbaala/json-diff-app.git",
+		"directory": "json_utilities_plugin"
+	},
+	"engines": {
+		"vscode": "^1.85.0"
+	},
+	"categories": [
+		"Formatters",
+		"Programming Languages",
+		"Other"
+	],
+	"keywords": [
+		"json",
+		"diff",
+		"format",
+		"yaml",
+		"jwt",
+		"base64",
+		"tools"
+	],
+	"main": "./dist/extension.js",
+	"activationEvents": [],
+	"contributes": {
+		"commands": [
+			{
+				"command": "vinmiTools.openDashboard",
+				"title": "Open Tools Dashboard",
+				"category": "VinMi"
+			},
+			{
+				"command": "vinmiTools.runTool",
+				"title": "Run a Tool…",
+				"category": "VinMi"
+			},
+			{
+				"command": "vinmiTools.format",
+				"title": "Format JSON",
+				"category": "VinMi"
+			},
+			{
+				"command": "vinmiTools.viewer",
+				"title": "View JSON Tree",
+				"category": "VinMi"
+			},
+			{
+				"command": "vinmiTools.validate",
+				"title": "Validate JSON",
+				"category": "VinMi"
+			},
+			{
+				"command": "vinmiTools.compare",
+				"title": "Compare JSON with…",
+				"category": "VinMi"
+			},
+			{
+				"command": "vinmiTools.textDiff",
+				"title": "Text Diff",
+				"category": "VinMi"
+			},
+			{
+				"command": "vinmiTools.convert",
+				"title": "Convert JSON to YAML / CSV / XML",
+				"category": "VinMi"
+			},
+			{
+				"command": "vinmiTools.grid",
+				"title": "Open Grid",
+				"category": "VinMi"
+			},
+			{
+				"command": "vinmiTools.visualize",
+				"title": "Visualize as Charts",
+				"category": "VinMi"
+			},
+			{
+				"command": "vinmiTools.graph",
+				"title": "Render Structure Graph",
+				"category": "VinMi"
+			},
+			{
+				"command": "vinmiTools.lint",
+				"title": "Lint JSON",
+				"category": "VinMi"
+			},
+			{
+				"command": "vinmiTools.flow",
+				"title": "Open Flow Diagram",
+				"category": "VinMi"
+			},
+			{
+				"command": "vinmiTools.spreadsheet",
+				"title": "Open Spreadsheet",
+				"category": "VinMi"
+			}
+		],
+		"menus": {
+			"editor/context": [
+				{
+					"submenu": "vinmiTools.editorSubmenu",
+					"group": "1_modification@100"
+				}
+			],
+			"vinmiTools.editorSubmenu": [
+				{
+					"command": "vinmiTools.runTool",
+					"group": "1_tools@1"
+				},
+				{
+					"command": "vinmiTools.format",
+					"when": "resourceLangId == json || resourceLangId == jsonc",
+					"group": "1_tools@2"
+				},
+				{
+					"command": "vinmiTools.viewer",
+					"when": "resourceLangId == json || resourceLangId == jsonc",
+					"group": "1_tools@3"
+				},
+				{
+					"command": "vinmiTools.compare",
+					"when": "resourceLangId == json || resourceLangId == jsonc",
+					"group": "1_tools@4"
+				}
+			],
+			"explorer/context": [
+				{
+					"command": "vinmiTools.compare",
+					"when": "resourceLangId == json || resourceLangId == jsonc",
+					"group": "3_compare@1"
+				}
+			]
+		},
+		"submenus": [
+			{
+				"id": "vinmiTools.editorSubmenu",
+				"label": "VinMi Tools"
+			}
+		],
+		"keybindings": [
+			{
+				"command": "vinmiTools.runTool",
+				"key": "ctrl+alt+j",
+				"mac": "cmd+alt+j"
+			}
+		],
+		"configuration": {
+			"title": "VinMi JSON Utilities",
+			"properties": {
+				"vinmiTools.theme": {
+					"type": "string",
+					"enum": [
+						"auto",
+						"midnight",
+						"daylight",
+						"slate",
+						"ocean",
+						"sandstone"
+					],
+					"default": "auto",
+					"markdownDescription": "Theme for tool panels. `auto` follows the active VS Code color theme (dark → Midnight, light → Daylight)."
+				},
+				"vinmiTools.loadSelectionOnOpen": {
+					"type": "boolean",
+					"default": true,
+					"description": "Seed a tool's input with the current editor selection, or the whole file when nothing is selected."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run build",
+		"build": "npm run build:webview && npm run build:extension",
+		"build:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --minify",
+		"build:webview": "vite build --config vite.config.mts",
+		"watch": "npm run build:extension -- --sourcemap --watch",
+		"typecheck": "tsc --noEmit -p tsconfig.json && svelte-check --tsconfig tsconfig.webview.json",
+		"package": "vsce package"
+	},
+	"devDependencies": {
+		"@sveltejs/vite-plugin-svelte": "^4.0.0",
+		"@types/node": "^22.0.0",
+		"@types/papaparse": "^5.5.2",
+		"@types/vscode": "^1.85.0",
+		"@vscode/vsce": "^3.9.2",
+		"esbuild": "^0.24.0",
+		"svelte": "^5.0.0",
+		"svelte-check": "^4.0.0",
+		"typescript": "^5.0.0",
+		"vite": "^5.4.0"
+	},
+	"dependencies": {
+		"handsontable": "^14.6.2",
+		"hyperformula": "^2.7.1",
+		"papaparse": "^5.6.0",
+		"xlsx": "^0.18.5"
+	}
+}

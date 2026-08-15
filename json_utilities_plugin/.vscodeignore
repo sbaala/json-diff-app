@@ -1,0 +1,11 @@
+# Ship only the built extension: dist/, the manifest, and the readme.
+.vscode/**
+.gitignore
+node_modules/**
+src/**
+webview/**
+tsconfig*.json
+vite.config.*
+svelte.config.*
+**/*.map
+**/*.vsix
