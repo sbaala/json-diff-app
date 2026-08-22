@@ -240,52 +240,59 @@ class Scanner {
  * Resolve SQL string escapes. `''` is universal; the backslash forms are
  * MySQL's. Postgres text containing a literal backslash is the cost of
  * accepting both, and it is the rarer paste.
+ *
+ * Also trims leading and trailing whitespace from the unescaped string to handle
+ * SQL INSERT statements with formatting spaces like: VALUES ( ' value ' )
  */
 function unescapeStringBody(body: string, quote: string): string {
-	if (!body.includes('\\') && !body.includes(quote + quote)) return body;
-
-	let out = '';
-	for (let i = 0; i < body.length; i++) {
-		const c = body[i];
-		if (c === quote && body[i + 1] === quote) {
-			out += quote;
-			i++;
-			continue;
+	let unescaped = body;
+	if (body.includes('\\') || body.includes(quote + quote)) {
+		let out = '';
+		for (let i = 0; i < body.length; i++) {
+			const c = body[i];
+			if (c === quote && body[i + 1] === quote) {
+				out += quote;
+				i++;
+				continue;
+			}
+			if (c !== '\\' || i === body.length - 1) {
+				out += c;
+				continue;
+			}
+			const next = body[++i];
+			switch (next) {
+				case 'n':
+					out += '\n';
+					break;
+				case 't':
+					out += '\t';
+					break;
+				case 'r':
+					out += '\r';
+					break;
+				case 'b':
+					out += '\b';
+					break;
+				case '0':
+					out += '\0';
+					break;
+				case 'Z':
+					out += '\x1a';
+					break;
+				// MySQL leaves the backslash in place for LIKE wildcards.
+				case '%':
+				case '_':
+					out += '\\' + next;
+					break;
+				default:
+					out += next;
+			}
 		}
-		if (c !== '\\' || i === body.length - 1) {
-			out += c;
-			continue;
-		}
-		const next = body[++i];
-		switch (next) {
-			case 'n':
-				out += '\n';
-				break;
-			case 't':
-				out += '\t';
-				break;
-			case 'r':
-				out += '\r';
-				break;
-			case 'b':
-				out += '\b';
-				break;
-			case '0':
-				out += '\0';
-				break;
-			case 'Z':
-				out += '\x1a';
-				break;
-			// MySQL leaves the backslash in place for LIKE wildcards.
-			case '%':
-			case '_':
-				out += '\\' + next;
-				break;
-			default:
-				out += next;
-		}
+		unescaped = out;
 	}
-	return out;
+
+	// Trim whitespace from the unescaped string to handle formatting spaces
+	return unescaped.trim();
 }
 
 /**
@@ -383,7 +390,9 @@ function readValue(scanner: Scanner): SqlValue {
 		end = scanner.pos;
 	}
 
-	return classifyValue(scanner.src.slice(start, end));
+	// Trim the captured raw value to remove trailing spaces before delimiters
+	const raw = scanner.src.slice(start, end).trim();
+	return classifyValue(raw);
 }
 
 /** Read a `( … )` tuple of values. Returns null when not positioned on `(`. */

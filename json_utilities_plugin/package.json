@@ -2,7 +2,7 @@
 	"name": "vinmi-json-utilities",
 	"displayName": "VinMi JSON Utilities",
 	"description": "70+ JSON, text, date, security and API tools from the VinMi toolkit, inside VS Code.",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"publisher": "Vinmi-Json-Utilities",
 	"license": "MIT",
 	"icon": "media/icon.png",

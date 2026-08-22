@@ -355,6 +355,74 @@ describe('output shapes', () => {
 		);
 		expect(tableToCsv(users)).toBe('id,note\n1,"a,b"\n2,');
 	});
+
+	it('handles multiple INSERT statements with multiple rows for the same table', () => {
+		const result = parseSqlInserts(
+			`INSERT INTO users (id, name) VALUES (1, 'Ada'), (2, 'Bob');
+			 INSERT INTO users (id, email) VALUES (3, 'c@x.io'), (4, 'd@x.io');`
+		);
+
+		expect(result.rowCount).toBe(4);
+		expect(result.statements).toHaveLength(2);
+
+		const grouped = toRecordsByTable(result.statements);
+		expect(grouped.users).toHaveLength(4);
+		expect(grouped.users).toEqual([
+			{ id: 1, name: 'Ada' },
+			{ id: 2, name: 'Bob' },
+			{ id: 3, email: 'c@x.io' },
+			{ id: 4, email: 'd@x.io' }
+		]);
+
+		const tables = toTables(result.statements);
+		expect(tables).toHaveLength(1);
+		expect(tables[0].columns).toEqual(['id', 'name', 'email']);
+		expect(tables[0].rows).toHaveLength(4);
+		expect(tables[0].rows).toEqual([
+			{ id: 1, name: 'Ada' },
+			{ id: 2, name: 'Bob' },
+			{ id: 3, email: 'c@x.io' },
+			{ id: 4, email: 'd@x.io' }
+		]);
+	});
+
+	it('handles multiple rows with inconsistent column widths in toTables', () => {
+		const result = parseSqlInserts(
+			`INSERT INTO data (a, b, c) VALUES (1, 2, 3), (4, 5);
+			 INSERT INTO data (a, d) VALUES (7, 8), (9, 10);`
+		);
+
+		const tables = toTables(result.statements);
+		expect(tables).toHaveLength(1);
+		// Should merge all columns: a, b, c, d
+		expect(tables[0].columns).toEqual(['a', 'b', 'c', 'd']);
+		expect(tables[0].rows).toHaveLength(4);
+	});
+
+	it('trims spaces around values in multiple records', () => {
+		const result = parseSqlInserts(
+			`INSERT INTO users ( id , name ) VALUES ( 1 , ' Ada ' ) , ( 2 , ' Bob ' );`
+		);
+
+		expect(result.rowCount).toBe(2);
+		const records = toRecords(result.statements);
+
+		// String values should have leading/trailing spaces trimmed
+		expect(records).toEqual([
+			{ id: 1, name: 'Ada' },
+			{ id: 2, name: 'Bob' }
+		]);
+
+		// Test with numbers
+		const result2 = parseSqlInserts(
+			`INSERT INTO data ( n , count ) VALUES ( 42 , 100 ) , ( 99 , 200 );`
+		);
+		const records2 = toRecords(result2.statements);
+		expect(records2).toEqual([
+			{ n: 42, count: 100 },
+			{ n: 99, count: 200 }
+		]);
+	});
 });
 
 describe('SAMPLE_SQL', () => {
