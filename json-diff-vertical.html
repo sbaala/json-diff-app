@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSON Diff: TikTok/Reels (Vertical)</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --text: #ffffff;
+      --accent: #0ea5e9;
+      --accent-2: #06b6d4;
+      --green: #10b981;
+      --red: #ef4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    .screen {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      pointer-events: none;
+      flex-direction: column;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .screen.active {
+      opacity: 1;
+      pointer-events: all;
+      animation: slideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+    }
+
+    .screen.exit {
+      animation: slideOut 0.3s ease-in;
+    }
+
+    /* Screen 1: Problem */
+    #screen1 {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      gap: 24px;
+    }
+
+    #screen1 .emoji {
+      font-size: 64px;
+      animation: slideIn 0.5s ease-out;
+    }
+
+    #screen1 h1 {
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1.2;
+      animation: slideIn 0.5s ease-out 0.15s backwards;
+      max-width: 90%;
+    }
+
+    #screen1 p {
+      font-size: 24px;
+      opacity: 0.95;
+      animation: slideIn 0.5s ease-out 0.3s backwards;
+    }
+
+    /* Screen 2: Contrast */
+    #screen2 {
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+      gap: 32px;
+    }
+
+    .comparison {
+      display: flex;
+      gap: 16px;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .comparison-box {
+      flex: 1;
+      padding: 24px;
+      border-radius: 12px;
+      animation: slideIn 0.5s ease-out backwards;
+    }
+
+    #screen2 .comparison-box:nth-child(1) {
+      background: rgba(239, 68, 68, 0.2);
+      border: 2px solid var(--red);
+      animation-delay: 0s;
+    }
+
+    #screen2 .comparison-box:nth-child(2) {
+      background: rgba(16, 185, 129, 0.2);
+      border: 2px solid var(--green);
+      animation-delay: 0.2s;
+    }
+
+    .comparison-box .emoji {
+      font-size: 40px;
+      margin-bottom: 8px;
+    }
+
+    .comparison-box .time {
+      font-size: 32px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 8px;
+    }
+
+    .comparison-box .label {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.8;
+    }
+
+    /* Screen 3: Solution */
+    #screen3 {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      gap: 24px;
+    }
+
+    #screen3 .emoji {
+      font-size: 64px;
+      animation: slideIn 0.5s ease-out;
+    }
+
+    #screen3 h1 {
+      font-size: 56px;
+      font-weight: 800;
+      line-height: 1.1;
+      animation: slideIn 0.5s ease-out 0.15s backwards;
+    }
+
+    #screen3 .stat {
+      font-size: 28px;
+      opacity: 0.95;
+      animation: slideIn 0.5s ease-out 0.3s backwards;
+    }
+
+    /* Screen 4: Features */
+    #screen4 {
+      background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
+      gap: 32px;
+    }
+
+    .features-vertical {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+      max-width: 450px;
+    }
+
+    .feature-item {
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      animation: slideIn 0.4s ease-out backwards;
+    }
+
+    .feature-item:nth-child(1) { animation-delay: 0.1s; }
+    .feature-item:nth-child(2) { animation-delay: 0.25s; }
+    .feature-item:nth-child(3) { animation-delay: 0.4s; }
+
+    .feature-item .emoji {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .feature-item h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .feature-item p {
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
+    /* Screen 5: CTA */
+    #screen5 {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      gap: 20px;
+    }
+
+    #screen5 h1 {
+      font-size: 64px;
+      font-weight: 800;
+      animation: slideIn 0.5s ease-out;
+    }
+
+    #screen5 p {
+      font-size: 28px;
+      font-weight: 600;
+      opacity: 0.95;
+      animation: slideIn 0.5s ease-out 0.2s backwards;
+    }
+
+    #screen5 .subtitle {
+      font-size: 16px;
+      opacity: 0.8;
+      animation: slideIn 0.5s ease-out 0.4s backwards;
+    }
+
+    @media (max-width: 600px) {
+      #screen1 h1 {
+        font-size: 40px;
+      }
+      #screen3 h1 {
+        font-size: 48px;
+      }
+      #screen5 h1 {
+        font-size: 56px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Screen 1: Problem Hook -->
+  <div class="screen active" id="screen1">
+    <div class="emoji">😤</div>
+    <h1>Your browser just froze again</h1>
+    <p>comparing JSON files</p>
+  </div>
+
+  <!-- Screen 2: Comparison -->
+  <div class="screen" id="screen2">
+    <div class="comparison">
+      <div class="comparison-box">
+        <div class="emoji">⏱</div>
+        <div class="time">5 min</div>
+        <div class="label">Other tools</div>
+      </div>
+      <div class="comparison-box">
+        <div class="emoji">⚡</div>
+        <div class="time">2 sec</div>
+        <div class="label">JSON Diff</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: Solution -->
+  <div class="screen" id="screen3">
+    <div class="emoji">🚀</div>
+    <h1>30x faster</h1>
+    <p class="stat">Zero hanging. Any size.</p>
+  </div>
+
+  <!-- Screen 4: Features -->
+  <div class="screen" id="screen4">
+    <h2 style="font-size: 32px; font-weight: 800; margin-bottom: 12px;">Three core promises</h2>
+    <div class="features-vertical">
+      <div class="feature-item">
+        <div class="emoji">⚡</div>
+        <h3>No Hanging</h3>
+        <p>Responsive at any scale</p>
+      </div>
+      <div class="feature-item">
+        <div class="emoji">🚀</div>
+        <h3>Lightning Fast</h3>
+        <p>Smart processing</p>
+      </div>
+      <div class="feature-item">
+        <div class="emoji">🎯</div>
+        <h3>Flexible</h3>
+        <p>Multiple view modes</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: CTA -->
+  <div class="screen" id="screen5">
+    <h1>Try Now</h1>
+    <p>No setup required</p>
+    <p class="subtitle">github.com/your-repo</p>
+  </div>
+
+  <script>
+    const screens = [
+      { element: '#screen1', duration: 3000 },
+      { element: '#screen2', duration: 2500 },
+      { element: '#screen3', duration: 3000 },
+      { element: '#screen4', duration: 3500 },
+      { element: '#screen5', duration: 3000 }
+    ];
+
+    let currentScreen = 0;
+
+    function showScreen(index) {
+      if (currentScreen >= 0 && currentScreen < screens.length) {
+        const prevScreen = document.querySelector(screens[currentScreen].element);
+        prevScreen.classList.add('exit');
+        prevScreen.classList.remove('active');
+      }
+
+      const screen = document.querySelector(screens[index].element);
+      screen.classList.remove('exit');
+      screen.classList.add('active');
+      currentScreen = index;
+    }
+
+    function nextScreen() {
+      if (currentScreen < screens.length - 1) {
+        showScreen(currentScreen + 1);
+        setTimeout(nextScreen, screens[currentScreen].duration);
+      }
+    }
+
+    setTimeout(nextScreen, screens[0].duration);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        showScreen(Math.min(currentScreen + 1, screens.length - 1));
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        showScreen(Math.max(currentScreen - 1, 0));
+      }
+    });
+
+    setTimeout(() => {
+      location.reload();
+    }, screens.reduce((sum, s) => sum + s.duration, 0) + 1000);
+  </script>
+</body>
+</html>

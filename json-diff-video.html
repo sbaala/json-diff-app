@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSON Diff: No Hanging. Fast. Flexible.</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <style>
+    :root {
+      --bg-0: #f8f7f6;
+      --bg-1: #efefed;
+      --bg-2: #e5e3e0;
+      --surface: #ffffff;
+      --text-primary: #1a1a1a;
+      --text-secondary: #6b6b6b;
+      --accent-primary: #0ea5e9;
+      --accent-secondary: #06b6d4;
+      --status-added: #10b981;
+      --status-removed: #ef4444;
+      --status-modified: #f59e0b;
+      --border: #d1ccc7;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg-0: #0f0f0f;
+        --bg-1: #1a1a1a;
+        --bg-2: #2d2d2d;
+        --surface: #161616;
+        --text-primary: #f5f5f5;
+        --text-secondary: #a0a0a0;
+        --accent-primary: #06b6d4;
+        --accent-secondary: #0ea5e9;
+        --status-added: #34d399;
+        --status-removed: #f87171;
+        --status-modified: #fbbf24;
+        --border: #3f3f3f;
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --bg-0: #0f0f0f;
+      --bg-1: #1a1a1a;
+      --bg-2: #2d2d2d;
+      --surface: #161616;
+      --text-primary: #f5f5f5;
+      --text-secondary: #a0a0a0;
+      --accent-primary: #06b6d4;
+      --accent-secondary: #0ea5e9;
+      --status-added: #34d399;
+      --status-removed: #f87171;
+      --status-modified: #fbbf24;
+      --border: #3f3f3f;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg-0);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Section Layout */
+    section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    section > .container {
+      width: 100%;
+    }
+
+    /* Typography */
+    h1 {
+      font-size: 56px;
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 24px;
+      text-wrap: balance;
+    }
+
+    h2 {
+      font-size: 42px;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      margin-bottom: 32px;
+      text-wrap: balance;
+    }
+
+    h3 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    p {
+      font-size: 18px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      max-width: 65ch;
+      margin-bottom: 16px;
+    }
+
+    .accent {
+      color: var(--accent-primary);
+    }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 100%);
+      text-align: center;
+    }
+
+    .hook {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    .hero h1 {
+      animation: fadeInUp 0.8s ease-out 0.2s backwards;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 20px;
+      animation: fadeInUp 0.8s ease-out 0.4s backwards;
+      margin: 0 auto;
+    }
+
+    /* Pillars */
+    .pillars {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 32px;
+      margin-top: 60px;
+    }
+
+    .pillar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      animation: fadeInUp 0.8s ease-out backwards;
+    }
+
+    .pillar:nth-child(1) {
+      animation-delay: 0.6s;
+    }
+
+    .pillar:nth-child(2) {
+      animation-delay: 0.8s;
+    }
+
+    .pillar:nth-child(3) {
+      animation-delay: 1s;
+    }
+
+    .pillar-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 16px;
+      color: white;
+    }
+
+    .pillar h3 {
+      margin-bottom: 12px;
+    }
+
+    .pillar p {
+      font-size: 16px;
+      margin: 0;
+    }
+
+    /* Demo Section */
+    .demo-section {
+      background: var(--surface);
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+      margin-top: 40px;
+    }
+
+    @media (max-width: 768px) {
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .json-demo {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow: auto;
+      max-height: 400px;
+      position: relative;
+    }
+
+    .json-demo.scrolling {
+      animation: scrollDemo 4s ease-in-out infinite;
+    }
+
+    @keyframes scrollDemo {
+      0%, 20%, 80%, 100% {
+        scroll-behavior: auto;
+      }
+    }
+
+    .json-key {
+      color: var(--accent-primary);
+    }
+
+    .json-string {
+      color: var(--status-added);
+    }
+
+    .json-number {
+      color: var(--status-modified);
+    }
+
+    .json-added {
+      background: rgba(16, 185, 129, 0.1);
+      padding: 2px 6px;
+      border-radius: 2px;
+      border-left: 3px solid var(--status-added);
+    }
+
+    .json-removed {
+      background: rgba(239, 68, 68, 0.1);
+      padding: 2px 6px;
+      border-radius: 2px;
+      border-left: 3px solid var(--status-removed);
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+
+    /* Performance Meter */
+    .perf-container {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+      margin-top: 40px;
+      flex-wrap: wrap;
+    }
+
+    .perf-metric {
+      flex: 1;
+      min-width: 150px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .perf-number {
+      font-size: 48px;
+      font-weight: 700;
+      font-family: "JetBrains Mono", monospace;
+      color: var(--accent-primary);
+      margin-bottom: 8px;
+      animation: countUp 2s ease-out;
+    }
+
+    .perf-label {
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    @keyframes countUp {
+      from {
+        content: "0";
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    /* Use Cases */
+    .use-cases {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 32px;
+      margin-top: 40px;
+    }
+
+    .use-case {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      animation: fadeInUp 0.8s ease-out backwards;
+    }
+
+    .use-case:nth-child(1) {
+      animation-delay: 0s;
+    }
+
+    .use-case:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .use-case:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    .use-case-problem {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
+
+    .use-case-solution {
+      font-size: 15px;
+      color: var(--accent-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .use-case-solution::before {
+      content: "→";
+      font-weight: 700;
+    }
+
+    /* CTA */
+    .cta-section {
+      text-align: center;
+      background: linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 100%);
+    }
+
+    .cta-button {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      color: white;
+      padding: 16px 48px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 18px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      margin-top: 32px;
+      animation: fadeInUp 0.8s ease-out 0.3s backwards;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .cta-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(6, 182, 212, 0.3);
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(-32px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .metric-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--bg-2);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .metric-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+      animation: fillBar 2.5s ease-out;
+      border-radius: 4px;
+    }
+
+    @keyframes fillBar {
+      from {
+        width: 0;
+      }
+      to {
+        width: 100%;
+      }
+    }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 32px;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+      padding: 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .comparison-table th {
+      background: var(--bg-1);
+      font-weight: 600;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+
+    .comparison-table td {
+      font-size: 16px;
+    }
+
+    .feature-check {
+      color: var(--status-added);
+      font-weight: 600;
+    }
+
+    .feature-x {
+      color: var(--text-secondary);
+      opacity: 0.5;
+    }
+
+    .stat-group {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      margin-top: 40px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 56px;
+      font-weight: 700;
+      color: var(--accent-primary);
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .stat-label {
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 36px;
+      }
+      h2 {
+        font-size: 28px;
+      }
+      .hook {
+        font-size: 20px;
+      }
+      section {
+        padding: 60px 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Hero / Hook -->
+  <section class="hero">
+    <div class="container">
+      <p class="hook">Comparing large JSON files shouldn't be a waiting game.</p>
+      <h1>JSON Diff: <span class="accent">No Hanging.</span> <span class="accent">Fast.</span> <span class="accent">Flexible.</span></h1>
+      <p>Instant comparisons on datasets of any size—with options that match your workflow.</p>
+
+      <div class="pillars">
+        <div class="pillar">
+          <div class="pillar-icon">⚡</div>
+          <h3>No Hanging</h3>
+          <p>Virtual scrolling and backend streaming keep the UI responsive, even on massive datasets.</p>
+        </div>
+        <div class="pillar">
+          <div class="pillar-icon">🚀</div>
+          <h3>Fast</h3>
+          <p><strong>30–40x speedup</strong> over naive comparison. Smart hashing and parallel processing.</p>
+        </div>
+        <div class="pillar">
+          <div class="pillar-icon">🎯</div>
+          <h3>Flexible</h3>
+          <p>Ignore order, toggle view modes, drill into structure. Built for real workflows.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Problem & Solution -->
+  <section>
+    <div class="container">
+      <h2>The Problem</h2>
+      <p style="max-width: 100%; font-size: 20px; margin-bottom: 40px;">Most JSON tools freeze on large datasets. You compare two 50MB configs, and... nothing happens for minutes. Or you need flexible comparison options but the tool is rigid.</p>
+
+      <div class="demo-grid">
+        <div>
+          <h3 style="margin-top: 0;">Typical JSON Comparison</h3>
+          <div class="json-demo">
+{
+  <span class="json-key">"config"</span>: {
+    <span class="json-key">"database"</span>: {
+      <span class="json-key">"host"</span>: <span class="json-string">"localhost"</span>,
+      <span class="json-key">"port"</span>: <span class="json-number">5432</span>
+    },
+    <span class="json-key">"api"</span>: { ... }
+  },
+  <span class="json-key">"features"</span>: [ ... ]
+}
+          </div>
+          <p style="font-size: 14px; margin-top: 16px; color: var(--status-removed);">⏱ Comparing 50MB: ~5 minutes. UI frozen.</p>
+        </div>
+
+        <div>
+          <h3 style="margin-top: 0;">Our JSON Diff</h3>
+          <div class="json-demo" style="background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, rgba(239, 68, 68, 0.05) 100%);">
+{
+  <span class="json-key">"config"</span>: {
+    <span class="json-key">"database"</span>: {
+      <span class="json-key">"host"</span>: <span class="json-string">"prod-db"</span>, <span class="json-added">// ✓ changed</span>
+      <span class="json-key">"port"</span>: <span class="json-number">5432</span>
+    },
+    <span class="json-key">"api"</span>: { <span class="json-added">// ✓ new field</span> }
+  },
+  <span class="json-key">"features"</span>: [ ... ]
+}
+          </div>
+          <p style="font-size: 14px; margin-top: 16px; color: var(--status-added);">✓ Comparing 50MB: ~2 seconds. Interactive.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Performance -->
+  <section class="demo-section">
+    <div class="container">
+      <h2>Engineered for Speed</h2>
+      <p>Backend: FastAPI + Polars for vectorized comparison. Frontend: Svelte 5 with virtual scrolling.</p>
+
+      <div class="stat-group">
+        <div class="stat">
+          <div class="stat-value">30–40x</div>
+          <div class="stat-label">Faster</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">&lt;2s</div>
+          <div class="stat-label">50MB Comparison</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">60fps</div>
+          <div class="stat-label">Scroll Performance</div>
+        </div>
+      </div>
+
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th style="text-align: left;">Feature</th>
+            <th style="text-align: center;">Typical Tools</th>
+            <th style="text-align: center;">Our Diff</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Handles 50MB+ JSON</strong></td>
+            <td style="text-align: center;"><span class="feature-x">✗</span></td>
+            <td style="text-align: center;"><span class="feature-check">✓</span></td>
+          </tr>
+          <tr>
+            <td><strong>Responsive UI (no freezing)</strong></td>
+            <td style="text-align: center;"><span class="feature-x">✗</span></td>
+            <td style="text-align: center;"><span class="feature-check">✓</span></td>
+          </tr>
+          <tr>
+            <td><strong>Ignore Order Mode</strong></td>
+            <td style="text-align: center;"><span class="feature-x">✗</span></td>
+            <td style="text-align: center;"><span class="feature-check">✓</span></td>
+          </tr>
+          <tr>
+            <td><strong>Multiple View Modes</strong></td>
+            <td style="text-align: center;"><span class="feature-x">✗</span></td>
+            <td style="text-align: center;"><span class="feature-check">✓</span></td>
+          </tr>
+          <tr>
+            <td><strong>Real-time Streaming</strong></td>
+            <td style="text-align: center;"><span class="feature-x">✗</span></td>
+            <td style="text-align: center;"><span class="feature-check">✓</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Use Cases -->
+  <section>
+    <div class="container">
+      <h2>Real-World Workflows</h2>
+
+      <div class="use-cases">
+        <div class="use-case">
+          <div class="use-case-problem">API Response Review</div>
+          <p style="margin: 0;">"I need to review a 200MB API response and spot what's different from staging."</p>
+          <div class="use-case-solution">Load instantly, scroll through diffs without lag, export results</div>
+        </div>
+
+        <div class="use-case">
+          <div class="use-case-problem">Config Deployment Verification</div>
+          <p style="margin: 0;">"Did this configuration deploy correctly? What actually changed from the last version?"</p>
+          <div class="use-case-solution">Compare old vs. new, ignore order, see changes in seconds</div>
+        </div>
+
+        <div class="use-case">
+          <div class="use-case-problem">JSON Data Refactoring</div>
+          <p style="margin: 0;">"I'm restructuring JSON data. What moved where? What's new, what's gone?"</p>
+          <div class="use-case-solution">Flexible diff highlights moved keys, added fields, removed nodes—pick your view</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Deep Dive -->
+  <section class="demo-section">
+    <div class="container">
+      <h2>Built for Developers</h2>
+
+      <div class="demo-grid" style="margin-top: 40px;">
+        <div>
+          <h3>View Modes</h3>
+          <ul style="list-style: none; padding: 0;">
+            <li style="padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 16px;">
+              <span class="accent">Tree View</span><br>
+              <span style="font-size: 14px; color: var(--text-secondary);">Visualize structure and hierarchy</span>
+            </li>
+            <li style="padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 16px;">
+              <span class="accent">Side-by-Side</span><br>
+              <span style="font-size: 14px; color: var(--text-secondary);">Code review style comparison</span>
+            </li>
+            <li style="padding: 12px 0; font-size: 16px;">
+              <span class="accent">Flat List</span><br>
+              <span style="font-size: 14px; color: var(--text-secondary);">Quick scan of all differences</span>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h3>Flexible Options</h3>
+          <ul style="list-style: none; padding: 0;">
+            <li style="padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 16px;">
+              <span class="accent">Ignore Order</span><br>
+              <span style="font-size: 14px; color: var(--text-secondary);">Compare arrays as sets</span>
+            </li>
+            <li style="padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 16px;">
+              <span class="accent">Custom Depth</span><br>
+              <span style="font-size: 14px; color: var(--text-secondary);">Focus on top-level or deep nesting</span>
+            </li>
+            <li style="padding: 12px 0; font-size: 16px;">
+              <span class="accent">Performance Metrics</span><br>
+              <span style="font-size: 14px; color: var(--text-secondary);">See added, removed, modified counts</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="container" style="text-align: center;">
+      <h2>Ready to Compare Faster?</h2>
+      <p style="font-size: 20px; margin: 0 auto 32px;">No setup. No limits. Try JSON Diff now.</p>
+      <button class="cta-button" onclick="alert('Visit your app at localhost:5173 or production URL')">Get Started</button>
+      <p style="font-size: 14px; margin-top: 24px; color: var(--text-secondary);">Handles JSON of any size. Stays responsive. Always.</p>
+    </div>
+  </section>
+
+  <script>
+    // Intersection Observer for scroll animations
+    const observerOptions = {
+      threshold: 0.3,
+      rootMargin: "0px"
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = "1";
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll("section").forEach(section => {
+      observer.observe(section);
+    });
+
+    // Animate counter numbers on scroll into view
+    const animateCounter = (element, target, duration = 2000) => {
+      const start = 0;
+      const startTime = performance.now();
+
+      const animate = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        element.textContent = Math.floor(progress * target);
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          element.textContent = target;
+        }
+      };
+
+      requestAnimationFrame(animate);
+    };
+
+    // Trigger animations when elements come into view
+    const perfMetrics = document.querySelectorAll(".perf-number");
+    let animated = false;
+
+    const perfObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !animated) {
+          animated = true;
+          perfMetrics.forEach((metric, index) => {
+            const targetText = metric.textContent;
+            const target = parseInt(targetText.match(/\d+/)[0]);
+            animateCounter(metric, target);
+          });
+        }
+      });
+    }, { threshold: 0.5 });
+
+    perfMetrics.forEach(metric => perfObserver.observe(metric.closest("section")));
+  </script>
+</body>
+</html>

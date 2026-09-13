@@ -6,7 +6,7 @@
 	import type { CompareResponse, StatisticsResponse, AnnotatedNode } from '$lib/types';
 
 	// Constants
-	const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+	const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 	const CLIENT_SIDE_THRESHOLD = 3 * 1024 * 1024; // 3MB - use client-side diff below this
 	const LARGE_FILE_THRESHOLD = 1 * 1024 * 1024; // 1MB
 
@@ -45,7 +45,7 @@
 		
 		const size = new Blob([value]).size;
 		if (size > MAX_FILE_SIZE) {
-			return { valid: false, error: `File too large (${formatFileSize(size)}). Maximum size is 10MB.` };
+			return { valid: false, error: `File too large (${formatFileSize(size)}). Maximum size is 50MB.` };
 		}
 		
 		try {
@@ -241,7 +241,7 @@
 		if (!file) return;
 
 		if (file.size > MAX_FILE_SIZE) {
-			const error = `File too large (${formatFileSize(file.size)}). Maximum size is 10MB.`;
+			const error = `File too large (${formatFileSize(file.size)}). Maximum size is 50MB.`;
 			if (side === 'left') leftError = error;
 			else rightError = error;
 			return;
@@ -309,7 +309,7 @@
 		<div class="header-info">
 			<h2>Compare JSON</h2>
 			<p>
-				Side-by-side comparison up to 10MB
+				Side-by-side comparison up to 50MB
 				{#if totalSize > 0}
 					<span class="size-badge" class:client-side={totalSize < CLIENT_SIDE_THRESHOLD}>
 						{totalSize < CLIENT_SIDE_THRESHOLD ? 'Client-side' : 'Server-side'}
@@ -413,7 +413,7 @@
 							<span class="upload-text">Upload</span>
 						</label>
 					</div>
-					<div class="size-limit">Max: 10MB</div>
+					<div class="size-limit">Max: 50MB</div>
 					<div class="file-info">
 						<span class="file-label">Right:</span>
 						<span class="file-size" class:large={rightFileSize > LARGE_FILE_THRESHOLD}>{formatFileSize(rightFileSize)}</span>

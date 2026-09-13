@@ -216,7 +216,7 @@
 				name: "Freebies",
 				version: "2.0.0",
 				modules: {
-					compare: { enabled: true, maxSize: "10MB" },
+					compare: { enabled: true, maxSize: "50MB" },
 					format: { enabled: true, indentSize: 2 },
 					viewer: { enabled: true, treeView: true },
 					convert: { formats: ["xml", "csv", "yaml"] }

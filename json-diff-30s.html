@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSON Diff: 30 Second Demo</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --text: #ffffff;
+      --accent: #0ea5e9;
+      --accent-2: #06b6d4;
+      --green: #10b981;
+      --orange: #f59e0b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    .screen {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .screen.active {
+      opacity: 1;
+      pointer-events: all;
+      animation: slideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+    }
+
+    .screen.exit {
+      animation: slideOut 0.4s ease-in;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    @keyframes countUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Screen 1: Hook */
+    #screen1 {
+      background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+      flex-direction: column;
+      text-align: center;
+    }
+
+    #screen1 h1 {
+      font-size: 80px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 24px;
+      animation: slideIn 0.8s ease-out;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    #screen1 p {
+      font-size: 32px;
+      font-weight: 600;
+      opacity: 0.95;
+      animation: slideIn 0.8s ease-out 0.2s backwards;
+    }
+
+    /* Screen 2: Problem */
+    #screen2 {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      flex-direction: column;
+      text-align: center;
+      gap: 24px;
+    }
+
+    #screen2 .problem {
+      font-size: 52px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      animation: slideIn 0.6s ease-out;
+    }
+
+    #screen2 .stat {
+      font-size: 48px;
+      font-weight: 800;
+      color: #ef4444;
+      animation: slideIn 0.6s ease-out 0.3s backwards;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Screen 3: Solution */
+    #screen3 {
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+      flex-direction: column;
+      text-align: center;
+      gap: 32px;
+      padding: 60px;
+    }
+
+    #screen3 h2 {
+      font-size: 64px;
+      font-weight: 800;
+      margin-bottom: 24px;
+      animation: slideIn 0.6s ease-out;
+    }
+
+    .stats-row {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+
+    .stat-box {
+      text-align: center;
+      animation: countUp 0.8s ease-out backwards;
+    }
+
+    .stat-box:nth-child(1) { animation-delay: 0.2s; }
+    .stat-box:nth-child(2) { animation-delay: 0.4s; }
+    .stat-box:nth-child(3) { animation-delay: 0.6s; }
+
+    .stat-value {
+      font-size: 56px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-label {
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 8px;
+      font-weight: 600;
+    }
+
+    /* Screen 4: Features */
+    #screen4 {
+      background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+      flex-direction: column;
+      text-align: center;
+      gap: 32px;
+      padding: 60px;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 1200px;
+    }
+
+    .feature {
+      padding: 32px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      animation: countUp 0.6s ease-out backwards;
+    }
+
+    .feature:nth-child(1) { animation-delay: 0.1s; }
+    .feature:nth-child(2) { animation-delay: 0.3s; }
+    .feature:nth-child(3) { animation-delay: 0.5s; }
+
+    .feature-emoji {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .feature h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .feature p {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.5;
+    }
+
+    /* Screen 5: Use Case */
+    #screen5 {
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+      flex-direction: column;
+      text-align: center;
+      gap: 24px;
+      padding: 60px;
+    }
+
+    #screen5 .problem {
+      font-size: 24px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.8);
+      animation: slideIn 0.6s ease-out;
+    }
+
+    #screen5 .solution {
+      font-size: 44px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: slideIn 0.6s ease-out 0.3s backwards;
+    }
+
+    /* Screen 6: CTA */
+    #screen6 {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      flex-direction: column;
+      text-align: center;
+      gap: 24px;
+    }
+
+    #screen6 h1 {
+      font-size: 72px;
+      font-weight: 800;
+      animation: slideIn 0.8s ease-out;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    #screen6 p {
+      font-size: 28px;
+      font-weight: 600;
+      opacity: 0.95;
+      animation: slideIn 0.8s ease-out 0.2s backwards;
+    }
+
+    /* Screen 7: End Slate */
+    #screen7 {
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+      flex-direction: column;
+      text-align: center;
+      gap: 16px;
+    }
+
+    #screen7 .logo {
+      font-size: 64px;
+      margin-bottom: 12px;
+      animation: slideIn 0.6s ease-out;
+    }
+
+    #screen7 h1 {
+      font-size: 56px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      animation: slideIn 0.6s ease-out 0.2s backwards;
+    }
+
+    #screen7 p {
+      font-size: 20px;
+      color: rgba(255, 255, 255, 0.7);
+      animation: slideIn 0.6s ease-out 0.4s backwards;
+    }
+
+    @media (max-width: 768px) {
+      #screen1 h1 {
+        font-size: 48px;
+      }
+      #screen1 p {
+        font-size: 20px;
+      }
+      #screen2 .problem {
+        font-size: 36px;
+      }
+      #screen2 .stat {
+        font-size: 32px;
+      }
+      .features {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Screen 1: Hook (0-3s) -->
+  <div class="screen active" id="screen1">
+    <h1>⚡ JSON Diff</h1>
+    <p>No hanging. 30x faster. Flexible.</p>
+  </div>
+
+  <!-- Screen 2: Problem (3-6s) -->
+  <div class="screen" id="screen2">
+    <div class="problem">Typical JSON Tool</div>
+    <div class="stat">5 minutes frozen</div>
+    <p style="font-size: 20px; color: rgba(255,255,255,0.7);">comparing 50MB files</p>
+  </div>
+
+  <!-- Screen 3: Solution (6-14s) -->
+  <div class="screen" id="screen3">
+    <h2>Our JSON Diff</h2>
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-value">30–40x</div>
+        <div class="stat-label">Faster</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value">&lt;2s</div>
+        <div class="stat-label">50MB Load</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value">60fps</div>
+        <div class="stat-label">Scroll</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Features (14-20s) -->
+  <div class="screen" id="screen4">
+    <h2 style="font-size: 52px; font-weight: 800; margin-bottom: 16px;">Three Core Promises</h2>
+    <div class="features">
+      <div class="feature">
+        <div class="feature-emoji">⚡</div>
+        <h3>No Hanging</h3>
+        <p>Virtual scrolling keeps UI responsive on massive datasets</p>
+      </div>
+      <div class="feature">
+        <div class="feature-emoji">🚀</div>
+        <h3>Lightning Fast</h3>
+        <p>Smart hashing & parallel processing at scale</p>
+      </div>
+      <div class="feature">
+        <div class="feature-emoji">🎯</div>
+        <h3>Flexible</h3>
+        <p>Ignore order, multiple views, custom depth</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: Use Case (20-25s) -->
+  <div class="screen" id="screen5">
+    <div class="problem">"Did this config deploy correctly?"</div>
+    <div class="solution">Compare in seconds. See what changed. Instantly.</div>
+  </div>
+
+  <!-- Screen 6: CTA (25-28s) -->
+  <div class="screen" id="screen6">
+    <h1>Try Now</h1>
+    <p>No setup. No limits.</p>
+  </div>
+
+  <!-- Screen 7: End Slate (28-30s) -->
+  <div class="screen" id="screen7">
+    <div class="logo">⚡</div>
+    <h1>JSON Diff</h1>
+    <p>github.com/your-repo</p>
+  </div>
+
+  <script>
+    const screens = [
+      { element: '#screen1', duration: 3000 },
+      { element: '#screen2', duration: 3000 },
+      { element: '#screen3', duration: 8000 },
+      { element: '#screen4', duration: 6000 },
+      { element: '#screen5', duration: 5000 },
+      { element: '#screen6', duration: 3000 },
+      { element: '#screen7', duration: 2000 }
+    ];
+
+    let currentScreen = 0;
+    let currentTime = 0;
+    const totalDuration = screens.reduce((sum, s) => sum + s.duration, 0);
+
+    function showScreen(index) {
+      // Hide previous
+      if (currentScreen >= 0 && currentScreen < screens.length) {
+        const prevScreen = document.querySelector(screens[currentScreen].element);
+        prevScreen.classList.add('exit');
+        prevScreen.classList.remove('active');
+      }
+
+      // Show current
+      const screen = document.querySelector(screens[index].element);
+      screen.classList.remove('exit');
+      screen.classList.add('active');
+
+      currentScreen = index;
+    }
+
+    function nextScreen() {
+      if (currentScreen < screens.length - 1) {
+        showScreen(currentScreen + 1);
+        setTimeout(nextScreen, screens[currentScreen].duration);
+      }
+    }
+
+    // Start animation
+    setTimeout(nextScreen, screens[0].duration);
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        showScreen(Math.min(currentScreen + 1, screens.length - 1));
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        showScreen(Math.max(currentScreen - 1, 0));
+      }
+    });
+
+    // Auto-loop after 30s
+    setTimeout(() => {
+      location.reload();
+    }, totalDuration + 2000);
+  </script>
+</body>
+</html>

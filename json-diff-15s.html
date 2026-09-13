@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSON Diff: 15 Second Spot</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap">
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --text: #ffffff;
+      --accent: #0ea5e9;
+      --accent-2: #06b6d4;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    .screen {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      pointer-events: none;
+      flex-direction: column;
+      text-align: center;
+      padding: 60px;
+    }
+
+    .screen.active {
+      opacity: 1;
+      pointer-events: all;
+      animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        opacity: 1;
+        transform: scale(1);
+      }
+      to {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+    }
+
+    .screen.exit {
+      animation: slideOut 0.3s ease-in;
+    }
+
+    /* Screen 1: Problem */
+    #screen1 {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      gap: 16px;
+    }
+
+    #screen1 h1 {
+      font-size: 72px;
+      font-weight: 800;
+      line-height: 1.1;
+      animation: slideIn 0.4s ease-out;
+    }
+
+    #screen1 p {
+      font-size: 28px;
+      font-weight: 600;
+      opacity: 0.95;
+      animation: slideIn 0.4s ease-out 0.1s backwards;
+    }
+
+    /* Screen 2: Speed Contrast */
+    #screen2 {
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+      gap: 32px;
+      padding-top: 100px;
+      padding-bottom: 100px;
+    }
+
+    #screen2 h2 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      animation: slideIn 0.4s ease-out;
+    }
+
+    .speed-row {
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      animation: slideIn 0.4s ease-out 0.15s backwards;
+    }
+
+    .speed-stat {
+      text-align: center;
+    }
+
+    .speed-stat .number {
+      font-size: 64px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 8px;
+    }
+
+    .speed-stat:nth-child(1) .number {
+      color: #ef4444;
+    }
+
+    .speed-stat:nth-child(3) .number {
+      color: #10b981;
+    }
+
+    .speed-stat .label {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Arrow between stats */
+    .speed-row > span {
+      font-size: 32px;
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Screen 3: The Ask */
+    #screen3 {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      gap: 20px;
+    }
+
+    #screen3 h1 {
+      font-size: 80px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 12px;
+      animation: slideIn 0.4s ease-out;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    #screen3 p {
+      font-size: 32px;
+      font-weight: 600;
+      opacity: 0.95;
+      animation: slideIn 0.4s ease-out 0.15s backwards;
+    }
+
+    @media (max-width: 768px) {
+      #screen1 h1 {
+        font-size: 52px;
+      }
+      #screen1 p {
+        font-size: 20px;
+      }
+      #screen2 h2 {
+        font-size: 20px;
+      }
+      .speed-stat .number {
+        font-size: 48px;
+      }
+      #screen3 h1 {
+        font-size: 60px;
+      }
+      #screen3 p {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Screen 1: Problem (0-4s) -->
+  <div class="screen active" id="screen1">
+    <h1>50MB JSON</h1>
+    <p>Your browser's frozen</p>
+  </div>
+
+  <!-- Screen 2: Contrast (4-9s) -->
+  <div class="screen" id="screen2">
+    <h2>Most tools vs. JSON Diff</h2>
+    <div class="speed-row">
+      <div class="speed-stat">
+        <div class="number">5 min</div>
+        <div class="label">Frozen UI</div>
+      </div>
+      <span>→</span>
+      <div class="speed-stat">
+        <div class="number">2 sec</div>
+        <div class="label">Ready to go</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: CTA (9-15s) -->
+  <div class="screen" id="screen3">
+    <h1>Try JSON Diff</h1>
+    <p>30x faster. Zero setup.</p>
+  </div>
+
+  <script>
+    const screens = [
+      { element: '#screen1', duration: 4000 },
+      { element: '#screen2', duration: 5000 },
+      { element: '#screen3', duration: 6000 }
+    ];
+
+    let currentScreen = 0;
+
+    function showScreen(index) {
+      if (currentScreen >= 0 && currentScreen < screens.length) {
+        const prevScreen = document.querySelector(screens[currentScreen].element);
+        prevScreen.classList.add('exit');
+        prevScreen.classList.remove('active');
+      }
+
+      const screen = document.querySelector(screens[index].element);
+      screen.classList.remove('exit');
+      screen.classList.add('active');
+      currentScreen = index;
+    }
+
+    function nextScreen() {
+      if (currentScreen < screens.length - 1) {
+        showScreen(currentScreen + 1);
+        setTimeout(nextScreen, screens[currentScreen].duration);
+      }
+    }
+
+    setTimeout(nextScreen, screens[0].duration);
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        showScreen(Math.min(currentScreen + 1, screens.length - 1));
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        showScreen(Math.max(currentScreen - 1, 0));
+      }
+    });
+
+    // Auto-loop
+    setTimeout(() => {
+      location.reload();
+    }, 15000 + 1000);
+  </script>
+</body>
+</html>
