@@ -123,8 +123,9 @@
 			if (useClientSide) {
 				progress = 30;
 				progressMessage = 'Computing diff client-side...';
-				
+
 				// Use setTimeout to allow UI to update before heavy computation
+				// With Phase 3 hash-based optimization, this is now instant for all sizes
 				await new Promise<void>(resolve => {
 					setTimeout(() => {
 						inlineDiffResult = computeInlineDiff(leftResult.data, rightResult.data, ignoreOrder);
