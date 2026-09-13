@@ -14,7 +14,14 @@ app = FastAPI(
 # CORS configuration for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://frontend-933362628329.us-east1.run.app", "https://onestopjson.com", "https://www.onestopjson.com","http://localhost:3000"],
+    allow_origins=[
+        "https://frontend-933362628329.us-east1.run.app",
+        "https://onestopjson.com",
+        "https://www.onestopjson.com",
+        "http://localhost:3000",
+        "http://localhost:5173",  # vite dev
+        "http://localhost:4173",  # vite preview
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

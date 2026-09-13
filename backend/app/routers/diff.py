@@ -59,7 +59,7 @@ async def compare_json(request: CompareRequest) -> CompareResponse:
 
         return CompareResponse(
             is_equal=len(all_differences) == 0,
-            diff_count=len(paginated_differences),
+            diff_count=total_count,
             added_count=added_count,
             removed_count=removed_count,
             modified_count=modified_count,

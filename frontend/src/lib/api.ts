@@ -2,7 +2,12 @@
 
 import type { CompareRequest, CompareResponse, StatisticsResponse } from './types';
 
-const API_BASE = 'https://json-diff-api-933362628329.us-east1.run.app/api/v1';
+// In dev the path is relative so the Vite proxy forwards /api to the local
+// backend (same origin, no CORS). Production builds call the hosted API.
+// VITE_API_BASE overrides both.
+const API_BASE =
+	import.meta.env.VITE_API_BASE ??
+	(import.meta.env.DEV ? '/api/v1' : 'https://json-diff-api-933362628329.us-east1.run.app/api/v1');
 
 export class ApiError extends Error {
 	constructor(
