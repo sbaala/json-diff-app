@@ -353,7 +353,7 @@
 		</div>
 	</div>
 
-	<div class="main-layout" class:has-stats={showResults && statistics}>
+	<div class="main-layout" class:has-stats={showResults && statistics} class:results={showResults}>
 		<div class="content-area card">
 			{#if !showResults}
 				<!-- Input Mode: Show editors -->
@@ -520,6 +520,12 @@
 
 	.main-layout.has-stats {
 		grid-template-columns: 1fr 260px;
+	}
+
+	/* Results need a definite height so the diff panels scroll (and virtualise)
+	   instead of growing to the full height of the document */
+	.main-layout.results {
+		height: calc(100vh - 200px);
 	}
 
 	.content-area {
