@@ -21,29 +21,30 @@
 	let leftScrollTop = $state(0);
 	let rightScrollTop = $state(0);
 
-	// Separate lines for left and right panels with original indices
-	// Use a map to track original indices efficiently (O(n) instead of O(n²))
-	let lineIndexMap = $derived.by(() => {
-		const map = new Map<DiffLine, number>();
-		diffResult.lines.forEach((line, idx) => map.set(line, idx));
-		return map;
+	// Build line index map and separate lines in one pass (O(n) instead of O(n²))
+	let { leftLines, rightLines } = $derived.by(() => {
+		const left: any[] = [];
+		const right: any[] = [];
+
+		diffResult.lines.forEach((line, originalIdx) => {
+			if (line.type !== 'added') {
+				left.push({
+					...line,
+					displayIdx: left.length,
+					originalIdx
+				});
+			}
+			if (line.type !== 'removed') {
+				right.push({
+					...line,
+					displayIdx: right.length,
+					originalIdx
+				});
+			}
+		});
+
+		return { leftLines: left, rightLines: right };
 	});
-
-	let leftLines = $derived(
-		diffResult.lines.filter(l => l.type !== 'added').map((line, idx) => ({
-			...line,
-			displayIdx: idx,
-			originalIdx: lineIndexMap.get(line) ?? idx
-		}))
-	);
-
-	let rightLines = $derived(
-		diffResult.lines.filter(l => l.type !== 'removed').map((line, idx) => ({
-			...line,
-			displayIdx: idx,
-			originalIdx: lineIndexMap.get(line) ?? idx
-		}))
-	);
 
 	// Compute visible range for virtual scrolling
 	// Estimate: assume viewport can show ~50 lines (24px each = ~1200px height)
