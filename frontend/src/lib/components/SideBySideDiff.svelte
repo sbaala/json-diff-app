@@ -22,11 +22,18 @@
 	let rightScrollTop = $state(0);
 
 	// Separate lines for left and right panels with original indices
+	// Use a map to track original indices efficiently (O(n) instead of O(n²))
+	let lineIndexMap = $derived.by(() => {
+		const map = new Map<DiffLine, number>();
+		diffResult.lines.forEach((line, idx) => map.set(line, idx));
+		return map;
+	});
+
 	let leftLines = $derived(
 		diffResult.lines.filter(l => l.type !== 'added').map((line, idx) => ({
 			...line,
 			displayIdx: idx,
-			originalIdx: diffResult.lines.indexOf(line)
+			originalIdx: lineIndexMap.get(line) ?? idx
 		}))
 	);
 
@@ -34,7 +41,7 @@
 		diffResult.lines.filter(l => l.type !== 'removed').map((line, idx) => ({
 			...line,
 			displayIdx: idx,
-			originalIdx: diffResult.lines.indexOf(line)
+			originalIdx: lineIndexMap.get(line) ?? idx
 		}))
 	);
 
