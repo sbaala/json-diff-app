@@ -15,6 +15,10 @@ export interface CompareRequest {
 	left_json: Record<string, unknown> | unknown[];
 	right_json: Record<string, unknown> | unknown[];
 	ignore_order?: boolean;
+	limit?: number;
+	offset?: number;
+	include_trees?: boolean;
+	include_values?: boolean;
 }
 
 export interface CompareResponse {
@@ -24,8 +28,10 @@ export interface CompareResponse {
 	removed_count: number;
 	modified_count: number;
 	differences: DiffItem[];
-	left_tree: AnnotatedNode;
-	right_tree: AnnotatedNode;
+	total_count: number;
+	has_more: boolean;
+	left_tree: AnnotatedNode | null | undefined;
+	right_tree: AnnotatedNode | null | undefined;
 }
 
 export interface AnnotatedNode {

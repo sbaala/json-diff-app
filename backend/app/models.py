@@ -39,6 +39,18 @@ class CompareRequest(BaseModel):
     ignore_order: bool = Field(
         False, description="Whether to ignore array order in comparison"
     )
+    limit: int = Field(
+        500, description="Maximum number of differences to return per page (max 1000)"
+    )
+    offset: int = Field(
+        0, description="Number of differences to skip (for pagination)"
+    )
+    include_trees: bool = Field(
+        False, description="Whether to include annotated left_tree and right_tree"
+    )
+    include_values: bool = Field(
+        True, description="Whether to include full left_value and right_value in differences"
+    )
 
 
 class CompareResponse(BaseModel):
@@ -50,13 +62,19 @@ class CompareResponse(BaseModel):
     removed_count: int = Field(..., description="Number of removed items")
     modified_count: int = Field(..., description="Number of modified items")
     differences: list[DiffItem] = Field(
-        default_factory=list, description="List of all differences"
+        default_factory=list, description="List of differences (paginated)"
     )
-    left_tree: dict[str, Any] | list[Any] = Field(
-        ..., description="Left JSON with diff annotations"
+    total_count: int = Field(
+        ..., description="Total number of differences across all pages"
     )
-    right_tree: dict[str, Any] | list[Any] = Field(
-        ..., description="Right JSON with diff annotations"
+    has_more: bool = Field(
+        False, description="Whether more differences are available beyond this page"
+    )
+    left_tree: dict[str, Any] | list[Any] | None = Field(
+        None, description="Left JSON with diff annotations (optional, include_trees=true)"
+    )
+    right_tree: dict[str, Any] | list[Any] | None = Field(
+        None, description="Right JSON with diff annotations (optional, include_trees=true)"
     )
 
 

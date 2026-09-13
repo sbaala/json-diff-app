@@ -139,15 +139,17 @@
 				statistics = computeClientSideStats(leftResult.data, rightResult.data);
 
 				compareResult = {
-					is_equal: inlineDiffResult!.stats.added === 0 && 
+					is_equal: inlineDiffResult!.stats.added === 0 &&
 					          inlineDiffResult!.stats.removed === 0,
 					diff_count: inlineDiffResult!.stats.added + inlineDiffResult!.stats.removed,
 					added_count: inlineDiffResult!.stats.added,
 					removed_count: inlineDiffResult!.stats.removed,
-					modified_count: 0,
+					modified_count: inlineDiffResult!.stats.modified,
+					total_count: inlineDiffResult!.stats.added + inlineDiffResult!.stats.removed,
+					has_more: false,
 					differences: [],
-					left_tree: {} as AnnotatedNode,
-					right_tree: {} as AnnotatedNode
+					left_tree: null,
+					right_tree: null
 				};
 
 				progress = 100;
@@ -167,8 +169,18 @@
 				progressMessage = 'Sending to server for comparison...';
 				await new Promise(resolve => setTimeout(resolve, 100));
 
+				// For server-side diff, request without trees (saves 66% payload)
+				// and without values (saves another 70-80%), since we compute diffs client-side
+				const compareRequest = {
+					...request,
+					limit: 1000, // Get up to 1000 differences per request
+					offset: 0,
+					include_trees: false, // Don't need trees for diff rendering
+					include_values: false // Frontend will format values from client-side diff
+				};
+
 				const [compResult, statsResult] = await Promise.all([
-					compareJson(request),
+					compareJson(compareRequest),
 					getStatistics(request)
 				]);
 

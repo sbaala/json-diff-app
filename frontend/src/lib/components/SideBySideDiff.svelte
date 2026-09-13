@@ -8,10 +8,18 @@
 
 	let { diffResult }: Props = $props();
 
+	// Virtual scroll configuration
+	const LINE_HEIGHT = 24; // pixels (1.5em * 16px = 24px)
+	const BUFFER_LINES = 50; // render 50 lines above/below viewport
+
 	// Current difference navigation
 	let currentDiffIndex = $state(0);
 	let leftContentEl: HTMLElement | null = null;
 	let rightContentEl: HTMLElement | null = null;
+
+	// Virtual scroll state
+	let leftScrollTop = $state(0);
+	let rightScrollTop = $state(0);
 
 	// Separate lines for left and right panels with original indices
 	let leftLines = $derived(
@@ -29,6 +37,25 @@
 			originalIdx: diffResult.lines.indexOf(line)
 		}))
 	);
+
+	// Compute visible range for virtual scrolling
+	// Estimate: assume viewport can show ~50 lines (24px each = ~1200px height)
+	// This is conservative and works for most screen sizes
+	const VISIBLE_LINES = 50;
+
+	let leftVisibleStart = $derived(Math.max(0, Math.floor(leftScrollTop / LINE_HEIGHT) - BUFFER_LINES));
+	let leftVisibleEnd = $derived(
+		Math.min(leftLines.length, Math.ceil(leftScrollTop / LINE_HEIGHT) + VISIBLE_LINES + BUFFER_LINES)
+	);
+
+	let rightVisibleStart = $derived(Math.max(0, Math.floor(rightScrollTop / LINE_HEIGHT) - BUFFER_LINES));
+	let rightVisibleEnd = $derived(
+		Math.min(rightLines.length, Math.ceil(rightScrollTop / LINE_HEIGHT) + VISIBLE_LINES + BUFFER_LINES)
+	);
+
+	// Render only visible lines
+	let visibleLeftLines = $derived(leftLines.slice(leftVisibleStart, leftVisibleEnd));
+	let visibleRightLines = $derived(rightLines.slice(rightVisibleStart, rightVisibleEnd));
 
 	// Find all difference positions (indices of changed lines in original array)
 	let diffIndices = $derived(
@@ -79,22 +106,24 @@
 
 	async function scrollToCurrentDiff() {
 		await tick();
-		
+
 		const currentLine = diffResult.lines[currentOriginalIdx];
 		if (!currentLine) return;
 
-		// Find which panel to scroll
+		// Find which panel to scroll (using virtual scroll indices)
 		if (currentLine.type === 'removed' && leftContentEl) {
 			const leftIdx = leftLines.findIndex(l => l.originalIdx === currentOriginalIdx);
 			if (leftIdx >= 0) {
-				const lineEl = leftContentEl.querySelector(`[data-line-idx="${leftIdx}"]`);
-				lineEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				// Calculate scroll position to center the line
+				const targetScrollTop = Math.max(0, leftIdx * LINE_HEIGHT - (window.innerHeight / 2));
+				leftContentEl.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
 			}
 		} else if (currentLine.type === 'added' && rightContentEl) {
 			const rightIdx = rightLines.findIndex(l => l.originalIdx === currentOriginalIdx);
 			if (rightIdx >= 0) {
-				const lineEl = rightContentEl.querySelector(`[data-line-idx="${rightIdx}"]`);
-				lineEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				// Calculate scroll position to center the line
+				const targetScrollTop = Math.max(0, rightIdx * LINE_HEIGHT - (window.innerHeight / 2));
+				rightContentEl.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
 			}
 		}
 	}
@@ -200,20 +229,30 @@
 					</div>
 				</div>
 			</div>
-			<div class="diff-content" bind:this={leftContentEl}>
+			<div class="diff-content" bind:this={leftContentEl} onscroll={(e) => { leftScrollTop = e.currentTarget.scrollTop; }}>
 				<div class="line-numbers">
-					{#each leftLines as line, i}
-						<span 
+					<!-- Virtual scroll spacer before visible lines -->
+					{#if leftVisibleStart > 0}
+						<div style="height: {leftVisibleStart * LINE_HEIGHT}px;"></div>
+					{/if}
+
+					{#each visibleLeftLines as line, i}
+						<span
 							class="line-num {getLineClass(line.type, line.originalIdx)}"
-							data-line-idx={i}
+							data-line-idx={leftVisibleStart + i}
 						>
-							{i + 1}
+							{leftVisibleStart + i + 1}
 						</span>
 					{/each}
+
+					<!-- Virtual scroll spacer after visible lines -->
+					{#if leftVisibleEnd < leftLines.length}
+						<div style="height: {(leftLines.length - leftVisibleEnd) * LINE_HEIGHT}px;"></div>
+					{/if}
 				</div>
-				<pre class="diff-code">{#each leftLines as line, i}<span 
-	class="diff-line {getLineClass(line.type, line.originalIdx)}" 
-	data-line-idx={i}
+				<pre class="diff-code">{#each visibleLeftLines as line, i}<span
+	class="diff-line {getLineClass(line.type, line.originalIdx)}"
+	data-line-idx={leftVisibleStart + i}
 >{formatLine(line)}{#if !line.isClose},{'\n'}{:else}{'\n'}{/if}</span>{/each}</pre>
 			</div>
 		</div>
@@ -237,20 +276,30 @@
 					</div>
 				</div>
 			</div>
-			<div class="diff-content" bind:this={rightContentEl}>
+			<div class="diff-content" bind:this={rightContentEl} onscroll={(e) => { rightScrollTop = e.currentTarget.scrollTop; }}>
 				<div class="line-numbers">
-					{#each rightLines as line, i}
-						<span 
+					<!-- Virtual scroll spacer before visible lines -->
+					{#if rightVisibleStart > 0}
+						<div style="height: {rightVisibleStart * LINE_HEIGHT}px;"></div>
+					{/if}
+
+					{#each visibleRightLines as line, i}
+						<span
 							class="line-num {getLineClass(line.type, line.originalIdx)}"
-							data-line-idx={i}
+							data-line-idx={rightVisibleStart + i}
 						>
-							{i + 1}
+							{rightVisibleStart + i + 1}
 						</span>
 					{/each}
+
+					<!-- Virtual scroll spacer after visible lines -->
+					{#if rightVisibleEnd < rightLines.length}
+						<div style="height: {(rightLines.length - rightVisibleEnd) * LINE_HEIGHT}px;"></div>
+					{/if}
 				</div>
-				<pre class="diff-code">{#each rightLines as line, i}<span 
-	class="diff-line {getLineClass(line.type, line.originalIdx)}" 
-	data-line-idx={i}
+				<pre class="diff-code">{#each visibleRightLines as line, i}<span
+	class="diff-line {getLineClass(line.type, line.originalIdx)}"
+	data-line-idx={rightVisibleStart + i}
 >{formatLine(line)}{#if !line.isClose},{'\n'}{:else}{'\n'}{/if}</span>{/each}</pre>
 			</div>
 		</div>
@@ -462,7 +511,7 @@
 	.line-numbers {
 		display: flex;
 		flex-direction: column;
-		padding: 0.5rem 0;
+		padding: 0;
 		background: var(--color-surface);
 		border-right: 1px solid var(--color-border);
 		min-width: 40px;
@@ -477,7 +526,10 @@
 		font-size: 0.75rem;
 		line-height: 1.5;
 		color: var(--color-text-muted);
-		min-height: 1.5em;
+		height: 1.5em;
+		display: flex;
+		align-items: center;
+		flex-shrink: 0;
 	}
 
 	.line-num.line-added {
@@ -498,7 +550,7 @@
 	.diff-code {
 		flex: 1;
 		margin: 0;
-		padding: 0.5rem 0;
+		padding: 0;
 		font-family: var(--font-mono);
 		font-size: 0.8rem;
 		line-height: 1.5;
@@ -509,7 +561,8 @@
 		display: block;
 		padding: 0 0.75rem;
 		white-space: pre;
-		min-height: 1.5em;
+		height: 1.5em;
+		flex-shrink: 0;
 	}
 
 	.line-added {

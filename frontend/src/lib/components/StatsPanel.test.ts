@@ -22,6 +22,8 @@ describe('StatsPanel', () => {
 			added_count: 2,
 			removed_count: 1,
 			modified_count: 2,
+			total_count: 5,
+			has_more: false,
 			differences: [],
 			left_tree: { value: {}, path: '$', diff_type: 'unchanged' },
 			right_tree: { value: {}, path: '$', diff_type: 'unchanged' }
@@ -47,6 +49,8 @@ describe('StatsPanel', () => {
 			added_count: 0,
 			removed_count: 0,
 			modified_count: 0,
+			total_count: 0,
+			has_more: false,
 			differences: [],
 			left_tree: { value: {}, path: '$', diff_type: 'unchanged' },
 			right_tree: { value: {}, path: '$', diff_type: 'unchanged' }
