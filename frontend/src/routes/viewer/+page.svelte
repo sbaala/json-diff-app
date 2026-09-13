@@ -159,13 +159,10 @@
 		}, 0);
 	}
 
-	function handlePaste(e: ClipboardEvent) {
-		const text = e.clipboardData?.getData('text');
-		if (text) {
-			updateActiveTab({ jsonInput: text });
-			// Auto-parse after paste
-			setTimeout(parseJson, 0);
-		}
+	function handlePaste() {
+		// Native paste inserts the text and fires `oninput` (which updates state);
+		// setting state here too would insert the text twice. Just auto-parse after.
+		setTimeout(parseJson, 0);
 	}
 
 	function toggleExpandAll() {
