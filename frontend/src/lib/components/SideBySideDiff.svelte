@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
-	import type { InlineDiffResult, DiffLine } from '$lib/utils/jsonDiff';
+	import { onMount } from 'svelte';
+	import type { InlineDiffResult, DiffLine, DiffType } from '$lib/utils/jsonDiff';
 
 	interface Props {
 		diffResult: InlineDiffResult;
@@ -8,139 +8,207 @@
 
 	let { diffResult }: Props = $props();
 
-	// Virtual scroll configuration
-	const LINE_HEIGHT = 24; // pixels (1.5em * 16px = 24px)
-	const BUFFER_LINES = 50; // render 50 lines above/below viewport
+	// Fixed row height (px) drives the virtual-scroll math; CSS reads it via --row-h
+	const ROW_HEIGHT = 22;
+	const BUFFER_ROWS = 40;
+	// Used until the viewport has been measured (also the jsdom/SSR case)
+	const FALLBACK_VISIBLE_ROWS = 40;
 
-	// Current difference navigation
-	let currentDiffIndex = $state(0);
-	let leftContentEl: HTMLElement | null = null;
-	let rightContentEl: HTMLElement | null = null;
-
-	// Virtual scroll state
-	let leftScrollTop = $state(0);
-	let rightScrollTop = $state(0);
-
-	// Build line index map and separate lines in one pass (O(n) instead of O(n²))
-	let { leftLines, rightLines } = $derived.by(() => {
-		const left: any[] = [];
-		const right: any[] = [];
-
-		diffResult.lines.forEach((line, originalIdx) => {
-			if (line.type !== 'added') {
-				left.push({
-					...line,
-					displayIdx: left.length,
-					originalIdx
-				});
-			}
-			if (line.type !== 'removed') {
-				right.push({
-					...line,
-					displayIdx: right.length,
-					originalIdx
-				});
-			}
-		});
-
-		return { leftLines: left, rightLines: right };
-	});
-
-	// Compute visible range for virtual scrolling
-	// Estimate: assume viewport can show ~50 lines (24px each = ~1200px height)
-	// This is conservative and works for most screen sizes
-	const VISIBLE_LINES = 50;
-
-	let leftVisibleStart = $derived(Math.max(0, Math.floor(leftScrollTop / LINE_HEIGHT) - BUFFER_LINES));
-	let leftVisibleEnd = $derived(
-		Math.min(leftLines.length, Math.ceil(leftScrollTop / LINE_HEIGHT) + VISIBLE_LINES + BUFFER_LINES)
-	);
-
-	let rightVisibleStart = $derived(Math.max(0, Math.floor(rightScrollTop / LINE_HEIGHT) - BUFFER_LINES));
-	let rightVisibleEnd = $derived(
-		Math.min(rightLines.length, Math.ceil(rightScrollTop / LINE_HEIGHT) + VISIBLE_LINES + BUFFER_LINES)
-	);
-
-	// Render only visible lines
-	let visibleLeftLines = $derived(leftLines.slice(leftVisibleStart, leftVisibleEnd));
-	let visibleRightLines = $derived(rightLines.slice(rightVisibleStart, rightVisibleEnd));
-
-	// Find all difference positions (indices of changed lines in original array)
-	let diffIndices = $derived(
-		diffResult.lines
-			.map((line, idx) => ({ line, idx }))
-			.filter(({ line }) => line.type === 'added' || line.type === 'removed')
-			.map(({ idx }) => idx)
-	);
-
-	let totalDiffs = $derived(diffIndices.length);
-	let hasDiffs = $derived(totalDiffs > 0);
-
-	// Get current diff's original index
-	let currentOriginalIdx = $derived(
-		hasDiffs ? diffIndices[currentDiffIndex] : -1
-	);
-
-	function getLineClass(type: string, originalIdx: number): string {
-		const isCurrent = originalIdx === currentOriginalIdx;
-		let cls = '';
-		switch (type) {
-			case 'added': cls = 'line-added'; break;
-			case 'removed': cls = 'line-removed'; break;
-			case 'modified': cls = 'line-modified'; break;
-			default: cls = 'line-unchanged';
-		}
-		if (isCurrent) cls += ' current-diff';
-		return cls;
+	// One row of the side-by-side view. A null type means that side has no line
+	// for this row and renders as an empty cell.
+	interface DiffRow {
+		leftNum: number | null;
+		leftText: string;
+		leftType: DiffType | null;
+		rightNum: number | null;
+		rightText: string;
+		rightType: DiffType | null;
 	}
 
-	function formatLine(line: DiffLine): string {
-		return line.line;
+	// A run of consecutive changed rows; navigation jumps hunk to hunk
+	interface Hunk {
+		start: number;
+		end: number;
+	}
+
+	// A value or closing bracket gets a trailing comma when the next line on the
+	// same side is a sibling (same depth). Opening brackets never do.
+	function needsComma(line: DiffLine, next: DiffLine): boolean {
+		return !line.isOpen && next.depth === line.depth;
+	}
+
+	// Align left and right lines into rows so both panels share one scroll
+	// position. A removed line immediately followed by an added line at the same
+	// path (a changed primitive) is shown on a single row.
+	let { rows, leftLineCount, rightLineCount, maxLineLength } = $derived.by(() => {
+		const lines = diffResult.lines;
+		const rows: DiffRow[] = [];
+		let leftNum = 0;
+		let rightNum = 0;
+		let maxLineLength = 0;
+		// Previous row per side, so its comma can be appended once its successor is known
+		let prevLeft: { row: DiffRow; line: DiffLine } | null = null;
+		let prevRight: { row: DiffRow; line: DiffLine } | null = null;
+
+		function placeLeft(row: DiffRow, line: DiffLine) {
+			if (prevLeft && needsComma(prevLeft.line, line)) prevLeft.row.leftText += ',';
+			row.leftNum = ++leftNum;
+			row.leftText = line.line;
+			row.leftType = line.type;
+			prevLeft = { row, line };
+			if (line.line.length > maxLineLength) maxLineLength = line.line.length;
+		}
+
+		function placeRight(row: DiffRow, line: DiffLine) {
+			if (prevRight && needsComma(prevRight.line, line)) prevRight.row.rightText += ',';
+			row.rightNum = ++rightNum;
+			row.rightText = line.line;
+			row.rightType = line.type;
+			prevRight = { row, line };
+			if (line.line.length > maxLineLength) maxLineLength = line.line.length;
+		}
+
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i];
+			const row: DiffRow = {
+				leftNum: null,
+				leftText: '',
+				leftType: null,
+				rightNum: null,
+				rightText: '',
+				rightType: null
+			};
+
+			if (line.type === 'removed') {
+				placeLeft(row, line);
+				const next = lines[i + 1];
+				const isChangedPrimitive =
+					next?.type === 'added' &&
+					next.path === line.path &&
+					!line.isOpen && !line.isClose && !next.isOpen && !next.isClose;
+				if (isChangedPrimitive) {
+					placeRight(row, next);
+					i++;
+				}
+			} else if (line.type === 'added') {
+				placeRight(row, line);
+			} else {
+				placeLeft(row, line);
+				placeRight(row, line);
+			}
+			rows.push(row);
+		}
+
+		return { rows, leftLineCount: leftNum, rightLineCount: rightNum, maxLineLength };
+	});
+
+	function isChanged(row: DiffRow): boolean {
+		return row.leftType === 'removed' || row.rightType === 'added';
+	}
+
+	let hunks = $derived.by(() => {
+		const out: Hunk[] = [];
+		for (let i = 0; i < rows.length; i++) {
+			if (!isChanged(rows[i])) continue;
+			const last = out[out.length - 1];
+			if (last && last.end === i - 1) last.end = i;
+			else out.push({ start: i, end: i });
+		}
+		return out;
+	});
+
+	let currentHunk = $state(0);
+	let totalHunks = $derived(hunks.length);
+	let hasDiffs = $derived(totalHunks > 0);
+	let currentRange = $derived<Hunk | null>(hunks[currentHunk] ?? null);
+
+	function inCurrentHunk(rowIdx: number): boolean {
+		return currentRange !== null && rowIdx >= currentRange.start && rowIdx <= currentRange.end;
+	}
+
+	function cellClass(type: DiffType | null): string {
+		if (type === null) return 'empty';
+		if (type === 'added' || type === 'removed') return type;
+		return '';
+	}
+
+	// Virtual scroll: one scroll position shared by both panels
+	let scrollTop = $state(0);
+	let viewportHeight = $state(0);
+	let leftContentEl = $state<HTMLElement | null>(null);
+	let rightContentEl = $state<HTMLElement | null>(null);
+
+	let visibleRowCount = $derived(
+		viewportHeight > 0 ? Math.ceil(viewportHeight / ROW_HEIGHT) + 1 : FALLBACK_VISIBLE_ROWS
+	);
+	let firstRow = $derived(Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_ROWS));
+	let lastRow = $derived(
+		Math.min(rows.length, Math.floor(scrollTop / ROW_HEIGHT) + visibleRowCount + BUFFER_ROWS)
+	);
+	let visibleRows = $derived(rows.slice(firstRow, lastRow));
+	let padTop = $derived(firstRow * ROW_HEIGHT);
+	let padBottom = $derived((rows.length - lastRow) * ROW_HEIGHT);
+
+	// Gutter fits the widest line number; the width holder keeps the horizontal
+	// scroll range stable while different rows are virtualised in and out
+	let gutterWidth = $derived(`${String(Math.max(leftLineCount, rightLineCount, 1)).length}ch`);
+	let codeWidth = $derived(`${maxLineLength}ch`);
+
+	function handleScroll(source: HTMLElement, target: HTMLElement | null) {
+		scrollTop = source.scrollTop;
+		if (target && Math.abs(target.scrollTop - source.scrollTop) > 1) {
+			target.scrollTop = source.scrollTop;
+		}
+	}
+
+	function setScroll(el: HTMLElement | null, top: number, behavior: ScrollBehavior) {
+		if (!el) return;
+		if (typeof el.scrollTo === 'function') el.scrollTo({ top, behavior });
+		else el.scrollTop = top;
+	}
+
+	function scrollBoth(top: number, behavior: ScrollBehavior = 'smooth') {
+		setScroll(leftContentEl, top, behavior);
+		setScroll(rightContentEl, top, behavior);
+	}
+
+	function scrollToHunk(index: number, behavior: ScrollBehavior = 'smooth') {
+		const hunk = hunks[index];
+		if (!hunk) return;
+		// Center the hunk's first row; long jumps skip the smooth animation
+		const top = Math.max(0, hunk.start * ROW_HEIGHT - Math.max(0, viewportHeight - ROW_HEIGHT) / 2);
+		const mode: ScrollBehavior = Math.abs(top - scrollTop) > viewportHeight * 4 ? 'auto' : behavior;
+		scrollBoth(top, mode);
 	}
 
 	function goToNextDiff() {
-		if (currentDiffIndex < totalDiffs - 1) {
-			currentDiffIndex++;
-			scrollToCurrentDiff();
+		if (currentHunk < totalHunks - 1) {
+			currentHunk++;
+			scrollToHunk(currentHunk);
 		}
 	}
 
 	function goToPrevDiff() {
-		if (currentDiffIndex > 0) {
-			currentDiffIndex--;
-			scrollToCurrentDiff();
+		if (currentHunk > 0) {
+			currentHunk--;
+			scrollToHunk(currentHunk);
 		}
 	}
 
-	async function scrollToCurrentDiff() {
-		await tick();
-
-		const currentLine = diffResult.lines[currentOriginalIdx];
-		if (!currentLine) return;
-
-		// Find which panel to scroll (using virtual scroll indices)
-		if (currentLine.type === 'removed' && leftContentEl) {
-			const leftIdx = leftLines.findIndex(l => l.originalIdx === currentOriginalIdx);
-			if (leftIdx >= 0) {
-				// Calculate scroll position to center the line
-				const targetScrollTop = Math.max(0, leftIdx * LINE_HEIGHT - (window.innerHeight / 2));
-				leftContentEl.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
-			}
-		} else if (currentLine.type === 'added' && rightContentEl) {
-			const rightIdx = rightLines.findIndex(l => l.originalIdx === currentOriginalIdx);
-			if (rightIdx >= 0) {
-				// Calculate scroll position to center the line
-				const targetScrollTop = Math.max(0, rightIdx * LINE_HEIGHT - (window.innerHeight / 2));
-				rightContentEl.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
-			}
-		}
-	}
-
-	// Scroll to first diff on mount if there are diffs
 	onMount(() => {
-		if (hasDiffs) {
-			setTimeout(() => scrollToCurrentDiff(), 100);
+		const el = leftContentEl;
+		if (!el) return;
+		const measure = () => {
+			viewportHeight = el.clientHeight;
+		};
+		measure();
+		let observer: ResizeObserver | null = null;
+		if (typeof ResizeObserver !== 'undefined') {
+			observer = new ResizeObserver(measure);
+			observer.observe(el);
 		}
+		if (hasDiffs) scrollToHunk(0, 'auto');
+		return () => observer?.disconnect();
 	});
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -152,21 +220,11 @@
 			goToPrevDiff();
 		}
 	}
-
-	function scrollToTop(side: 'left' | 'right') {
-		if (side === 'left') leftContentEl?.scrollTo({ top: 0, behavior: 'smooth' });
-		else rightContentEl?.scrollTo({ top: 0, behavior: 'smooth' });
-	}
-
-	function scrollToBottom(side: 'left' | 'right') {
-		if (side === 'left') leftContentEl?.scrollTo({ top: leftContentEl.scrollHeight, behavior: 'smooth' });
-		else rightContentEl?.scrollTo({ top: rightContentEl.scrollHeight, behavior: 'smooth' });
-	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="side-by-side-diff">
+<div class="side-by-side-diff" style="--row-h: {ROW_HEIGHT}px;">
 	<!-- Navigation bar -->
 	<div class="diff-nav-bar">
 		<div class="diff-stats">
@@ -176,26 +234,26 @@
 
 		{#if hasDiffs}
 			<div class="diff-navigation">
-				<button 
-					class="nav-btn" 
-					onclick={goToPrevDiff} 
-					disabled={currentDiffIndex === 0}
-					title="Previous difference (↑ or k)"
+				<button
+					class="nav-btn"
+					onclick={goToPrevDiff}
+					disabled={currentHunk === 0}
+					title="Previous change (↑ or k)"
 				>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<polyline points="18 15 12 9 6 15"/>
 					</svg>
 				</button>
-				
-				<span class="diff-counter">
-					<strong>{currentDiffIndex + 1}</strong> of <strong>{totalDiffs}</strong>
+
+				<span class="diff-counter" title="Change {currentHunk + 1} of {totalHunks}">
+					<strong>{currentHunk + 1}</strong> of <strong>{totalHunks}</strong>
 				</span>
-				
-				<button 
-					class="nav-btn" 
-					onclick={goToNextDiff} 
-					disabled={currentDiffIndex === totalDiffs - 1}
-					title="Next difference (↓ or j)"
+
+				<button
+					class="nav-btn"
+					onclick={goToNextDiff}
+					disabled={currentHunk === totalHunks - 1}
+					title="Next change (↓ or j)"
 				>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<polyline points="6 9 12 15 18 9"/>
@@ -222,14 +280,14 @@
 			<div class="panel-header">
 				<span class="panel-title">Original (Left)</span>
 				<div class="panel-actions">
-					<span class="line-count">{leftLines.length} lines</span>
+					<span class="line-count">{leftLineCount} lines</span>
 					<div class="scroll-btns">
-						<button type="button" class="scroll-btn" onclick={() => scrollToTop('left')} title="Scroll to top">
+						<button type="button" class="scroll-btn" onclick={() => scrollBoth(0)} title="Scroll to top">
 							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 								<polyline points="18 15 12 9 6 15"/>
 							</svg>
 						</button>
-						<button type="button" class="scroll-btn" onclick={() => scrollToBottom('left')} title="Scroll to bottom">
+						<button type="button" class="scroll-btn" onclick={() => scrollBoth(rows.length * ROW_HEIGHT)} title="Scroll to bottom">
 							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 								<polyline points="6 9 12 15 18 9"/>
 							</svg>
@@ -237,31 +295,23 @@
 					</div>
 				</div>
 			</div>
-			<div class="diff-content" bind:this={leftContentEl} onscroll={(e) => { leftScrollTop = e.currentTarget.scrollTop; }}>
-				<div class="line-numbers">
-					<!-- Virtual scroll spacer before visible lines -->
-					{#if leftVisibleStart > 0}
-						<div style="height: {leftVisibleStart * LINE_HEIGHT}px;"></div>
-					{/if}
-
-					{#each visibleLeftLines as line, i}
-						<span
-							class="line-num {getLineClass(line.type, line.originalIdx)}"
-							data-line-idx={leftVisibleStart + i}
-						>
-							{leftVisibleStart + i + 1}
-						</span>
+			<div
+				class="diff-content"
+				bind:this={leftContentEl}
+				onscroll={(e) => handleScroll(e.currentTarget, rightContentEl)}
+			>
+				<div
+					class="rows"
+					style="padding-top: {padTop}px; padding-bottom: {padBottom}px; --gutter-w: {gutterWidth}; --code-w: {codeWidth};"
+				>
+					<div class="width-holder" aria-hidden="true"></div>
+					{#each visibleRows as row, i (firstRow + i)}
+						<div class="row {cellClass(row.leftType)}" class:current={inCurrentHunk(firstRow + i)}>
+							<span class="num">{row.leftNum ?? ''}</span>
+							<span class="code">{row.leftText}</span>
+						</div>
 					{/each}
-
-					<!-- Virtual scroll spacer after visible lines -->
-					{#if leftVisibleEnd < leftLines.length}
-						<div style="height: {(leftLines.length - leftVisibleEnd) * LINE_HEIGHT}px;"></div>
-					{/if}
 				</div>
-				<pre class="diff-code">{#each visibleLeftLines as line, i}<span
-	class="diff-line {getLineClass(line.type, line.originalIdx)}"
-	data-line-idx={leftVisibleStart + i}
->{formatLine(line)}{#if !line.isClose},{'\n'}{:else}{'\n'}{/if}</span>{/each}</pre>
 			</div>
 		</div>
 
@@ -269,14 +319,14 @@
 			<div class="panel-header">
 				<span class="panel-title">Modified (Right)</span>
 				<div class="panel-actions">
-					<span class="line-count">{rightLines.length} lines</span>
+					<span class="line-count">{rightLineCount} lines</span>
 					<div class="scroll-btns">
-						<button type="button" class="scroll-btn" onclick={() => scrollToTop('right')} title="Scroll to top">
+						<button type="button" class="scroll-btn" onclick={() => scrollBoth(0)} title="Scroll to top">
 							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 								<polyline points="18 15 12 9 6 15"/>
 							</svg>
 						</button>
-						<button type="button" class="scroll-btn" onclick={() => scrollToBottom('right')} title="Scroll to bottom">
+						<button type="button" class="scroll-btn" onclick={() => scrollBoth(rows.length * ROW_HEIGHT)} title="Scroll to bottom">
 							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 								<polyline points="6 9 12 15 18 9"/>
 							</svg>
@@ -284,31 +334,23 @@
 					</div>
 				</div>
 			</div>
-			<div class="diff-content" bind:this={rightContentEl} onscroll={(e) => { rightScrollTop = e.currentTarget.scrollTop; }}>
-				<div class="line-numbers">
-					<!-- Virtual scroll spacer before visible lines -->
-					{#if rightVisibleStart > 0}
-						<div style="height: {rightVisibleStart * LINE_HEIGHT}px;"></div>
-					{/if}
-
-					{#each visibleRightLines as line, i}
-						<span
-							class="line-num {getLineClass(line.type, line.originalIdx)}"
-							data-line-idx={rightVisibleStart + i}
-						>
-							{rightVisibleStart + i + 1}
-						</span>
+			<div
+				class="diff-content"
+				bind:this={rightContentEl}
+				onscroll={(e) => handleScroll(e.currentTarget, leftContentEl)}
+			>
+				<div
+					class="rows"
+					style="padding-top: {padTop}px; padding-bottom: {padBottom}px; --gutter-w: {gutterWidth}; --code-w: {codeWidth};"
+				>
+					<div class="width-holder" aria-hidden="true"></div>
+					{#each visibleRows as row, i (firstRow + i)}
+						<div class="row {cellClass(row.rightType)}" class:current={inCurrentHunk(firstRow + i)}>
+							<span class="num">{row.rightNum ?? ''}</span>
+							<span class="code">{row.rightText}</span>
+						</div>
 					{/each}
-
-					<!-- Virtual scroll spacer after visible lines -->
-					{#if rightVisibleEnd < rightLines.length}
-						<div style="height: {(rightLines.length - rightVisibleEnd) * LINE_HEIGHT}px;"></div>
-					{/if}
 				</div>
-				<pre class="diff-code">{#each visibleRightLines as line, i}<span
-	class="diff-line {getLineClass(line.type, line.originalIdx)}"
-	data-line-idx={rightVisibleStart + i}
->{formatLine(line)}{#if !line.isClose},{'\n'}{:else}{'\n'}{/if}</span>{/each}</pre>
 			</div>
 		</div>
 	</div>
@@ -510,97 +552,84 @@
 		color: white;
 	}
 
+	/* Virtualised rows */
 	.diff-content {
-		display: flex;
 		flex: 1;
 		overflow: auto;
-	}
-
-	.line-numbers {
-		display: flex;
-		flex-direction: column;
-		padding: 0;
-		background: var(--color-surface);
-		border-right: 1px solid var(--color-border);
-		min-width: 40px;
-		text-align: right;
-		user-select: none;
-		flex-shrink: 0;
-	}
-
-	.line-num {
-		padding: 0 0.5rem;
-		font-family: var(--font-mono);
-		font-size: 0.75rem;
-		line-height: 1.5;
-		color: var(--color-text-muted);
-		height: 1.5em;
-		display: flex;
-		align-items: center;
-		flex-shrink: 0;
-	}
-
-	.line-num.line-added {
-		background: rgba(34, 197, 94, 0.08);
-		color: var(--color-success);
-	}
-
-	.line-num.line-removed {
-		background: rgba(239, 68, 68, 0.08);
-		color: var(--color-error);
-	}
-
-	.line-num.current-diff {
-		background: var(--color-primary) !important;
-		color: white !important;
-	}
-
-	.diff-code {
-		flex: 1;
-		margin: 0;
-		padding: 0;
 		font-family: var(--font-mono);
 		font-size: 0.8rem;
-		line-height: 1.5;
-		overflow-x: auto;
 	}
 
-	.diff-line {
-		display: block;
-		padding: 0 0.75rem;
+	/* max-content so row backgrounds span the full horizontal scroll range */
+	.rows {
+		width: max-content;
+		min-width: 100%;
+	}
+
+	.width-holder {
+		height: 0;
+		width: calc(var(--gutter-w) + var(--code-w) + 3rem);
+	}
+
+	.row {
+		display: flex;
+		height: var(--row-h);
+		line-height: var(--row-h);
 		white-space: pre;
-		height: 1.5em;
-		flex-shrink: 0;
 	}
 
-	.line-added {
+	.num {
+		position: sticky;
+		left: 0;
+		z-index: 1;
+		flex: 0 0 auto;
+		box-sizing: content-box;
+		min-width: var(--gutter-w);
+		padding: 0 0.5rem;
+		text-align: right;
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+		background: var(--color-surface);
+		border-right: 1px solid var(--color-border);
+		user-select: none;
+	}
+
+	.code {
+		flex: 1 0 auto;
+		padding: 0 0.75rem;
+	}
+
+	.row.added {
 		background: rgba(34, 197, 94, 0.12);
 	}
 
-	.line-removed {
+	/* Gutter stays opaque so code doesn't show through when scrolled sideways */
+	.row.added .num {
+		color: var(--color-success);
+		background: linear-gradient(rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.15)), var(--color-surface);
+	}
+
+	.row.removed {
 		background: rgba(239, 68, 68, 0.12);
 	}
 
-	.line-modified {
-		background: rgba(234, 179, 8, 0.12);
+	.row.removed .num {
+		color: var(--color-error);
+		background: linear-gradient(rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.15)), var(--color-surface);
 	}
 
-	/* Current diff highlight */
-	.diff-line.current-diff {
-		background: rgba(139, 92, 246, 0.25) !important;
-		outline: 2px solid var(--color-primary);
-		outline-offset: -2px;
-		border-radius: 2px;
+	/* No counterpart on this side */
+	.row.empty {
+		background: repeating-linear-gradient(
+			-45deg,
+			transparent 0 6px,
+			rgba(127, 127, 127, 0.08) 6px 12px
+		);
 	}
 
-	.diff-line.current-diff.line-added {
-		background: rgba(34, 197, 94, 0.3) !important;
-		outline-color: var(--color-success);
-	}
-
-	.diff-line.current-diff.line-removed {
-		background: rgba(239, 68, 68, 0.3) !important;
-		outline-color: var(--color-error);
+	.row.current .num {
+		background: var(--color-primary);
+		color: white;
 	}
 
 	/* Responsive */
@@ -654,15 +683,11 @@
 			font-size: 0.75rem;
 		}
 
-		.line-numbers {
-			min-width: 30px;
-		}
-
-		.line-num {
+		.num {
 			font-size: 0.65rem;
 		}
 
-		.diff-code {
+		.diff-content {
 			font-size: 0.7rem;
 		}
 	}
