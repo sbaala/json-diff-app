@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { BrandBadge } from '$lib/components';
 	import TabBar from '$lib/components/TabBar.svelte';
-	import JsonTreeNode from '$lib/components/JsonTreeNode.svelte';
+	import JsonTreeView from '$lib/components/JsonTreeView.svelte';
 	import { createTabManager } from '$lib/stores/tabManager';
 
 	interface ViewerTabState {
@@ -197,6 +197,26 @@
 		tabManager.renameTab(id, newName);
 	}
 
+	let treeView: ReturnType<typeof JsonTreeView> | undefined = $state();
+	let matchCount = $state(0);
+	let currentMatch = $state(0);
+	let fullscreen = $state(false);
+
+	function handleSearchKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			if (e.shiftKey) treeView?.prev();
+			else treeView?.next();
+		} else if (e.key === 'Escape' && searchTerm) {
+			e.stopPropagation();
+			handleSearchChange('');
+		}
+	}
+
+	function handleWindowKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape' && fullscreen) fullscreen = false;
+	}
+
 	async function downloadJson() {
 		if (!parsedData) return;
 		const blob = new Blob([JSON.stringify(parsedData, null, 2)], { type: 'application/json' });
@@ -213,13 +233,13 @@
 	<title>JSON Viewer - Freebies JSON Tools</title>
 </svelte:head>
 
+<svelte:window onkeydown={handleWindowKeydown} />
+
 <div class="container">
 	<div class="page-header">
-		<BrandBadge />
-		<div class="page-header-copy">
-			<h1>JSON Viewer</h1>
-			<p>Explore and navigate JSON data with an interactive tree view</p>
-		</div>
+		<BrandBadge size={26} />
+		<h1>JSON Viewer</h1>
+		<p>Explore and navigate JSON data with an interactive tree view</p>
 	</div>
 
 	{#if tabs && tabs.length > 0}
@@ -262,12 +282,21 @@
 			</div>
 		</div>
 
-		<div class="viewer-panel card">
+		<div class="viewer-panel card" class:fullscreen>
 			<div class="panel-header">
-				<h2>Tree View</h2>
+				<div class="panel-title">
+					<h2>{viewMode === 'tree' ? 'Tree View' : 'Raw View'}</h2>
+					{#if parsedData && stats}
+						<span class="stats-inline">
+							<span><b>{stats.keys.toLocaleString()}</b> keys</span>
+							<span><b>{stats.depth}</b> depth</span>
+							<span><b>{stats.size}</b></span>
+						</span>
+					{/if}
+				</div>
 				<div class="header-actions">
 					{#if parsedData}
-						<div class="search-box">
+						<div class="search-box" class:no-match={searchTerm.trim() && matchCount === 0}>
 							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 								<circle cx="11" cy="11" r="8" />
 								<path d="M21 21l-4.35-4.35" />
@@ -277,8 +306,22 @@
 								value={searchTerm}
 								onchange={(e) => handleSearchChange(e.currentTarget.value)}
 								oninput={(e) => handleSearchChange(e.currentTarget.value)}
+								onkeydown={handleSearchKeydown}
 								placeholder="Search keys/values..."
+								disabled={viewMode !== 'tree'}
+								title={viewMode !== 'tree' ? 'Switch to Tree view to search' : 'Enter = next, Shift+Enter = previous'}
 							/>
+							{#if searchTerm.trim() && viewMode === 'tree'}
+								<span class="match-count" aria-live="polite">
+									{matchCount ? `${currentMatch} / ${matchCount.toLocaleString()}` : 'No matches'}
+								</span>
+								<button class="nav-btn" onclick={() => treeView?.prev()} disabled={!matchCount} title="Previous match (Shift+Enter)" aria-label="Previous match">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15" /></svg>
+								</button>
+								<button class="nav-btn" onclick={() => treeView?.next()} disabled={!matchCount} title="Next match (Enter)" aria-label="Next match">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+								</button>
+							{/if}
 						</div>
 						<div class="view-toggle">
 							<button
@@ -303,6 +346,18 @@
 							Download
 						</button>
 					{/if}
+					<button
+						class="action-btn icon-only"
+						onclick={() => (fullscreen = !fullscreen)}
+						title={fullscreen ? 'Exit full screen (Esc)' : 'Full screen'}
+						aria-label={fullscreen ? 'Exit full screen' : 'Full screen'}
+					>
+						{#if fullscreen}
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" /></svg>
+						{:else}
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" /></svg>
+						{/if}
+					</button>
 				</div>
 			</div>
 
@@ -318,32 +373,22 @@
 					</div>
 				</div>
 			{:else if parsedData}
-				{#if stats}
-					<div class="stats-bar">
-						<div class="stat">
-							<span class="stat-label">Keys</span>
-							<span class="stat-value">{stats.keys}</span>
-						</div>
-						<div class="stat">
-							<span class="stat-label">Depth</span>
-							<span class="stat-value">{stats.depth}</span>
-						</div>
-						<div class="stat">
-							<span class="stat-label">Size</span>
-							<span class="stat-value">{stats.size}</span>
-						</div>
+				{#if viewMode === 'tree'}
+					<div class="tree-container">
+						<JsonTreeView
+							bind:this={treeView}
+							bind:matchCount
+							bind:currentMatch
+							data={parsedData}
+							{searchTerm}
+							{expandAll}
+						/>
+					</div>
+				{:else}
+					<div class="raw-container">
+						<pre class="raw-view">{JSON.stringify(parsedData, null, 2)}</pre>
 					</div>
 				{/if}
-
-				<div class="tree-container">
-					{#if viewMode === 'tree'}
-						{#key expandAll}
-							<JsonTreeNode data={parsedData} {searchTerm} {expandAll} />
-						{/key}
-					{:else}
-						<pre class="raw-view">{JSON.stringify(parsedData, null, 2)}</pre>
-					{/if}
-				</div>
 			{:else}
 				<div class="empty-state">
 					<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
@@ -365,29 +410,46 @@
 	.page-header {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
-		margin-bottom: 0.75rem;
+		gap: 0.6rem;
+		margin-bottom: 0.5rem;
+		min-width: 0;
 	}
 
 	.page-header h1 {
-		font-size: 1.5rem;
+		font-size: 1.15rem;
+		line-height: 1.2;
+		margin: 0;
+		white-space: nowrap;
 		background: var(--gradient-primary);
 		-webkit-background-clip: text;
 		background-clip: text;
 		color: transparent;
-		margin-bottom: 0.25rem;
 	}
 
 	.page-header p {
+		margin: 0;
+		font-size: 0.8rem;
 		color: var(--color-text-muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		min-width: 0;
 	}
 
 	.viewer-layout {
 		display: grid;
-		grid-template-columns: 400px 1fr;
-		gap: 1rem;
-		height: calc(100vh - 280px);
-		min-height: 500px;
+		grid-template-columns: 360px 1fr;
+		gap: 0.75rem;
+		height: calc(100vh - 225px);
+		min-height: 460px;
+	}
+
+	.viewer-panel.fullscreen {
+		position: fixed;
+		inset: 0;
+		z-index: 1000;
+		border-radius: 0;
+		border: none;
 	}
 
 	.input-panel,
@@ -401,15 +463,84 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 1rem;
+		padding: 0.5rem 0.75rem;
 		border-bottom: 1px solid var(--color-border);
 		flex-wrap: wrap;
 		gap: 0.5rem;
 	}
 
 	.panel-header h2 {
-		font-size: 1rem;
+		font-size: 0.9rem;
 		font-weight: 600;
+		margin: 0;
+		white-space: nowrap;
+	}
+
+	.panel-title {
+		display: flex;
+		align-items: baseline;
+		gap: 0.75rem;
+		min-width: 0;
+	}
+
+	.stats-inline {
+		display: flex;
+		gap: 0.6rem;
+		font-size: 0.72rem;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+	}
+
+	.stats-inline b {
+		color: var(--color-primary);
+		font-weight: 600;
+	}
+
+	.action-btn.icon-only {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.375rem 0.5rem;
+	}
+
+	.match-count {
+		font-size: 0.72rem;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+		font-variant-numeric: tabular-nums;
+		padding-left: 0.25rem;
+		border-left: 1px solid var(--color-border);
+	}
+
+	.search-box.no-match {
+		border-color: var(--color-error);
+	}
+
+	.search-box.no-match .match-count {
+		color: var(--color-error);
+	}
+
+	.nav-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 20px;
+		height: 20px;
+		padding: 0;
+		background: none;
+		border: none;
+		border-radius: 4px;
+		color: var(--color-text-muted);
+		cursor: pointer;
+	}
+
+	.nav-btn:hover:not(:disabled) {
+		background: var(--color-surface);
+		color: var(--color-primary);
+	}
+
+	.nav-btn:disabled {
+		opacity: 0.4;
+		cursor: default;
 	}
 
 	.header-actions {
@@ -441,10 +572,10 @@
 		background: var(--color-bg);
 		border: 1px solid var(--color-border);
 		border-radius: 6px;
-		padding: 0.375rem 0.75rem;
+		padding: 0.25rem 0.5rem;
 	}
 
-	.search-box svg {
+	.search-box > svg {
 		color: var(--color-text-muted);
 		flex-shrink: 0;
 	}
@@ -506,7 +637,7 @@
 	}
 
 	.input-footer {
-		padding: 1rem;
+		padding: 0.5rem 0.75rem;
 		border-top: 1px solid var(--color-border);
 	}
 
@@ -540,36 +671,17 @@
 		color: var(--color-text-muted);
 	}
 
-	.stats-bar {
-		display: flex;
-		gap: 1.5rem;
-		padding: 0.75rem 1rem;
-		background: var(--color-bg);
-		border-bottom: 1px solid var(--color-border);
-	}
-
-	.stat {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.stat-label {
-		font-size: 0.75rem;
-		color: var(--color-text-muted);
-		text-transform: uppercase;
-	}
-
-	.stat-value {
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: var(--color-primary);
-	}
-
 	.tree-container {
 		flex: 1;
+		min-height: 0;
+		padding: 0.25rem 0;
+	}
+
+	.raw-container {
+		flex: 1;
+		min-height: 0;
 		overflow: auto;
-		padding: 1rem;
+		padding: 0.75rem 1rem;
 	}
 
 	.raw-view {
@@ -605,6 +717,12 @@
 
 	.empty-state p {
 		font-size: 0.875rem;
+	}
+
+	@media (max-width: 700px) {
+		.page-header p {
+			display: none;
+		}
 	}
 
 	@media (max-width: 900px) {
