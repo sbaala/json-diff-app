@@ -31,6 +31,7 @@
 	import TabBar from '$lib/components/TabBar.svelte';
 	import JsonTreeView from '$lib/components/JsonTreeView.svelte';
 	import { setCompareHandoff } from '$lib/stores/compareHandoff';
+	import { splitJsonDocuments } from '$lib/utils/splitJson';
 
 	let tabState = $state<{ tabs: any[]; activeTabId: string }>({ tabs: [], activeTabId: '' });
 
@@ -71,12 +72,35 @@
 			const calculatedStats = calculateStats(parsed);
 			updateActiveTab({ parsedData: parsed, stats: calculatedStats });
 		} catch (e) {
+			if (openDocumentsInTabs(jsonInput)) return;
 			const errorMsg = e instanceof Error ? e.message : 'Invalid JSON';
 			updateActiveTab({ error: errorMsg });
 		}
 	}
 
-	function calculateStats(data: unknown): { keys: number; depth: number; size: string } {
+	// Several JSON documents in one input: keep the first here, open the rest in new tabs
+	function openDocumentsInTabs(input: string): boolean {
+		const docs = splitJsonDocuments(input);
+		if (!docs || !activeTab) return false;
+
+		const currentId = activeTab.id;
+		const tabCount = tabs.length;
+		const [first, ...rest] = docs.map((doc) => ({
+			...defaultTabState,
+			jsonInput: doc.text,
+			parsedData: doc.value,
+			stats: calculateStats(doc.value, doc.text)
+		}));
+		updateActiveTab(first);
+		rest.forEach((state, i) => tabManager.addTab(state, `Viewer ${tabCount + i + 1}`));
+		tabManager.setActiveTab(currentId);
+		return true;
+	}
+
+	function calculateStats(
+		data: unknown,
+		text: string = jsonInput
+	): { keys: number; depth: number; size: string } {
 		let keyCount = 0;
 		let maxDepth = 0;
 
@@ -94,7 +118,7 @@
 
 		traverse(data, 0);
 
-		const size = new Blob([jsonInput]).size;
+		const size = new Blob([text]).size;
 		const sizeStr = size < 1024 ? `${size} B` : size < 1024 * 1024 ? `${(size / 1024).toFixed(1)} KB` : `${(size / 1024 / 1024).toFixed(1)} MB`;
 
 		return { keys: keyCount, depth: maxDepth, size: sizeStr };
