@@ -4,6 +4,8 @@
 	import { compareJson, getStatistics } from '$lib/api';
 	import { computeInlineDiff, type InlineDiffResult } from '$lib/utils/jsonDiff';
 	import type { CompareResponse, StatisticsResponse, AnnotatedNode } from '$lib/types';
+	import { onMount } from 'svelte';
+	import { takeCompareHandoff } from '$lib/stores/compareHandoff';
 
 	// Constants
 	const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -31,6 +33,15 @@
 	let compareResult = $state<CompareResponse | null>(null);
 	let statistics = $state<StatisticsResponse | null>(null);
 	let inlineDiffResult = $state<InlineDiffResult | null>(null);
+
+	// JSON sent over from another page (e.g. Viewer "Compare Tabs")
+	onMount(() => {
+		const handoff = takeCompareHandoff();
+		if (!handoff) return;
+		leftJson = handoff.left;
+		rightJson = handoff.right;
+		handleCompare();
+	});
 
 	function formatFileSize(bytes: number): string {
 		if (bytes < 1024) return `${bytes} B`;

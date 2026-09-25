@@ -1,7 +1,4 @@
-<script lang="ts">
-	import { BrandBadge } from '$lib/components';
-	import TabBar from '$lib/components/TabBar.svelte';
-	import JsonTreeView from '$lib/components/JsonTreeView.svelte';
+<script lang="ts" module>
 	import { createTabManager } from '$lib/stores/tabManager';
 
 	interface ViewerTabState {
@@ -24,7 +21,17 @@
 		stats: null
 	};
 
+	// Module scope: tabs survive in-app navigation (e.g. to Compare and back)
 	const tabManager = createTabManager(defaultTabState, 'Viewer 1');
+</script>
+
+<script lang="ts">
+	import { goto } from '$app/navigation';
+	import { BrandBadge } from '$lib/components';
+	import TabBar from '$lib/components/TabBar.svelte';
+	import JsonTreeView from '$lib/components/JsonTreeView.svelte';
+	import { setCompareHandoff } from '$lib/stores/compareHandoff';
+
 	let tabState = $state<{ tabs: any[]; activeTabId: string }>({ tabs: [], activeTabId: '' });
 
 	$effect.pre(() => {
@@ -197,6 +204,39 @@
 		tabManager.renameTab(id, newName);
 	}
 
+	let comparePickerOpen = $state(false);
+	let compareLeftId = $state('');
+	let compareRightId = $state('');
+	let compareError = $state<string | null>(null);
+
+	function openComparePicker() {
+		// Default: the active tab and its neighbour, in tab-bar order
+		const idx = Math.max(0, tabs.findIndex((t) => t.id === activeTabId));
+		const [l, r] = idx === tabs.length - 1 ? [idx - 1, idx] : [idx, idx + 1];
+		compareLeftId = tabs[l]?.id ?? '';
+		compareRightId = tabs[r]?.id ?? '';
+		compareError = null;
+		comparePickerOpen = true;
+	}
+
+	function compareTabs() {
+		const left = tabs.find((t) => t.id === compareLeftId);
+		const right = tabs.find((t) => t.id === compareRightId);
+		if (!left || !right) return;
+		if (left.id === right.id) {
+			compareError = 'Pick two different tabs';
+			return;
+		}
+		const empty = [left, right].find((t) => !t.state.jsonInput.trim());
+		if (empty) {
+			compareError = `"${empty.name}" has no JSON`;
+			return;
+		}
+		setCompareHandoff({ left: left.state.jsonInput, right: right.state.jsonInput });
+		comparePickerOpen = false;
+		goto('/compare');
+	}
+
 	let treeView: ReturnType<typeof JsonTreeView> | undefined = $state();
 	let matchCount = $state(0);
 	let currentMatch = $state(0);
@@ -243,14 +283,59 @@
 	</div>
 
 	{#if tabs && tabs.length > 0}
-		<TabBar
-			{tabs}
-			activeTabId={activeTabId || ''}
-			onSelectTab={handleSelectTab}
-			onAddTab={handleAddTab}
-			onRemoveTab={handleRemoveTab}
-			onRenameTab={handleRenameTab}
-		/>
+		<div class="tab-row">
+			<div class="tab-row-tabs">
+				<TabBar
+					{tabs}
+					activeTabId={activeTabId || ''}
+					onSelectTab={handleSelectTab}
+					onAddTab={handleAddTab}
+					onRemoveTab={handleRemoveTab}
+					onRenameTab={handleRenameTab}
+				/>
+			</div>
+			<div class="compare-tabs">
+				<button
+					class="action-btn compare-btn"
+					class:active={comparePickerOpen}
+					onclick={() => (comparePickerOpen ? (comparePickerOpen = false) : openComparePicker())}
+					disabled={tabs.length < 2}
+					title={tabs.length < 2 ? 'Open a second tab to compare' : 'Compare two tabs'}
+				>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
+					</svg>
+					Compare Tabs
+				</button>
+				{#if comparePickerOpen}
+					<div class="compare-picker" role="dialog" aria-label="Compare two tabs">
+						<label>
+							<span>Left</span>
+							<select bind:value={compareLeftId} onchange={() => (compareError = null)}>
+								{#each tabs as tab (tab.id)}
+									<option value={tab.id}>{tab.name}</option>
+								{/each}
+							</select>
+						</label>
+						<label>
+							<span>Right</span>
+							<select bind:value={compareRightId} onchange={() => (compareError = null)}>
+								{#each tabs as tab (tab.id)}
+									<option value={tab.id}>{tab.name}</option>
+								{/each}
+							</select>
+						</label>
+						{#if compareError}
+							<p class="compare-error">{compareError}</p>
+						{/if}
+						<div class="picker-actions">
+							<button class="action-btn" onclick={() => (comparePickerOpen = false)}>Cancel</button>
+							<button class="btn btn-primary" onclick={compareTabs}>Compare</button>
+						</div>
+					</div>
+				{/if}
+			</div>
+		</div>
 	{/if}
 
 	<div class="viewer-layout">
@@ -434,6 +519,96 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		min-width: 0;
+	}
+
+	.tab-row {
+		display: flex;
+		align-items: stretch;
+		background: var(--color-surface);
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.tab-row-tabs {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.tab-row-tabs :global(.tab-bar) {
+		border-bottom: none;
+	}
+
+	.compare-tabs {
+		position: relative;
+		display: flex;
+		align-items: center;
+		padding: 0 0.75rem;
+	}
+
+	.compare-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		white-space: nowrap;
+	}
+
+	.compare-btn.active {
+		border-color: var(--color-primary);
+		color: var(--color-primary);
+	}
+
+	.compare-btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.compare-picker {
+		position: absolute;
+		top: calc(100% + 4px);
+		right: 0.75rem;
+		z-index: 50;
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+		width: 260px;
+		padding: 0.75rem;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+	}
+
+	.compare-picker label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+	}
+
+	.compare-picker select {
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
+		color: var(--color-text);
+		font-size: 0.8rem;
+		padding: 0.375rem 0.5rem;
+	}
+
+	.compare-error {
+		margin: 0;
+		font-size: 0.75rem;
+		color: var(--color-error);
+	}
+
+	.picker-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.5rem;
+	}
+
+	.picker-actions .btn {
+		padding: 0.375rem 0.9rem;
+		font-size: 0.8rem;
 	}
 
 	.viewer-layout {
