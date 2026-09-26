@@ -86,7 +86,7 @@
 					bind:value={searchTerm}
 					onkeydown={handleSearchKeydown}
 					placeholder={mode === 'grid' ? 'Search rows...' : 'Search keys/values...'}
-					disabled={mode === 'raw'}
+					disabled={mode === 'raw' || mode === 'split'}
 				/>
 				{#if searchTerm.trim() && mode === 'tree'}
 					<span class="match-count">{matchCount ? `${currentMatch} / ${matchCount.toLocaleString()}` : 'No matches'}</span>
@@ -122,7 +122,9 @@
 		{:else if mode === 'raw'}
 			<pre class="raw-view">{JSON.stringify(value, null, 2)}</pre>
 		{:else if mode === 'split'}
-			<TreeGridSplitView {root} {searchTerm} onPathChange={onPathChange} {onOpenInTab} />
+			{#key pathKey}
+				<TreeGridSplitView root={value} />
+			{/key}
 		{:else if mode === 'tree' || !isContainer(value)}
 			{#if mode === 'grid'}
 				<p class="hint">A single value can't be shown as a grid.</p>

@@ -418,7 +418,7 @@
 		<div class="viewer-panel card" class:fullscreen>
 			<div class="panel-header">
 				<div class="panel-title">
-					<h2>{inspecting ? 'Inspect' : viewMode === 'tree' ? 'Tree View' : 'Raw View'}</h2>
+					<h2>{inspecting ? 'Inspect' : viewMode === 'tree' ? 'Tree View' : viewMode === 'split' ? 'Tree + Grid' : 'Raw View'}</h2>
 					{#if parsedData && stats}
 						<span class="stats-inline">
 							<span><b>{stats.keys.toLocaleString()}</b> keys</span>
@@ -547,12 +547,9 @@
 					</div>
 				{:else if viewMode === 'split' && !inspecting}
 					<div class="split-main-container">
-						<TreeGridSplitView
-							root={parsedData}
-							{searchTerm}
-							onPathChange={openInspector}
-							onOpenInTab={openNodeInTab}
-						/>
+						{#key parsedData}
+							<TreeGridSplitView root={parsedData} {expandAll} />
+						{/key}
 					</div>
 				{:else if !inspecting}
 					<div class="raw-container">

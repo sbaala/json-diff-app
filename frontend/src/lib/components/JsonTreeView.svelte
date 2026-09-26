@@ -16,6 +16,10 @@
 		currentMatch?: number;
 		/** Shows an "Inspect" action on non-empty objects/arrays; path is from `data`. */
 		onInspect?: (path: string[]) => void;
+		/** Makes non-empty object/array rows clickable; path is from `data`. */
+		onSelect?: (path: string[]) => void;
+		/** Highlighted row; its ancestors are expanded and it is scrolled into view. */
+		selectedPath?: string[] | null;
 	}
 
 	let {
@@ -24,7 +28,9 @@
 		expandAll = false,
 		matchCount = $bindable(0),
 		currentMatch = $bindable(0),
-		onInspect
+		onInspect,
+		onSelect,
+		selectedPath = null
 	}: Props = $props();
 
 	const ROW_HEIGHT = 24;
@@ -249,6 +255,43 @@
 		version++;
 	}
 
+	// ---- Selection ------------------------------------------------------------
+	function nodeAt(path: string[]): number {
+		const t = tree;
+		let n = 0;
+		for (const seg of path) {
+			let c = n + 1;
+			while (c < t.end[n] && t.keys[c] !== seg) c = t.end[c];
+			if (c >= t.end[n]) return -1;
+			n = c;
+		}
+		return n;
+	}
+
+	const selectedNode = $derived(selectedPath ? nodeAt(selectedPath) : -1);
+
+	$effect(() => {
+		const node = selectedNode;
+		if (node < 0) return;
+		untrack(() => {
+			const t = tree;
+			let changed = false;
+			for (let p = t.parent[node]; p >= 0; p = t.parent[p]) {
+				if (!expanded[p]) {
+					expanded[p] = 1;
+					changed = true;
+				}
+			}
+			if (changed) version++;
+			tick().then(() => scrollToNode(node));
+		});
+	});
+
+	function selectRow(e: MouseEvent, i: number) {
+		if ((e.target as Element).closest('button')) return;
+		onSelect?.(pathSegments(i));
+	}
+
 	// ---- Row helpers ----------------------------------------------------------
 	function isIndexKey(i: number): boolean {
 		const p = tree.parent[i];
@@ -323,11 +366,16 @@
 					{@const i = row}
 					{@const type = tree.types[i]}
 					{@const container = type === 'object' || type === 'array'}
+					{@const selectable = !!onSelect && container && tree.count[i] > 0}
+					<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 					<div
 						class="node-row"
 						class:match={matchSet.has(i)}
 						class:active={i === activeNode}
+						class:selectable
+						class:selected={i === selectedNode}
 						style="padding-left: {tree.depth[i] * INDENT + 8}px"
+						onclick={selectable ? (e) => selectRow(e, i) : undefined}
 					>
 						{#if container && tree.count[i] > 0}
 							<button class="toggle-btn" onclick={() => toggle(i)} aria-expanded={!!expanded[i]} aria-label="Toggle">
@@ -427,6 +475,15 @@
 
 	.node-row.match {
 		background: var(--color-primary-soft);
+	}
+
+	.node-row.selectable {
+		cursor: pointer;
+	}
+
+	.node-row.selected {
+		background: color-mix(in srgb, var(--color-secondary) 22%, transparent);
+		box-shadow: inset 3px 0 0 var(--color-secondary);
 	}
 
 	.node-row.active {
