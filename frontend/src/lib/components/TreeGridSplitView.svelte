@@ -18,6 +18,7 @@
 	const resolved = $derived(resolvePath(root, selectedPath));
 	const selectedValue = $derived(resolved.value);
 	const selectedName = $derived(selectedPath.length ? selectedPath[selectedPath.length - 1] : 'root');
+	const isRootSelected = $derived(selectedPath.length === 0);
 
 	let splitPos = $state(50);
 	let isDragging = $state(false);
@@ -26,6 +27,15 @@
 	let matchCount = $state(0);
 	let currentMatch = $state(0);
 	let treeWrapperEl: HTMLDivElement | undefined = $state();
+	let initialized = $state(false);
+
+	// Auto-select root on mount
+	$effect(() => {
+		if (!initialized && root) {
+			selectedPath = [];
+			initialized = true;
+		}
+	});
 
 	function handleNodeSelected(path: string[]) {
 		selectedPath = path;
@@ -33,19 +43,78 @@
 		onPathChange?.(path);
 	}
 
-	// Auto-click inspect button when tree node is clicked
+	// Extract path from node row by analyzing DOM structure
+	function extractPathFromNode(nodeRow: Element): string[] | null {
+		const style = window.getComputedStyle(nodeRow);
+		const paddingLeft = parseFloat(style.paddingLeft || '0');
+		const INDENT = 18;
+		const depth = Math.max(0, Math.round((paddingLeft - 8) / INDENT));
+
+		// Get the key/text content of this node
+		const keySpan = nodeRow.querySelector('.node-key');
+		if (!keySpan) return null;
+
+		const keyText = keySpan.textContent?.trim();
+		if (!keyText) return null;
+
+		// Build path by finding ancestors at each depth level
+		const path: string[] = [];
+		let currentDepth = depth;
+		let current: Element | null = nodeRow;
+
+		// Add current node key
+		path.push(keyText);
+
+		// Walk backwards to find parent nodes
+		while (currentDepth > 0 && current) {
+			let found = false;
+			let sibling: Element | null = current.previousElementSibling;
+
+			while (sibling) {
+				const siblingStyle = window.getComputedStyle(sibling);
+				const siblingPadding = parseFloat(siblingStyle.paddingLeft || '0');
+				const siblingDepth = Math.max(0, Math.round((siblingPadding - 8) / INDENT));
+
+				if (siblingDepth < currentDepth) {
+					const siblingKeySpan = sibling.querySelector('.node-key');
+					const siblingKey = siblingKeySpan?.textContent?.trim();
+					if (siblingKey) {
+						path.unshift(siblingKey);
+						currentDepth = siblingDepth;
+						current = sibling;
+						found = true;
+					}
+					break;
+				}
+				sibling = sibling.previousElementSibling;
+			}
+
+			if (!found) break;
+		}
+
+		return path;
+	}
+
+	// Auto-select node when tree node is clicked
 	function handleTreeClick(e: MouseEvent) {
 		const target = e.target as HTMLElement;
 		const nodeRow = target.closest('.node-row');
 		if (!nodeRow) return;
 
-		// Don't double-trigger on inspect button
+		// Don't trigger on inspect button (it has its own handler via onInspect)
 		if (target.closest('.inspect')) return;
 
-		// Find and click the inspect button for this node
+		// First try clicking the inspect button if it exists
 		const inspectBtn = nodeRow.querySelector('.inspect') as HTMLButtonElement | null;
 		if (inspectBtn) {
 			inspectBtn.click();
+			return;
+		}
+
+		// If no inspect button, extract path from DOM and select directly
+		const path = extractPathFromNode(nodeRow);
+		if (path) {
+			handleNodeSelected(path);
 		}
 	}
 
@@ -116,7 +185,7 @@
 			{/key}
 		{:else}
 			<div class="hint">
-				<p>{selectedPath.length === 0 ? 'Select a container (object/array)' : 'This is a single value, not a container'}</p>
+				<p>{isRootSelected ? 'Root is a single value (not a container)' : 'This is a single value, not a container'}</p>
 				<p class="hint-small">Click an object or array in the tree to view its data as a grid.</p>
 			</div>
 		{/if}
