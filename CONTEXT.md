@@ -21,7 +21,7 @@
 | 7 | **Lint** | `/lint` | No | JSON schema validation and linting |
 | 8 | **Graph** | `/graph` | No | Visual graph/tree rendering of JSON structure |
 
-The root route (`/`) is the **VinMi landing page** (`+page.svelte`) — brand overview (Software Engineering, AI Solutions, Intelligent Automation), a toolkit index, and contact (`tamizhezhutthu@gmail.com`).
+The root route (`/`) is the **VinMi landing page** (`+page.svelte`) — brand overview (Software Engineering, AI Solutions, Intelligent Automation), a toolkit index, and contact (`vinmi.tech@gmail.com`).
 
 ---
 

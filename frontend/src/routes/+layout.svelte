@@ -186,7 +186,7 @@
 				</span>
 			</div>
 			<p class="footer-meta">
-				<a class="footer-link" href="mailto:tamizhezhutthu@gmail.com">tamizhezhutthu@gmail.com</a>
+				<a class="footer-link" href="mailto:vinmi.tech@gmail.com">vinmi.tech@gmail.com</a>
 				<span class="footer-sep">·</span>
 				<a
 					class="footer-link"
