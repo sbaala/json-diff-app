@@ -1,10 +1,11 @@
 <script lang="ts" module>
-	export type InspectMode = 'grid' | 'tree' | 'raw';
+	export type InspectMode = 'grid' | 'tree' | 'raw' | 'split';
 </script>
 
 <script lang="ts">
 	import JsonGridView from './JsonGridView.svelte';
 	import JsonTreeView from './JsonTreeView.svelte';
+	import TreeGridSplitView from './TreeGridSplitView.svelte';
 	import { resolvePath, isContainer } from '$lib/utils/gridModel';
 
 	/**
@@ -98,9 +99,9 @@
 				{/if}
 			</div>
 			<div class="view-toggle">
-				{#each ['grid', 'tree', 'raw'] as const as m (m)}
+				{#each ['grid', 'tree', 'split', 'raw'] as const as m (m)}
 					<button class="toggle-btn" class:active={mode === m} onclick={() => onModeChange(m)}>
-						{m[0].toUpperCase() + m.slice(1)}
+						{m === 'split' ? 'Tree+Grid' : m[0].toUpperCase() + m.slice(1)}
 					</button>
 				{/each}
 			</div>
@@ -120,6 +121,8 @@
 			</div>
 		{:else if mode === 'raw'}
 			<pre class="raw-view">{JSON.stringify(value, null, 2)}</pre>
+		{:else if mode === 'split'}
+			<TreeGridSplitView {root} {path} {searchTerm} onPathChange={onPathChange} {onOpenInTab} />
 		{:else if mode === 'tree' || !isContainer(value)}
 			{#if mode === 'grid'}
 				<p class="hint">A single value can't be shown as a grid.</p>

@@ -8,7 +8,7 @@
 		error: string | null;
 		searchTerm: string;
 		expandAll: boolean;
-		viewMode: 'tree' | 'raw';
+		viewMode: 'tree' | 'raw' | 'split';
 		stats: { keys: number; depth: number; size: string } | null;
 		/** Child shown on its own in the inspector; null = full tree */
 		inspectPath: string[] | null;
@@ -37,6 +37,7 @@
 	import TabBar from '$lib/components/TabBar.svelte';
 	import JsonTreeView from '$lib/components/JsonTreeView.svelte';
 	import JsonNodeInspector from '$lib/components/JsonNodeInspector.svelte';
+	import TreeGridSplitView from '$lib/components/TreeGridSplitView.svelte';
 	import { setCompareHandoff } from '$lib/stores/compareHandoff';
 	import { splitJsonDocuments } from '$lib/utils/splitJson';
 
@@ -219,7 +220,7 @@
 		updateActiveTab({ searchTerm: newValue });
 	}
 
-	function handleViewModeChange(newMode: 'tree' | 'raw') {
+	function handleViewModeChange(newMode: 'tree' | 'raw' | 'split') {
 		updateActiveTab({ viewMode: newMode });
 	}
 
@@ -465,6 +466,14 @@
 							</button>
 							<button
 								class="toggle-btn"
+								class:active={viewMode === 'split'}
+								onclick={() => handleViewModeChange('split')}
+								title="Tree and grid side-by-side"
+							>
+								Tree+Grid
+							</button>
+							<button
+								class="toggle-btn"
 								class:active={viewMode === 'raw'}
 								onclick={() => handleViewModeChange('raw')}
 							>
@@ -534,6 +543,16 @@
 							{searchTerm}
 							{expandAll}
 							onInspect={openInspector}
+						/>
+					</div>
+				{:else if viewMode === 'split' && !inspecting}
+					<div class="split-main-container">
+						<TreeGridSplitView
+							root={parsedData}
+							path={[]}
+							{searchTerm}
+							onPathChange={openInspector}
+							onOpenInTab={openNodeInTab}
 						/>
 					</div>
 				{:else if !inspecting}
@@ -937,6 +956,12 @@
 		color: var(--color-text);
 		white-space: pre;
 		margin: 0;
+	}
+
+	.split-main-container {
+		flex: 1;
+		min-height: 0;
+		display: flex;
 	}
 
 	.empty-state {
