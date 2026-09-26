@@ -50,6 +50,27 @@
 		return unsubscribe;
 	});
 
+	// Panels fill the viewport below wherever the layout starts (nav wrap and the
+	// privacy banner shift it), so measure instead of hard-coding the offset.
+	let layoutEl = $state<HTMLDivElement>();
+	let layoutTop = $state(160);
+
+	$effect(() => {
+		if (!layoutEl) return;
+		const el = layoutEl;
+		const measure = () => {
+			layoutTop = Math.round(el.getBoundingClientRect().top + window.scrollY);
+		};
+		measure();
+		const ro = new ResizeObserver(measure);
+		ro.observe(document.body);
+		window.addEventListener('resize', measure);
+		return () => {
+			ro.disconnect();
+			window.removeEventListener('resize', measure);
+		};
+	});
+
 	let tabs = $derived(tabState.tabs);
 	let activeTabId = $derived(tabState.activeTabId);
 	let activeTab = $derived(tabs.find((t) => t.id === activeTabId));
@@ -323,24 +344,26 @@
 
 <svelte:window onkeydown={handleWindowKeydown} />
 
-<div class="container">
-	<div class="page-header">
-		<BrandBadge size={26} />
-		<h1>JSON Viewer</h1>
-		<p>Explore and navigate JSON data with an interactive tree view</p>
-	</div>
+{#snippet tabBar()}
+	<TabBar
+		{tabs}
+		activeTabId={activeTabId || ''}
+		onSelectTab={handleSelectTab}
+		onAddTab={handleAddTab}
+		onRemoveTab={handleRemoveTab}
+		onRenameTab={handleRenameTab}
+	/>
+{/snippet}
 
-	{#if tabs && tabs.length > 0}
-		<div class="tab-row">
+<div class="container viewer-page">
+	<div class="tab-row">
+		<div class="page-header" title="Explore and navigate JSON data with an interactive tree view">
+			<BrandBadge size={20} />
+			<h1>JSON Viewer</h1>
+		</div>
+		{#if tabs && tabs.length > 0}
 			<div class="tab-row-tabs">
-				<TabBar
-					{tabs}
-					activeTabId={activeTabId || ''}
-					onSelectTab={handleSelectTab}
-					onAddTab={handleAddTab}
-					onRemoveTab={handleRemoveTab}
-					onRenameTab={handleRenameTab}
-				/>
+				{@render tabBar()}
 			</div>
 			<div class="compare-tabs">
 				<button
@@ -383,10 +406,10 @@
 					</div>
 				{/if}
 			</div>
-		</div>
-	{/if}
+		{/if}
+	</div>
 
-	<div class="viewer-layout">
+	<div class="viewer-layout" bind:this={layoutEl} style:--layout-top="{layoutTop}px">
 		<div class="input-panel card">
 			<div class="panel-header">
 				<h2>Input JSON</h2>
@@ -416,6 +439,11 @@
 		</div>
 
 		<div class="viewer-panel card" class:fullscreen>
+			{#if fullscreen && tabs.length > 0}
+				<div class="tab-row-tabs fullscreen-tabs">
+					{@render tabBar()}
+				</div>
+			{/if}
 			<div class="panel-header">
 				<div class="panel-title">
 					<h2>{inspecting ? 'Inspect' : viewMode === 'tree' ? 'Tree View' : viewMode === 'split' ? 'Tree + Grid' : 'Raw View'}</h2>
@@ -567,6 +595,9 @@
 					</svg>
 					<h3>No JSON Data</h3>
 					<p>Paste or enter JSON in the input panel and click "View JSON"</p>
+					{#if fullscreen}
+						<button class="action-btn" onclick={() => (fullscreen = false)}>Exit full screen to add JSON</button>
+					{/if}
 				</div>
 			{/if}
 		</div>
@@ -574,16 +605,26 @@
 </div>
 
 <style>
+	/* Workspace page: drop the layout's vertical breathing room so panels get it */
+	:global(main.main:has(> .viewer-page)) {
+		padding: 0;
+	}
+
+	.viewer-page {
+		max-width: none;
+		padding: 0.4rem 0.4rem 2px;
+	}
+
 	.page-header {
 		display: flex;
 		align-items: center;
-		gap: 0.6rem;
-		margin-bottom: 0.5rem;
-		min-width: 0;
+		gap: 0.45rem;
+		padding: 0 0.25rem 0 0.75rem;
+		flex-shrink: 0;
 	}
 
 	.page-header h1 {
-		font-size: 1.15rem;
+		font-size: 1rem;
 		line-height: 1.2;
 		margin: 0;
 		white-space: nowrap;
@@ -593,21 +634,13 @@
 		color: transparent;
 	}
 
-	.page-header p {
-		margin: 0;
-		font-size: 0.8rem;
-		color: var(--color-text-muted);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		min-width: 0;
-	}
-
 	.tab-row {
 		display: flex;
 		align-items: stretch;
+		margin-bottom: 0.5rem;
 		background: var(--color-surface);
-		border-bottom: 1px solid var(--color-border);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
 	}
 
 	.tab-row-tabs {
@@ -617,6 +650,14 @@
 
 	.tab-row-tabs :global(.tab-bar) {
 		border-bottom: none;
+		background: transparent;
+		min-height: 36px;
+		padding: 0.25rem 0.5rem;
+	}
+
+	.tab-row-tabs :global(.tab) {
+		padding: 0.3rem 0.7rem;
+		border-radius: 6px;
 	}
 
 	.compare-tabs {
@@ -697,7 +738,8 @@
 		display: grid;
 		grid-template-columns: 360px 1fr;
 		gap: 0.75rem;
-		height: calc(100vh - 225px);
+		/* Fill to the viewport bottom, leaving the container's bottom padding */
+		height: calc(100dvh - var(--layout-top, 160px) - 2px);
 		min-height: 460px;
 	}
 
@@ -707,6 +749,11 @@
 		z-index: 1000;
 		border-radius: 0;
 		border: none;
+	}
+
+	.fullscreen-tabs {
+		flex: none;
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.input-panel,
@@ -987,7 +1034,7 @@
 	}
 
 	@media (max-width: 700px) {
-		.page-header p {
+		.page-header h1 {
 			display: none;
 		}
 	}

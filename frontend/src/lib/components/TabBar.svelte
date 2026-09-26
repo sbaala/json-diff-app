@@ -33,6 +33,8 @@
 		if (e.key === 'Enter') {
 			finishEdit(id);
 		} else if (e.key === 'Escape') {
+			// Cancel the rename only — don't let the page treat it as "exit full screen"
+			e.stopPropagation();
 			editingId = null;
 			editingValue = '';
 		}
