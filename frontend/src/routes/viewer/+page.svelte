@@ -1,5 +1,6 @@
 <script lang="ts" module>
 	import { createTabManager } from '$lib/stores/tabManager';
+	import type { InspectMode } from '$lib/components/JsonNodeInspector.svelte';
 
 	interface ViewerTabState {
 		jsonInput: string;
@@ -9,6 +10,9 @@
 		expandAll: boolean;
 		viewMode: 'tree' | 'raw';
 		stats: { keys: number; depth: number; size: string } | null;
+		/** Child shown on its own in the inspector; null = full tree */
+		inspectPath: string[] | null;
+		inspectMode: InspectMode;
 	}
 
 	const defaultTabState: ViewerTabState = {
@@ -18,7 +22,9 @@
 		searchTerm: '',
 		expandAll: false,
 		viewMode: 'tree',
-		stats: null
+		stats: null,
+		inspectPath: null,
+		inspectMode: 'grid'
 	};
 
 	// Module scope: tabs survive in-app navigation (e.g. to Compare and back)
@@ -30,6 +36,7 @@
 	import { BrandBadge } from '$lib/components';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import JsonTreeView from '$lib/components/JsonTreeView.svelte';
+	import JsonNodeInspector from '$lib/components/JsonNodeInspector.svelte';
 	import { setCompareHandoff } from '$lib/stores/compareHandoff';
 	import { splitJsonDocuments } from '$lib/utils/splitJson';
 
@@ -54,6 +61,9 @@
 	let expandAll = $derived(activeTab?.state.expandAll ?? false);
 	let viewMode = $derived(activeTab?.state.viewMode ?? 'tree' as const);
 	let stats = $derived(activeTab?.state.stats ?? null);
+	let inspectPath = $derived<string[] | null>(activeTab?.state.inspectPath ?? null);
+	let inspectMode = $derived<InspectMode>(activeTab?.state.inspectMode ?? 'grid');
+	let inspecting = $derived(!!parsedData && inspectPath !== null);
 
 	function updateActiveTab(newState: Partial<ViewerTabState>) {
 		if (!activeTab) return;
@@ -61,7 +71,7 @@
 	}
 
 	function parseJson() {
-		updateActiveTab({ error: null, parsedData: null, stats: null });
+		updateActiveTab({ error: null, parsedData: null, stats: null, inspectPath: null });
 
 		if (!jsonInput.trim()) {
 			return;
@@ -130,7 +140,8 @@
 			parsedData: null,
 			error: null,
 			stats: null,
-			searchTerm: ''
+			searchTerm: '',
+			inspectPath: null
 		});
 	}
 
@@ -210,6 +221,18 @@
 
 	function handleViewModeChange(newMode: 'tree' | 'raw') {
 		updateActiveTab({ viewMode: newMode });
+	}
+
+	function openInspector(path: string[]) {
+		updateActiveTab({ inspectPath: path });
+	}
+
+	function openNodeInTab(value: unknown, name: string) {
+		const text = JSON.stringify(value, null, 2);
+		tabManager.addTab(
+			{ ...defaultTabState, jsonInput: text, parsedData: value, stats: calculateStats(value, text) },
+			name
+		);
 	}
 
 	function handleAddTab() {
@@ -394,7 +417,7 @@
 		<div class="viewer-panel card" class:fullscreen>
 			<div class="panel-header">
 				<div class="panel-title">
-					<h2>{viewMode === 'tree' ? 'Tree View' : 'Raw View'}</h2>
+					<h2>{inspecting ? 'Inspect' : viewMode === 'tree' ? 'Tree View' : 'Raw View'}</h2>
 					{#if parsedData && stats}
 						<span class="stats-inline">
 							<span><b>{stats.keys.toLocaleString()}</b> keys</span>
@@ -404,7 +427,7 @@
 					{/if}
 				</div>
 				<div class="header-actions">
-					{#if parsedData}
+					{#if parsedData && !inspecting}
 						<div class="search-box" class:no-match={searchTerm.trim() && matchCount === 0}>
 							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 								<circle cx="11" cy="11" r="8" />
@@ -447,6 +470,13 @@
 							>
 								Raw
 							</button>
+							<button
+								class="toggle-btn"
+								onclick={() => openInspector([])}
+								title="Open as a grid — or hover any object/array row and click the grid icon to inspect just that child"
+							>
+								Grid
+							</button>
 						</div>
 						<button class="action-btn" onclick={toggleExpandAll}>
 							{expandAll ? 'Collapse All' : 'Expand All'}
@@ -482,8 +512,20 @@
 					</div>
 				</div>
 			{:else if parsedData}
+				{#if inspecting}
+					<JsonNodeInspector
+						root={parsedData}
+						path={inspectPath!}
+						mode={inspectMode}
+						onPathChange={openInspector}
+						onModeChange={(m) => updateActiveTab({ inspectMode: m })}
+						onClose={() => updateActiveTab({ inspectPath: null })}
+						onOpenInTab={openNodeInTab}
+					/>
+				{/if}
 				{#if viewMode === 'tree'}
-					<div class="tree-container">
+					<!-- Kept mounted while inspecting so expansion and scroll survive -->
+					<div class="tree-container" class:hidden={inspecting}>
 						<JsonTreeView
 							bind:this={treeView}
 							bind:matchCount
@@ -491,9 +533,10 @@
 							data={parsedData}
 							{searchTerm}
 							{expandAll}
+							onInspect={openInspector}
 						/>
 					</div>
-				{:else}
+				{:else if !inspecting}
 					<div class="raw-container">
 						<pre class="raw-view">{JSON.stringify(parsedData, null, 2)}</pre>
 					</div>
@@ -874,6 +917,10 @@
 		flex: 1;
 		min-height: 0;
 		padding: 0.25rem 0;
+	}
+
+	.tree-container.hidden {
+		display: none;
 	}
 
 	.raw-container {

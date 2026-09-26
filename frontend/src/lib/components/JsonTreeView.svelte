@@ -14,6 +14,8 @@
 		expandAll?: boolean;
 		matchCount?: number;
 		currentMatch?: number;
+		/** Shows an "Inspect" action on non-empty objects/arrays; path is from `data`. */
+		onInspect?: (path: string[]) => void;
 	}
 
 	let {
@@ -21,7 +23,8 @@
 		searchTerm = '',
 		expandAll = false,
 		matchCount = $bindable(0),
-		currentMatch = $bindable(0)
+		currentMatch = $bindable(0),
+		onInspect
 	}: Props = $props();
 
 	const ROW_HEIGHT = 24;
@@ -261,6 +264,12 @@
 		return 'root' + parts.reverse().join('');
 	}
 
+	function pathSegments(i: number): string[] {
+		const parts: string[] = [];
+		for (let n = i; n > 0; n = tree.parent[n]) parts.push(tree.keys[n]!);
+		return parts.reverse();
+	}
+
 	function formatValue(i: number): string {
 		const v = tree.values[i];
 		return tree.types[i] === 'string' ? JSON.stringify(v) : String(v);
@@ -350,6 +359,14 @@
 						</span>
 
 						<span class="node-actions">
+							{#if onInspect && container && tree.count[i] > 0}
+								<button class="action-icon inspect" onclick={() => onInspect(pathSegments(i))} title="Inspect as grid (search, filter, sort)">
+									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+										<rect x="3" y="3" width="18" height="18" rx="2" />
+										<path d="M3 9h18M3 15h18M9 3v18" />
+									</svg>
+								</button>
+							{/if}
 							<button class="action-icon" onclick={() => copy(pathOf(i))} title="Copy path">
 								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 									<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
