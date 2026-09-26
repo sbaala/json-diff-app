@@ -122,7 +122,7 @@
 		{:else if mode === 'raw'}
 			<pre class="raw-view">{JSON.stringify(value, null, 2)}</pre>
 		{:else if mode === 'split'}
-			<TreeGridSplitView {root} {path} {searchTerm} onPathChange={onPathChange} {onOpenInTab} />
+			<TreeGridSplitView {root} {searchTerm} onPathChange={onPathChange} {onOpenInTab} />
 		{:else if mode === 'tree' || !isContainer(value)}
 			{#if mode === 'grid'}
 				<p class="hint">A single value can't be shown as a grid.</p>

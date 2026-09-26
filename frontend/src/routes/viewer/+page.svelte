@@ -549,7 +549,6 @@
 					<div class="split-main-container">
 						<TreeGridSplitView
 							root={parsedData}
-							path={[]}
 							{searchTerm}
 							onPathChange={openInspector}
 							onOpenInTab={openNodeInTab}

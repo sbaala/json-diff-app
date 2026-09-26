@@ -5,18 +5,19 @@
 
 	interface Props {
 		root: unknown;
-		path: string[];
 		searchTerm?: string;
-		onPathChange: (path: string[]) => void;
+		onPathChange?: (path: string[]) => void;
 		onOpenInTab?: (value: unknown, name: string) => void;
 	}
 
-	let { root, path, searchTerm = '', onPathChange, onOpenInTab }: Props = $props();
+	let { root, searchTerm = '', onPathChange, onOpenInTab }: Props = $props();
 
-	const resolved = $derived(resolvePath(root, path));
-	const value = $derived(resolved.value);
-	const name = $derived(path.length ? path[path.length - 1] : 'root');
-	const pathKey = $derived(JSON.stringify(path));
+	// Track selected path for the right panel
+	let selectedPath = $state<string[]>([]);
+
+	const resolved = $derived(resolvePath(root, selectedPath));
+	const selectedValue = $derived(resolved.value);
+	const selectedName = $derived(selectedPath.length ? selectedPath[selectedPath.length - 1] : 'root');
 
 	let splitPos = $state(50);
 	let isDragging = $state(false);
@@ -25,8 +26,10 @@
 	let matchCount = $state(0);
 	let currentMatch = $state(0);
 
-	function drill(rel: string[]) {
-		onPathChange([...path, ...rel]);
+	function handleNodeSelected(path: string[]) {
+		selectedPath = path;
+		// Notify parent of selection change (for inspector mode)
+		onPathChange?.(path);
 	}
 
 	function handleMouseDown() {
@@ -59,41 +62,45 @@
 	<!-- Tree Panel -->
 	<div class="split-panel tree-panel" style="flex-basis: {splitPos}%">
 		<div class="panel-label">Tree View</div>
-		{#key pathKey}
+		<div class="tree-wrapper">
 			<JsonTreeView
 				bind:this={treeView}
 				bind:matchCount
 				bind:currentMatch
-				data={value}
+				data={root}
 				{searchTerm}
-				onInspect={(rel) => {
-					if (rel.length) drill(rel);
-				}}
+				onInspect={handleNodeSelected}
 			/>
-		{/key}
+		</div>
 	</div>
 
 	<!-- Resizable Divider -->
 	<button
 		class="split-divider"
 		onmousedown={handleMouseDown}
-		role="separator"
-		aria-label="Resize panels (drag to adjust size)"
+		aria-label="Resize panels: drag left to shrink tree, right to expand"
 		type="button"
-		aria-pressed="false"
+		title="Drag to resize panels"
 	></button>
 
 	<!-- Grid Panel -->
 	<div class="split-panel grid-panel" style="flex-basis: {100 - splitPos}%">
-		<div class="panel-label">Grid View</div>
-		{#if isContainer(value)}
-			{#key pathKey}
-				<JsonGridView data={value} {searchTerm} {name} onDrill={drill} />
+		<div class="panel-label">Grid View {selectedPath.length > 0 ? `(${selectedName})` : ''}</div>
+		{#if isContainer(selectedValue)}
+			{#key JSON.stringify(selectedPath)}
+				<JsonGridView
+					data={selectedValue}
+					{searchTerm}
+					name={selectedName}
+					onDrill={(rel) => {
+						handleNodeSelected([...selectedPath, ...rel]);
+					}}
+				/>
 			{/key}
 		{:else}
 			<div class="hint">
-				<p>A single value can't be shown as a grid.</p>
-				<p class="hint-small">Click a container in the tree to view its data as a grid.</p>
+				<p>{selectedPath.length === 0 ? 'Select a container (object/array)' : 'This is a single value, not a container'}</p>
+				<p class="hint-small">Click an object or array in the tree to view its data as a grid.</p>
 			</div>
 		{/if}
 	</div>
@@ -136,9 +143,17 @@
 		border-bottom: 1px solid var(--color-border);
 		text-transform: uppercase;
 		letter-spacing: 0.5px;
+		flex-shrink: 0;
 	}
 
-	.split-panel > :global(div:not(.panel-label)) {
+	.tree-wrapper {
+		flex: 1;
+		min-height: 0;
+		overflow: auto;
+		padding: 0.25rem 0;
+	}
+
+	.split-panel > :global(div:not(.panel-label):not(.tree-wrapper)) {
 		flex: 1;
 		min-height: 0;
 		overflow: hidden;
