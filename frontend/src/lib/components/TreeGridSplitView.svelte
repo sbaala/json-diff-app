@@ -25,11 +25,28 @@
 	let treeView: ReturnType<typeof JsonTreeView> | undefined = $state();
 	let matchCount = $state(0);
 	let currentMatch = $state(0);
+	let treeWrapperEl: HTMLDivElement | undefined = $state();
 
 	function handleNodeSelected(path: string[]) {
 		selectedPath = path;
 		// Notify parent of selection change (for inspector mode)
 		onPathChange?.(path);
+	}
+
+	// Auto-click inspect button when tree node is clicked
+	function handleTreeClick(e: MouseEvent) {
+		const target = e.target as HTMLElement;
+		const nodeRow = target.closest('.node-row');
+		if (!nodeRow) return;
+
+		// Don't double-trigger on inspect button
+		if (target.closest('.inspect')) return;
+
+		// Find and click the inspect button for this node
+		const inspectBtn = nodeRow.querySelector('.inspect') as HTMLButtonElement | null;
+		if (inspectBtn) {
+			inspectBtn.click();
+		}
 	}
 
 	function handleMouseDown() {
@@ -62,7 +79,7 @@
 	<!-- Tree Panel -->
 	<div class="split-panel tree-panel" style="flex-basis: {splitPos}%">
 		<div class="panel-label">Tree View</div>
-		<div class="tree-wrapper">
+		<div class="tree-wrapper" bind:this={treeWrapperEl} onclick={handleTreeClick} role="region" aria-label="JSON tree structure, click any container to view its contents in the grid">
 			<JsonTreeView
 				bind:this={treeView}
 				bind:matchCount
