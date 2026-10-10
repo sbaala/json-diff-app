@@ -12,21 +12,23 @@
 
 	const navItems = [
 		{ href: '/', label: 'Home' },
-		{ href: '/tools', label: 'Tools', flash: true },
+		{ href: '/tools', label: 'Tools' },
 		{ href: '/format', label: 'Format' },
 		{ href: '/viewer', label: 'Viewer' },
-		{ href: '/grid', label: 'Grid', flash: true },
+		{ href: '/grid', label: 'Grid' },
 		{ href: '/compare', label: 'JSON Diff' },
 		{ href: '/text', label: 'Text Diff' },
 		{ href: '/convert', label: 'Convert' },
-		{ href: '/sql', label: 'SQL', flash: true },
+		{ href: '/sql', label: 'SQL' },
 		{ href: '/lint', label: 'Lint' },
 		{ href: '/graph', label: 'Graph' },
-		{ href: '/spreadsheet', label: 'Sheets', flash: true },
-		{ href: '/visualize', label: 'Charts', flash: true },
-		{ href: '/flow', label: 'Flow', flash: true },
-		{ href: 'https://vinmi-frontend-d3h34miv7q-ue.a.run.app/', label: 'Blog', external: true, flash: true }
+		{ href: '/spreadsheet', label: 'Sheets' },
+		{ href: '/visualize', label: 'Charts' },
+		{ href: '/flow', label: 'Flow' },
+		{ href: 'https://vinmi-frontend-d3h34miv7q-ue.a.run.app/', label: 'Blog', external: true }
 	];
+
+	const educationUrl = 'https://vinmi-web-745285756444.us-central1.run.app/';
 
 	const currentTheme = $derived(themes.find((t) => t.id === $theme) ?? themes[0]);
 
@@ -100,7 +102,6 @@
 					<a
 						href={item.href}
 						class="nav-link"
-						class:nav-flash={item.flash}
 						class:active={!item.external && isActive(item.href)}
 						target={item.external ? '_blank' : undefined}
 						rel={item.external ? 'noopener noreferrer' : undefined}
@@ -112,6 +113,21 @@
 			</nav>
 
 			<div class="header-actions">
+				<a
+					href={educationUrl}
+					class="nav-link nav-cta nav-flash"
+					target="_blank"
+					rel="noopener noreferrer"
+					aria-label="Vinmi Education"
+				>
+					<svg class="nav-cta-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M22 10 12 5 2 10l10 5 10-5Z" />
+						<path d="M6 12v5c3 3 9 3 12 0v-5" />
+						<path d="M22 10v6" />
+					</svg>
+					<span><span class="nav-cta-brand">Vinmi&nbsp;</span>Education</span>
+				</a>
+
 				<div class="theme-switcher">
 					<button
 						class="icon-btn theme-trigger"
@@ -195,6 +211,15 @@
 					rel="noopener noreferrer"
 				>
 					Blog
+				</a>
+				<span class="footer-sep">·</span>
+				<a
+					class="footer-link"
+					href="https://vinmi-web-745285756444.us-central1.run.app/"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					Vinmi Education
 				</a>
 				<span class="footer-sep">·</span>
 				Enterprise JSON Toolkit
@@ -306,6 +331,77 @@
 		background: var(--color-primary-soft);
 		color: var(--color-primary);
 		font-weight: 600;
+	}
+
+	/* Call-to-action pill (Vinmi Education): shifting brand gradient + soft glow. */
+	.nav-link.nav-cta {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.5rem 0.9rem;
+		border-radius: var(--radius-full);
+		color: #fff;
+		font-weight: 700;
+		letter-spacing: 0.01em;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+		background: linear-gradient(
+			110deg,
+			var(--color-primary),
+			var(--color-accent),
+			var(--color-secondary),
+			var(--color-primary)
+		);
+		background-size: 300% 100%;
+		animation:
+			gradient-shift 6s ease infinite,
+			pulse-glow 2.8s ease-in-out infinite;
+		transition:
+			transform var(--transition),
+			filter var(--transition);
+	}
+
+	.nav-link.nav-cta:hover {
+		color: #fff;
+		transform: translateY(-1px) scale(1.03);
+		filter: brightness(1.1) saturate(1.1);
+	}
+
+	.nav-link.nav-cta:focus-visible {
+		outline: 2px solid var(--color-secondary);
+		outline-offset: 2px;
+	}
+
+	.nav-link.nav-cta::after {
+		background: var(--color-warning);
+		color: #1f1300;
+	}
+
+	.nav-cta-icon {
+		flex-shrink: 0;
+		animation: cap-bob 2.8s ease-in-out infinite;
+	}
+
+	@keyframes cap-bob {
+		0%,
+		100% {
+			transform: translateY(0) rotate(0deg);
+		}
+		50% {
+			transform: translateY(-2px) rotate(-8deg);
+		}
+	}
+
+	@media (max-width: 760px) {
+		.nav-link.nav-cta {
+			padding: 0.45rem 0.75rem;
+			font-size: 0.82rem;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.nav-cta-brand {
+			display: none;
+		}
 	}
 
 	/* ---- Actions / icon buttons ----------------------------------------- */
@@ -529,6 +625,28 @@
 	}
 
 	/* ---- Responsive ------------------------------------------------------ */
+	/* Leave room for the Vinmi Education pill so the nav stays on one row
+	   (the container caps at 1440px, so this holds on wider screens too). */
+	.nav {
+		gap: 0;
+	}
+	.nav-link {
+		padding: 0.5rem 0.5rem;
+	}
+	.theme-trigger-label {
+		display: none;
+	}
+
+	@media (max-width: 1366px) {
+		.nav-link {
+			padding: 0.45rem 0.35rem;
+			font-size: 0.8rem;
+		}
+		.nav-cta-brand {
+			display: none;
+		}
+	}
+
 	@media (max-width: 1024px) {
 		.nav {
 			gap: 0.1rem;

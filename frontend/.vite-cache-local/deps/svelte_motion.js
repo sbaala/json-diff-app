@@ -1,27 +1,28 @@
 import {
   MediaQuery
-} from "./chunk-GSJ6UCBT.js";
-import "./chunk-EMMU4UOF.js";
+} from "./chunk-BDF2WD42.js";
+import "./chunk-7B43DCJQ.js";
 import "./chunk-7RQDXF5S.js";
 import {
   linear
 } from "./chunk-7QVV7TAH.js";
 import {
   loop,
-  raf,
-  writable
-} from "./chunk-BGKIBZOJ.js";
-import "./chunk-N4R3GLCG.js";
+  raf
+} from "./chunk-TZI73K5N.js";
+import "./chunk-SACT46DI.js";
+import "./chunk-2VZQQ76M.js";
 import {
   deferred,
-  get,
+  get2 as get,
   noop,
   render_effect,
   set,
   state,
-  tag
-} from "./chunk-E5YAB55J.js";
-import "./chunk-32I45GV7.js";
+  tag,
+  writable
+} from "./chunk-F4D4JUGD.js";
+import "./chunk-RDQBLHQD.js";
 import {
   true_default
 } from "./chunk-2GRV7DLA.js";
@@ -31,7 +32,7 @@ import {
   __privateGet,
   __privateMethod,
   __privateSet
-} from "./chunk-UGBVNEQM.js";
+} from "./chunk-UT6A45DV.js";
 
 // node_modules/svelte/src/motion/utils.js
 function is_date(obj) {
@@ -155,7 +156,7 @@ var _stiffness, _damping, _precision, _current, _target, _last_value, _last_time
 var _Spring = class _Spring {
   /**
    * @param {T} value
-   * @param {SpringOpts} [options]
+   * @param {SpringOptions} [options]
    */
   constructor(value, options = {}) {
     __privateAdd(this, _Spring_instances);
@@ -200,7 +201,7 @@ var _Spring = class _Spring {
    * ```
    * @template U
    * @param {() => U} fn
-   * @param {SpringOpts} [options]
+   * @param {SpringOptions} [options]
    */
   static of(fn, options) {
     const spring2 = new _Spring(fn(), options);
@@ -218,7 +219,7 @@ var _Spring = class _Spring {
    * the specified number of milliseconds. This is useful for things like 'fling' gestures.
    *
    * @param {T} value
-   * @param {SpringUpdateOpts} [options]
+   * @param {SpringUpdateOptions} [options]
    */
   set(value, options) {
     var _a, _b;
@@ -448,12 +449,12 @@ var _current2, _target2, _defaults, _task2;
 var _Tween = class _Tween {
   /**
    * @param {T} value
-   * @param {TweenedOptions<T>} options
+   * @param {TweenOptions<T>} options
    */
   constructor(value, options = {}) {
     __privateAdd(this, _current2);
     __privateAdd(this, _target2);
-    /** @type {TweenedOptions<T>} */
+    /** @type {TweenOptions<T>} */
     __privateAdd(this, _defaults);
     /** @type {import('../internal/client/types').Task | null} */
     __privateAdd(this, _task2, null);
@@ -480,7 +481,7 @@ var _Tween = class _Tween {
    * ```
    * @template U
    * @param {() => U} fn
-   * @param {TweenedOptions<U>} [options]
+   * @param {TweenOptions<U>} [options]
    */
   static of(fn, options) {
     const tween = new _Tween(fn(), options);
@@ -494,7 +495,7 @@ var _Tween = class _Tween {
    *
    * If `options` are provided, they will override the tween's defaults.
    * @param {T} value
-   * @param {TweenedOptions<T>} [options]
+   * @param {TweenOptions<T>} [options]
    * @returns
    */
   set(value, options) {
@@ -527,6 +528,7 @@ var _Tween = class _Tween {
           duration = duration(prev, value);
         }
         previous_task == null ? void 0 : previous_task.abort();
+        previous_task = null;
       }
       const elapsed = now - start;
       if (elapsed > /** @type {number} */

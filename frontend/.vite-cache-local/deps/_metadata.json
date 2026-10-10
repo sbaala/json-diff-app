@@ -1,130 +1,154 @@
 {
-  "hash": "a88c6a1d",
+  "hash": "822bfd52",
   "configHash": "f4e6c6f6",
-  "lockfileHash": "6df6b758",
-  "browserHash": "4d86b444",
+  "lockfileHash": "c9b96e85",
+  "browserHash": "a33adfec",
   "optimized": {
     "svelte": {
       "src": "../../node_modules/svelte/src/index-client.js",
       "file": "svelte.js",
-      "fileHash": "7935efeb",
+      "fileHash": "065ea649",
       "needsInterop": false
     },
     "svelte/animate": {
       "src": "../../node_modules/svelte/src/animate/index.js",
       "file": "svelte_animate.js",
-      "fileHash": "789d1819",
+      "fileHash": "6cd88bcd",
       "needsInterop": false
     },
     "svelte/attachments": {
       "src": "../../node_modules/svelte/src/attachments/index.js",
       "file": "svelte_attachments.js",
-      "fileHash": "edb435bc",
+      "fileHash": "5a34f5fe",
       "needsInterop": false
     },
     "svelte/easing": {
       "src": "../../node_modules/svelte/src/easing/index.js",
       "file": "svelte_easing.js",
-      "fileHash": "1fbec4ed",
+      "fileHash": "06d5420f",
       "needsInterop": false
     },
     "svelte/internal": {
       "src": "../../node_modules/svelte/src/internal/index.js",
       "file": "svelte_internal.js",
-      "fileHash": "b70fd59d",
+      "fileHash": "abcc736c",
       "needsInterop": true
     },
     "svelte/internal/client": {
       "src": "../../node_modules/svelte/src/internal/client/index.js",
       "file": "svelte_internal_client.js",
-      "fileHash": "7e83797b",
+      "fileHash": "def11495",
       "needsInterop": false
     },
     "svelte/internal/disclose-version": {
       "src": "../../node_modules/svelte/src/internal/disclose-version.js",
       "file": "svelte_internal_disclose-version.js",
-      "fileHash": "eded68c7",
+      "fileHash": "6225b40e",
       "needsInterop": false
     },
     "svelte/internal/flags/async": {
       "src": "../../node_modules/svelte/src/internal/flags/async.js",
       "file": "svelte_internal_flags_async.js",
-      "fileHash": "5635d651",
+      "fileHash": "4f291028",
       "needsInterop": false
     },
     "svelte/internal/flags/legacy": {
       "src": "../../node_modules/svelte/src/internal/flags/legacy.js",
       "file": "svelte_internal_flags_legacy.js",
-      "fileHash": "07b06d54",
+      "fileHash": "d8e15968",
       "needsInterop": false
     },
     "svelte/internal/flags/tracing": {
       "src": "../../node_modules/svelte/src/internal/flags/tracing.js",
       "file": "svelte_internal_flags_tracing.js",
-      "fileHash": "e4693375",
+      "fileHash": "a340ceda",
       "needsInterop": false
     },
     "svelte/legacy": {
       "src": "../../node_modules/svelte/src/legacy/legacy-client.js",
       "file": "svelte_legacy.js",
-      "fileHash": "eb9859c7",
+      "fileHash": "6ef350ac",
       "needsInterop": false
     },
     "svelte/motion": {
       "src": "../../node_modules/svelte/src/motion/index.js",
       "file": "svelte_motion.js",
-      "fileHash": "5e064e53",
+      "fileHash": "5c9f40f4",
       "needsInterop": false
     },
     "svelte/reactivity": {
       "src": "../../node_modules/svelte/src/reactivity/index-client.js",
       "file": "svelte_reactivity.js",
-      "fileHash": "35cda9e7",
+      "fileHash": "f7fc1c26",
       "needsInterop": false
     },
     "svelte/reactivity/window": {
       "src": "../../node_modules/svelte/src/reactivity/window/index.js",
       "file": "svelte_reactivity_window.js",
-      "fileHash": "81bbddb4",
+      "fileHash": "ec0b270c",
       "needsInterop": false
     },
     "svelte/store": {
       "src": "../../node_modules/svelte/src/store/index-client.js",
       "file": "svelte_store.js",
-      "fileHash": "4d2ac4fa",
+      "fileHash": "2cc6f691",
       "needsInterop": false
     },
     "svelte/transition": {
       "src": "../../node_modules/svelte/src/transition/index.js",
       "file": "svelte_transition.js",
-      "fileHash": "5f384105",
+      "fileHash": "4934953b",
       "needsInterop": false
     },
     "svelte/events": {
       "src": "../../node_modules/svelte/src/events/index.js",
       "file": "svelte_events.js",
-      "fileHash": "ff1c4d0b",
+      "fileHash": "d078ce4e",
       "needsInterop": false
     },
     "devalue": {
       "src": "../../node_modules/devalue/index.js",
       "file": "devalue.js",
-      "fileHash": "660cb026",
+      "fileHash": "95095fc1",
       "needsInterop": false
     },
     "esm-env": {
       "src": "../../node_modules/esm-env/index.js",
       "file": "esm-env.js",
-      "fileHash": "0fb1cda6",
+      "fileHash": "14cb592f",
+      "needsInterop": false
+    },
+    "handsontable": {
+      "src": "../../node_modules/handsontable/index.mjs",
+      "file": "handsontable.js",
+      "fileHash": "51108eec",
+      "needsInterop": false
+    },
+    "hyperformula": {
+      "src": "../../node_modules/hyperformula/es/index.js",
+      "file": "hyperformula.js",
+      "fileHash": "8e7fad7f",
+      "needsInterop": false
+    },
+    "papaparse": {
+      "src": "../../node_modules/papaparse/papaparse.min.js",
+      "file": "papaparse.js",
+      "fileHash": "e2914983",
+      "needsInterop": true
+    },
+    "xlsx": {
+      "src": "../../node_modules/xlsx/xlsx.mjs",
+      "file": "xlsx.js",
+      "fileHash": "9ed69d26",
       "needsInterop": false
     }
   },
   "chunks": {
-    "chunk-GSJ6UCBT": {
-      "file": "chunk-GSJ6UCBT.js"
+    "chunk-BDF2WD42": {
+      "file": "chunk-BDF2WD42.js"
     },
-    "chunk-EMMU4UOF": {
-      "file": "chunk-EMMU4UOF.js"
+    "chunk-7B43DCJQ": {
+      "file": "chunk-7B43DCJQ.js"
     },
     "chunk-7RQDXF5S": {
       "file": "chunk-7RQDXF5S.js"
@@ -132,17 +156,20 @@
     "chunk-7QVV7TAH": {
       "file": "chunk-7QVV7TAH.js"
     },
-    "chunk-BGKIBZOJ": {
-      "file": "chunk-BGKIBZOJ.js"
+    "chunk-TZI73K5N": {
+      "file": "chunk-TZI73K5N.js"
     },
-    "chunk-N4R3GLCG": {
-      "file": "chunk-N4R3GLCG.js"
+    "chunk-SACT46DI": {
+      "file": "chunk-SACT46DI.js"
     },
-    "chunk-E5YAB55J": {
-      "file": "chunk-E5YAB55J.js"
+    "chunk-2VZQQ76M": {
+      "file": "chunk-2VZQQ76M.js"
     },
-    "chunk-32I45GV7": {
-      "file": "chunk-32I45GV7.js"
+    "chunk-F4D4JUGD": {
+      "file": "chunk-F4D4JUGD.js"
+    },
+    "chunk-RDQBLHQD": {
+      "file": "chunk-RDQBLHQD.js"
     },
     "chunk-2GRV7DLA": {
       "file": "chunk-2GRV7DLA.js"
@@ -150,8 +177,8 @@
     "chunk-6ZD2PQMF": {
       "file": "chunk-6ZD2PQMF.js"
     },
-    "chunk-UGBVNEQM": {
-      "file": "chunk-UGBVNEQM.js"
+    "chunk-UT6A45DV": {
+      "file": "chunk-UT6A45DV.js"
     }
   }
 }
